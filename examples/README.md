@@ -42,9 +42,9 @@ adapter: {id: jekyll-polyglot, version: 1}
 
 Die Beispielseiten aus Proposal § 6 haben normale Header mit Titel und Inhalt, ohne Permalink. `index.md` ergibt `/`, `leistungen/index.md` ergibt `/leistungen/`, `leistungen/diagnostik.md` ergibt `/leistungen/diagnostik.html`. Ein optionaler Ausnahme-Permalink muss innerhalb einer Sprachgruppe dieselbe unlokalisierte Route ergeben; er dient Schiller nicht als Gruppen-ID.
 
-Für die erwarteten Rückgaben aller elf Beispiele wird die größere Fixture aus Proposal §§ 6–7 verwendet: `url: https://example.org`, zusätzliche Sprache `fr` samt zentralem Verzeichnis-Default und vorhandener leerer Ordner `fr/leistungen/`. Außerdem gehören Felddefinitionen, Layout-Default und Projektberechtigungen aus § 7 dazu. Diese Voraussetzungen werden durch die PHP-Beispiele nicht automatisch angelegt. Die Minimalkonfiguration oben demonstriert nur die Verzeichniszuordnung, keine Schreibfreigabe.
+Für die erwarteten Rückgaben aller dreizehn Beispiele wird die größere Fixture aus Proposal §§ 6–7 verwendet: `url: https://example.org`, zusätzliche Sprache `fr` samt zentralem Verzeichnis-Default und vorhandener leerer Ordner `fr/leistungen/`. Außerdem gehören Felddefinitionen, Layout-Default und Projektberechtigungen aus § 7 dazu. Diese Voraussetzungen werden durch die PHP-Beispiele nicht automatisch angelegt. Die Minimalkonfiguration oben demonstriert nur die Verzeichniszuordnung, keine Schreibfreigabe.
 
-Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere nach dem Anlegen einer französischen Übersetzung sind die ursprünglichen Fallback-Rückgaben nicht mehr dieselben. Schreibbeispiele verändern eine übergebene Arbeitskopie und benötigen die im Proposal beschriebenen Projekt-/Hostrechte; die Rolle `user` wird als bereits serverseitig authentifiziert angenommen.
+Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere nach dem Anlegen einer französischen Übersetzung sind die ursprünglichen Verfügbarkeits- und Fallback-Rückgaben nicht mehr dieselben. Schreibbeispiele verändern eine übergebene Arbeitskopie und benötigen die im Proposal beschriebenen Projekt-/Hostrechte; die Rolle `user` wird als bereits serverseitig authentifiziert angenommen.
 
 | Datei | Anwendungsfall |
 |---|---|
@@ -58,8 +58,16 @@ Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere
 | [08-create-translation.php](08-create-translation.php) | Französische Übersetzungsdatei anlegen |
 | [09-update-page-parts.php](09-update-page-parts.php) | Header oder Body ändern, Feld entfernen |
 | [10-create-page.php](10-create-page.php) | Neue normale Seite anlegen |
-| [11-resolve-urls.php](11-resolve-urls.php) | Datei zu URL und URL zu Datei/Sprache, auch ohne Domain |
+| [11-resolve-urls.php](11-resolve-urls.php) | Document zu URL und URL direkt zu Document, Fehlerhinweise |
+| [12-rename-page.php](12-rename-page.php) | Stammdokument samt Übersetzungen umbenennen |
+| [13-delete-page.php](13-delete-page.php) | Einzelne Übersetzung oder vollständige Gruppe löschen |
 
 Die Kommentare zeigen erwartete Rückgabewerte beziehungsweise klar bezeichnete Projektionen. Enum-Werte werden überwiegend über `->value` beschrieben, um keine zusätzlichen Case-Namen festzulegen. Referenzen auf `YamlValue` sind PHPDoc-Konzepte aus dem Entwurf, keine nativen PHP-Klassen.
 
 Der bestehende Composer-Namespace ist noch ein Template-Platzhalter. Die Beispiele ändern ihn nicht. Sie lassen sich später unabhängig aufrufen; zum derzeitigen Stand ist nur statische Prüfung möglich.
+
+Alle Seiten sind `Document`-Objekte. `header` ist ein Array, `content` ein String; `save()` schreibt Änderungen. `createPage()` und `getTranslation(create: true)` erzeugen zunächst ungespeicherte Dokumente. `getTranslations()` liefert pro lesbarer Sprache `TranslationInfo` mit `exists`. `getRootDocument()` verweist auf das Original, beim Original auf sich selbst.
+
+`getDocumentByUrl()` liefert das tatsächliche Quelldokument oder wirft `UrlNotResolvableException` mit bereinigten Diagnosefeldern und passenden lesbaren URL-Vorschlägen. Host, Schema, Port, Zugangsdaten, Query und Fragment beeinflussen den lokalen Treffer nicht. `getUrl()` braucht keine Sprache; `getUrl(absolute: true)` verwendet die konfigurierte Domain.
+
+Rename und Delete schreiben sofort. Beispiel 12 benötigt zusätzlich vorhandene Ordner `medizin/` und `en/medizin/`. Beide Gruppenbeispiele verwenden die serverseitig vergebene Rolle `admin`; die Host-Policy und der Connector müssen diese Aktionen ebenfalls erlauben. Sie sind unabhängig auf frischen Arbeitskopien zu betrachten.

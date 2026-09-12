@@ -5,32 +5,27 @@ declare(strict_types=1);
 // ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
 // Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
 
-use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\FrontMatterPatch;
-use Leuffen\Schiller\PageDocument;
-use Leuffen\Schiller\PagePatch;
 use Leuffen\Schiller\SchillerDir;
+use Leuffen\Schiller\AccessContext;
+use Leuffen\Schiller\Document;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: zeigt drei aufeinanderfolgende, getrennte Dateiänderungen.
-return static function (PhoreDirectory $root): PageDocument {
+// SCHREIBBEISPIEL: drei getrennte Änderungen an einer Arbeitskopie.
+return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->page('leistungen/diagnostik.md');
+    $page = $site->getPage('leistungen/diagnostik.md');
 
-    $headerChanged = $page->update(new PagePatch(
-        header: new FrontMatterPatch(set: ['short_title' => 'Untersuchungen']),
-    )); // PageDocument: neuer Kurztitel, Body unverändert
+    $page->header['short_title'] = 'Untersuchungen';
+    $page->save(); // Kurztitel geändert, Body bytegenau erhalten.
 
-    $bodyChanged = $page->update(new PagePatch(
-        content: "## Aktualisierte Diagnostik\n",
-    )); // PageDocument: neuer Body, Header unverändert
+    $page->content = "## Aktualisierte Diagnostik\n";
+    $page->save(); // Body geändert, ursprünglicher Headerblock bleibt erhalten.
 
-    $removed = $page->update(new PagePatch(
-        header: new FrontMatterPatch(remove: ['short_title']),
-    )); // PageDocument: short_title fehlt, aktualisierter Body bleibt bestehen
+    unset($page->header['short_title']);
+    $page->save(); // Feld entfernt, neuer Body bleibt bestehen.
 
-    // content=null bedeutet unverändert, content='' leert den Body.
-    // remove entfernt einen Schlüssel; set mit null speichert dagegen YAML-null,
-    // sofern die Felddefinition null erlaubt. Geerbte Defaults werden nicht kopiert.
-    return $removed;
+    // header['key']=null speichert YAML-null, sofern erlaubt; unset entfernt.
+    // content='' leert den Body. Änderungen werden erst mit save() geschrieben.
+    // Geerbte Defaults werden nicht in header zurückgeschrieben.
+    return $page;
 };

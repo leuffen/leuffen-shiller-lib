@@ -6,30 +6,33 @@ declare(strict_types=1);
 // Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
 
 use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\TranslationSet;
+use Leuffen\Schiller\TranslationInfo;
 use Phore\FileSystem\PhoreDirectory;
 
-return static function (PhoreDirectory $root): TranslationSet {
+/** @return Closure(PhoreDirectory): array<string, TranslationInfo> */
+return static function (PhoreDirectory $root): array {
     $site = new SchillerDir($root);
-    $translations = $site->page('leistungen/diagnostik.md')->translations();
+    $page = $site->getPage('leistungen/diagnostik.md');
+    $translations = $page->getTranslations(); // array<string, TranslationInfo>
 
-    // pageId='leistungen/diagnostik.md'
-    // availableLanguages=['de','en'], missingLanguages=['fr']
-    // items: list<TranslationInfo>:
-    // de: state='existing', path='leistungen/diagnostik.md', sourceLanguage='de'
-    // en: state='existing', path='en/leistungen/diagnostik.md', sourceLanguage='en'
-    // fr: state='fallback', path=null, sourceLanguage='de'
-    // Für reader ist canCreate überall false.
-    foreach ($translations->items as $translation) {
-        if ($translation->path === null) {
-            continue; // Fallback ist keine eigene bearbeitbare Sprachdatei.
+    // de: language='de', path='leistungen/diagnostik.md', exists=true, isRootDocument=true
+    // en: language='en', path='en/leistungen/diagnostik.md', exists=true, isRootDocument=false
+    // fr: language='fr', path='fr/leistungen/diagnostik.md', exists=false, isRootDocument=false
+    foreach ($translations as $language => $info) {
+        if (!$info->exists) {
+            continue; // Kein Body geladen; auch ein Build-Fallback zählt nicht als Datei.
         }
-        $document = $site->page($translation->path)->read(); // PageDocument
-        $translatedTitle = $document->header->string('title'); // ?string
-        $translatedBody = $document->content;                 // string
-        // en liefert 'Diagnostics' und "## Diagnostics\n".
+        $document = $page->getTranslation($language); // ?Document
+        if ($document !== null) {
+            $title = $document->header['title'] ?? null;
+            // Für en: 'Diagnostics'.
+            assert($document->getRootDocument() === $page);
+        }
     }
 
-    // Verbotene Varianten werden nicht ausgegeben und nicht als fehlend angeboten.
+    assert($page->getRootDocument() === $page);
+    assert($page->getTranslation('de') === $page);
+    assert($page->getTranslation('fr') === null);
+    // Verborgene Varianten/Kandidaten fehlen vollständig, keine scheinbar fehlende Datei.
     return $translations;
 };

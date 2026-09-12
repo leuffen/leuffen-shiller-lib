@@ -5,30 +5,32 @@ declare(strict_types=1);
 // ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
 // Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
 
-use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\NewTranslation;
-use Leuffen\Schiller\PageDocument;
 use Leuffen\Schiller\SchillerDir;
+use Leuffen\Schiller\AccessContext;
+use Leuffen\Schiller\Document;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: nur eine Arbeitskopie übergeben; fr/leistungen/ muss bereits existieren.
-return static function (PhoreDirectory $root): PageDocument {
+// SCHREIBBEISPIEL: Arbeitskopie; fr/leistungen/ muss bereits existieren.
+return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $source = $site->page('leistungen/diagnostik.md');
+    $page = $site->getPage('leistungen/diagnostik.md');
+    $french = $page->getTranslation('fr', create: true);
+    // Bei create:true: Document oder Exception, niemals null.
 
-    $created = $source->createTranslation(new NewTranslation(
-        language: 'fr',
-        title: 'Diagnostic',
-        content: "## Diagnostic\n\nTexte français.\n",
-    ));
+    if (!$french->exists) {
+        // Ungespeicherte Kopie des Stammdokuments:
+        // path='fr/leistungen/diagnostik.md', language='fr', isRootDocument=false
+        // header['title']='Diagnostik', header['published']=false
+        // content ist zunächst der deutsche Body; keine automatische Übersetzung.
+        $french->header['title'] = 'Diagnostic';
+        $french->content = "## Diagnostic\n\nTexte français.\n";
+        $french->save(); // Erst jetzt schreiben; exists wird true.
+    }
 
-    // PageDocument:
-    // path='fr/leistungen/diagnostik.md', publication->value='unpublished'
-    // header: title='Diagnostic', published=false; keine ID, kein lang, kein Permalink
-    // Zielpfad aus Quellpfad und language automatisch bestimmt.
-    // Eigene Metafelder können aus der Quelle übernommen werden.
-    // Keine automatische Übersetzung, kein Commit/Deploy.
-    // Erfordert read der Quelle und createFile + createTranslation am Ziel.
-    // Wiederholung überschreibt nichts, sondern wirft AlreadyExistsException.
-    return $created;
+    // Bereits vorhandene Übersetzung bleibt unverändert.
+    // Zielpfad automatisch, keine lang-/ID-Felder im Header.
+    // Anlage braucht read der Quelle und createFile + createTranslation am Ziel.
+    // Zwischenzeitlich angelegte Zieldateien werden nicht überschrieben.
+    assert($french->getRootDocument() === $page);
+    return $french;
 };

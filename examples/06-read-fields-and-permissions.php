@@ -12,8 +12,8 @@ use Phore\FileSystem\PhoreDirectory;
 
 return static function (PhoreDirectory $root): FieldSet {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->page('leistungen/diagnostik.md');
-    $fields = $page->fields();
+    $page = $site->getPage('leistungen/diagnostik.md');
+    $fields = $page->getFields();
     $shortTitle = $fields->get('short_title'); // FieldDefinition
     $published = $fields->get('published');   // FieldDefinition
     $layout = $fields->get('layout');         // FieldDefinition
@@ -26,6 +26,6 @@ return static function (PhoreDirectory $root): FieldSet {
     $actions = $site->capabilities('leistungen/diagnostik.md'); // Capabilities
     // Für user und eine vorhandene Seite:
     // read=true, write=true, createFile=false, createTranslation=false,
-    // createTemplate=false. update() prüft selbst erneut, auch ohne UI-Prüfung.
+    // createTemplate=false, rename=true, delete=true. save() prüft selbst erneut, auch ohne UI-Prüfung.
     return $fields;
 };

@@ -5,29 +5,30 @@
 | 2026-09-12 | dermatthes | §§ 1–13: API-Entwurf mit Konfiguration, Beispielen, Rückgaben, bidirektionaler URL-Auflösung und Page-Builder-Zuordnung angelegt |
 | 2026-09-12 | dermatthes | § 9.1: URL-Eingaben mit und ohne Domain oder Protokoll konkretisiert |
 | 2026-09-12 | dermatthes | §§ 3–12: feste Sprachverzeichnisse ohne ID-/Sprachheader, Root-Startseite, optionale Permalinks und vereinfachte Anlagebeispiele |
+| 2026-09-12 | dermatthes | §§ 1–13: ein Document mit Header-Array, Translation-Verfügbarkeit und Anlage, Root-Verweis, Rename/Delete sowie direkte URL-Auflösung mit Diagnose-Exception |
 
 ## § 1 Ziel und Umfang
 
-**Vorschlag, noch keine implementierte API.** Der Aufrufer übergibt das Website-Quellverzeichnis als `PhoreDirectory`, beispielsweise das bereits extern bereitgestellte `docs/`. `SchillerDir` liest dessen aktuelle Konfiguration selbst und bietet einen typisierten Zugriff auf Dateien, Seiten, Sprachvarianten, Metafelder und Berechtigungen. Alle Schiller-Namen und Methoden in diesem Dokument sind vorgeschlagen; die ausdrücklich als bestehend bezeichneten Phore-Funktionen sind im Quellcode geprüft.
+[geändert] **Vorschlag, noch keine implementierte API.** Der Aufrufer übergibt das Website-Quellverzeichnis als `PhoreDirectory`, beispielsweise das bereits extern bereitgestellte `docs/`. `SchillerDir` liest dessen aktuelle Konfiguration selbst und bietet einen typisierten Zugriff auf Dateien, Seiten, Sprachvarianten, Metafelder und Berechtigungen. Alle Schiller-Namen und Methoden in diesem Dokument sind vorgeschlagen; die ausdrücklich als bestehend bezeichneten Phore-Funktionen sind im Quellcode geprüft.
 
 Der erste Ausbau umfasst normale Markdown-/HTML-Seiten, Front Matter, Inhalt, Übersetzungsdateien und berechnete Ziel-URLs. Git, Checkout, Commit, Push, Deploy, HTTP, Login, KI-Übersetzung und Bearbeitungssperren bleiben Aufgaben der Anwendung. `_data`-Editoren, Collections, Posts, Medienverwaltung und das Bearbeiten von Liquid-Layouts sind spätere Erweiterungen. Ihre Dateien dürfen bei erlaubtem Lesezugriff im Dateibaum erscheinen, werden aber nicht als normale Seiten interpretiert.
 
-Empfehlung: **ein Einstiegspunkt `SchillerDir`, Seitenobjekte `SchillerPage`, eine getrennte `JekyllUrlResolver`-Klasse und austauschbare Formatadapter**. Speicherzugriff und Website-Format sind zwei unabhängige Schnittstellen. Eine neue Polyglot-Version erfordert damit keinen neuen Filesystem-Connector.
+Empfehlung: **ein Einstiegspunkt `SchillerDir`, Seitenobjekte `Document`, einen internen `JekyllUrlResolver` und austauschbare Formatadapter**. Speicherzugriff und Website-Format sind zwei unabhängige Schnittstellen. Eine neue Polyglot-Version erfordert damit keinen neuen Filesystem-Connector.
 
 ## § 2 Was der bisherige Page Builder benötigt
 
-Die folgenden Befunde stammen aus `micx-io/micx-pagebuilder`; dessen Quellcode dient ausschließlich als Referenz. Das Ziel-Repository enthält derzeit ein PHP-Grundgerüst, noch keine Schiller-Implementierung.
+[geändert] Die folgenden Befunde stammen aus `micx-io/micx-pagebuilder`; dessen Quellcode dient ausschließlich als Referenz. Das Ziel-Repository enthält derzeit ein PHP-Grundgerüst, noch keine Schiller-Implementierung.
 
 | Bisherige Stelle | Beobachtete Aufgabe | Vorgeschlagene Schiller-API |
 |---|---|---|
 | `PageListCtrl::__invoke()` | Sections mit `_section.yml`, Gruppierung nach `pid` und Sprache, Fehlerliste | `pages()` mit rekursivem Seitenbaum und `Diagnostic[]` |
-| `PageCtrl` / `FrontMatterFile::ReadPage()` | Markdown/HTML und YAML-Header lesen | `page(path)->read()` |
-| `PageCtrl` / `FrontMatterFile::WritePage()` | Header und Inhalt speichern | `page(path)->update(PagePatch)` |
-| `PageCtrl::copyPage()` | Neue Sprachdatei aus vorhandener Seite kopieren | `page(path)->createTranslation(NewTranslation)` |
-| `www/pages/edit-page.html` | Titel, Beschreibung, Layout, published, order, ptags, eigene Formulare | `page(path)->fields()` und typisierte Feldwerte |
-| `www/elements/page-list.html` | Seitengruppen, Sprachvarianten, Veröffentlichungsstatus | `PageTree`, `TranslationSet`, `Publication` |
-| Vorschau-Link im Editor | URL bisher im Browser zusammengesetzt | `page(path)->url(language)` |
-| Neue Anforderung für den Nachfolger | Von einer realen Website-URL zum bearbeitbaren Quelltext | `resolveUrl(url)` mit Datei, angefragter Sprache und tatsächlicher Quellsprache |
+| `PageCtrl` / `FrontMatterFile::ReadPage()` | Markdown/HTML und YAML-Header lesen | `getPage(path)` |
+| `PageCtrl` / `FrontMatterFile::WritePage()` | Header und Inhalt speichern | Header/Body am `Document` ändern, `save()` |
+| `PageCtrl::copyPage()` | Neue Sprachdatei aus vorhandener Seite kopieren | `document->getTranslation(language, create: true)`, dann `save()` |
+| `www/pages/edit-page.html` | Titel, Beschreibung, Layout, published, order, ptags, eigene Formulare | `document->getFields()` und typisierte Feldwerte |
+| `www/elements/page-list.html` | Seitengruppen, Sprachvarianten, Veröffentlichungsstatus | `PageTree`, `TranslationInfo`, Veröffentlichungsstatus |
+| Vorschau-Link im Editor | URL bisher im Browser zusammengesetzt | `document->getUrl()` |
+| Neue Anforderung für den Nachfolger | Von einer realen Website-URL zum bearbeitbaren Quelltext | `getDocumentByUrl(url): Document` |
 | `_data/languages.yml` | Verfügbare Sprachen | `config()->languages` aus Jekyll/Polyglot |
 | `FileCtrl` und Daten-/Fragmenteditoren | Beliebige YAML-Daten bearbeiten | Später; bewusst keine allgemeine Schreib-Hintertür im ersten Ausbau |
 | `InfoCtrl`, `RepoCtrl`, Middleware | Preview-Host, Änderungsstatus, VCS und Notifications | Anwendung; optionaler URL-Kontext, kein VCS in Schiller |
@@ -36,7 +37,7 @@ Das alte Listing verlangt Sections und sprachcodierte Dateinamen. Der neue Stand
 
 ## § 3 Einstieg: ein Verzeichnis genügt
 
-Der verbindliche Standard für das neue Polyglot-Profil ist eine Website mit `index.md` direkt im Root. Die Default-Sprache wird nicht in einen eigenen Sprachordner verschoben. Übersetzungen spiegeln die Root-Struktur unter ihrem Sprachcode. Die minimale Konfiguration steht zusätzlich in [examples/README.md](../../examples/README.md). [neu]
+[geändert] Der verbindliche Standard für das neue Polyglot-Profil ist eine Website mit `index.md` direkt im Root. Die Default-Sprache wird nicht in einen eigenen Sprachordner verschoben. Übersetzungen spiegeln die Root-Struktur unter ihrem Sprachcode. Die minimale Konfiguration steht zusätzlich in [examples/README.md](../../examples/README.md).
 
 ```php
 use Leuffen\Schiller\SchillerDir;
@@ -59,7 +60,7 @@ Ohne `AccessContext` verwendet Schiller die Rolle `reader`: ausschließlich lese
 
 `_config.yml` und `schiller.yaml` werden ausschließlich im übergebenen Root gesucht. Keine Suche im Repository-Elternverzeichnis. Ein gesetztes Jekyll-`source`, das auf ein anderes Root zeigt, erzeugt `SOURCE_ROOT_MISMATCH`; Schiller wechselt das Root nicht selbst. Fehlende `_config.yml`, ungültiges YAML oder unbekannte explizite Adapter erzeugen einen `ConfigurationException` mit geeigneter Diagnose. Beide Dateien werden nicht durch das Öffnen angelegt oder verändert.
 
-Jede öffentliche Operation prüft die Konfigurationsdateien erneut. Ein bereits erstelltes `SchillerPage` ist nur ein Pfadhandle und verwendet beim nächsten Aufruf ebenfalls den aktuellen Stand. Innerhalb einer Operation gilt ein konsistenter Konfigurationsstand. Änderungen durch andere Prozesse während einer Operation müssen erkannt werden oder durch die externe Anwendung ausgeschlossen sein. Ein dauerhaft laufender Page Builder muss deshalb nach einer Konfigurationsänderung nicht neu konstruiert werden.
+Jede öffentliche Operation prüft die Konfigurationsdateien erneut. Ein geladenes `Document` hält Header und Inhalt als bearbeitbaren Snapshot. Methoden prüfen die aktuelle Konfiguration, überschreiben jedoch keine ungespeicherten Änderungen. Eine Änderung des Adapters oder der Sprachstruktur macht bestehende Dokumente ungültig; sie müssen neu geladen werden. Innerhalb einer Operation gilt ein konsistenter Konfigurationsstand. Änderungen durch andere Prozesse während einer Operation müssen erkannt werden oder durch die externe Anwendung ausgeschlossen sein. Ein dauerhaft laufender Page Builder muss deshalb nach einer Konfigurationsänderung nicht neu konstruiert werden.
 
 Beispiel für `SiteConfig`, hier als JSON dargestellt:
 
@@ -107,12 +108,12 @@ foreach ($listing->entries as $entry) {                 // FileEntry
 ```php
 $tree = $site->pages();                    // PageTree
 $subtree = $site->pages('leistungen');     // PageTree für diesen Quell-Unterbaum
-$page = $site->page('leistungen/diagnostik.md'); // SchillerPage
+$page = $site->getPage('leistungen/diagnostik.md'); // Document
 ```
 
 Ein `PageTree` enthält `root: PageFolder` und `diagnostics: list<Diagnostic>`. Jeder `PageFolder` hat `path`, `folders: list<PageFolder>` und `pages: list<PageGroup>`. `PageGroup` enthält `id`, `title`, `primaryPath` und `translations: list<TranslationSummary>`. Der Baum ist eine Inhaltsübersicht, kein aus Permalinks abgeleiteter Navigationsbaum. Die echte Ablage aller Übersetzungsdateien bleibt in `files()` sichtbar.
 
-Beim Polyglot-Adapter entspricht die Gruppen-ID dem vollständigen sprachneutralen Quellpfad einschließlich Endung: `leistungen/diagnostik.md`. Die Standardsprache liegt direkt im Root, andere Sprachen spiegeln exakt denselben relativen Pfad unter ihrem Sprachordner. Der logische Seitenbaum entfernt nur dieses erste Sprachsegment; dadurch stehen alle Varianten unter `leistungen`, auch wenn die Standardsprachdatei fehlt. `primaryPath` ist die lesbare Standardsprachdatei, sonst die erste lesbare Variante; Unterbaumabfragen beziehen sich auf den logischen Ordner. Verborgene Varianten beeinflussen keine Titel oder Zähler. Der physische Baum aus `files()` zeigt weiterhin die wirklichen Sprachordner. [geändert]
+Beim Polyglot-Adapter entspricht die Gruppen-ID dem vollständigen sprachneutralen Quellpfad einschließlich Endung: `leistungen/diagnostik.md`. Die Standardsprache liegt direkt im Root, andere Sprachen spiegeln exakt denselben relativen Pfad unter ihrem Sprachordner. Der logische Seitenbaum entfernt nur dieses erste Sprachsegment; dadurch stehen alle Varianten unter `leistungen`, auch wenn die Standardsprachdatei fehlt. `primaryPath` ist die lesbare Standardsprachdatei, sonst die erste lesbare Variante; Unterbaumabfragen beziehen sich auf den logischen Ordner. Verborgene Varianten beeinflussen keine Titel oder Zähler. Der physische Baum aus `files()` zeigt weiterhin die wirklichen Sprachordner.
 
 Vollständiges kleines Rückgabebeispiel, unabhängig von der größeren Beispielfixture in § 6:
 
@@ -143,65 +144,50 @@ Vollständiges kleines Rückgabebeispiel, unabhängig von der größeren Beispie
 
 Im Seitenbaum erscheinen auch lesbare `published: false`-Seiten. Der Status beschreibt die Quellkonfiguration, nicht den Zustand der zuletzt ausgelieferten Website. Jekyll-ausgeschlossene Dateien sind im Dateibaum bei Leserecht sichtbar, im regulären Seitenbaum aber nicht. `_data`, `_includes`, `_layouts`, `_posts`, Collections und das Build-Ziel werden nicht versehentlich als Seiten aufgenommen. Markdown ohne Header wird nur mit unterstütztem `jekyll-optional-front-matter` als Seite eingeordnet; malformed Front Matter bleibt ein Fehler.
 
-## § 5 Einzelne Datei: Header, Inhalt und abgeleitete Werte
+## § 5 Einzelne Datei: ein Document mit Header-Array
+
+[geändert] Original, neue Seite und Übersetzung verwenden dieselbe Klasse `Document`. Der gespeicherte YAML-Header ist ein direkt bearbeitbares Array, der Body ein String. Zusätzliche Änderungs- oder Anlageobjekte sind nicht erforderlich.
 
 ```php
-$page = $site->page('leistungen/diagnostik.md');
-$document = $page->read();                       // PageDocument
-$title = $document->header->string('title');     // ?string
-$published = $document->effectiveHeader->bool('published', true); // bool
-$body = $document->content;                     // string, Markdown oder HTML
-$source = $document->header->all();              // array<string, YamlValue>
-$layoutSource = $document->origins['layout'];    // ValueOrigin enum
-```
+$page = $site->getPage('leistungen/diagnostik.md'); // Document
+$title = $page->header['title'] ?? null;           // YamlValue
+$body = $page->content;                           // string
+$effective = $page->getEffectiveHeader();          // array<string, YamlValue>
+$layout = $effective['layout'] ?? null;            // 'default'
 
-`FrontMatter` bietet `string(key, default = null): ?string`, `bool(key, default = null): ?bool`, `int(key, default = null): ?int`, `strings(key): list<string>`, `has(key): bool`, `get(key): YamlValue` und `all(): array<string,YamlValue>`. Falsche Typen erzeugen `FieldTypeException`; etwa `"false"` wird nicht in `true` umgewandelt. `YamlValue` ist ein dokumentierter rekursiver PHPDoc-Typ für `null|bool|int|float|string|list<YamlValue>|array<string,YamlValue>`, kein erfundener nativer PHP-Typ.
+$page->header['short_title'] = 'Untersuchungen';
+unset($page->header['description']);
+$page->content = "## Neuer Inhalt\n";
+$page->save();                                   // void; jetzt wird geschrieben
+```
 
 ```json
 {
   "path": "leistungen/diagnostik.md",
-  "format": "markdown",
-  "header": {
-    "title": "Diagnostik",
-    "short_title": "Diagnostik", "published": true
-  },
-  "effectiveHeader": {
-    "layout": "default", "lang": "de",
-    "title": "Diagnostik", "short_title": "Diagnostik",
-    "published": true
-  },
-  "origins": {
-    "layout": "jekyll_default", "lang": "jekyll_default",
-    "title": "file", "short_title": "file", "published": "file"
-  },
-  "content": "## Diagnostik\n\nBeispielinhalt.\n",
-  "publication": "published"
+  "language": "de",
+  "isRootDocument": true,
+  "exists": true,
+  "header": {"title": "Diagnostik", "short_title": "Diagnostik", "published": true},
+  "content": "## Diagnostik\n\nBeispielinhalt.\n"
 }
 ```
 
-`header` enthält ausschließlich die gespeicherten YAML-Werte. `effectiveHeader` ergänzt die wirksamen Jekyll-Defaults gemäß Pfad/Typ und Spezifität. Dateiwerte gewinnen. `ValueOrigin` kennt `file`, `jekyll_default`, `adapter_default`; Schiller-Felddefaults werden nur beim expliziten Anlegen verwendet und verändern nicht stillschweigend die Jekyll-Lesesemantik. `Publication` kennt `published`, `unpublished`, `excluded`, `unknown`. Unbekannte Zusatzfelder bleiben erhalten. `content` enthält den Quelltext nach dem schließenden Header-Delimiter, ohne Rendern von Liquid.
+[geändert] Diese Projektion beschreibt das geladene Dokument vor der Änderung. `getEffectiveHeader()` ergänzt beispielsweise `layout: default` und `lang: de` aus Jekyll-Defaults, ohne sie in `header` zurückzuschreiben. Dateiwerte gewinnen entsprechend Jekylls Defaults-Regeln. Schiller-Felddefaults werden nur bei der Anlage angewandt. `YamlValue` ist ein rekursiver PHPDoc-Typ für `null|bool|int|float|string|list<YamlValue>|array<string,YamlValue>`, kein nativer PHP-Typ.
 
-Für schreibende Beispiele wird eine berechtigte `user`-Instanz aus § 3 angenommen:
+[geändert] `unset()` entfernt einen Schlüssel; eine Zuweisung von `null` speichert YAML-null, wenn die Felddefinition dies erlaubt. `content = ''` leert den Body. `save()` validiert Felder und Berechtigungen anhand des aktuellen Stands; Typen werden nicht stillschweigend konvertiert. Unveränderte Daten lösen keinen Schreibvorgang aus. Bei reiner Body-Änderung bleibt der ursprüngliche Headerblock unangetastet, bei reiner Header-Änderung der Body bytegenau. YAML-Neuserialisierung garantiert keine Erhaltung von Kommentaren oder Formatierung.
 
 ```php
-use Leuffen\Schiller\PagePatch;
-use Leuffen\Schiller\FrontMatterPatch;
-
-$updated = $page->update(new PagePatch(
-    header: new FrontMatterPatch(set: ['short_title' => 'Untersuchungen']),
-)); // PageDocument: content und alle anderen Header-Werte bleiben erhalten
-
-$updated = $page->update(new PagePatch(content: "## Neuer Inhalt\n"));
-// PageDocument: Header semantisch unverändert
-
-$updated = $page->update(new PagePatch(
-    header: new FrontMatterPatch(remove: ['short_title']),
-)); // explizites Entfernen; set: ['short_title' => null] wäre ein YAML-null
+$new = $site->createPage(
+    'leistungen/vorsorge.md',
+    header: ['title' => 'Vorsorge', 'published' => false],
+    content: "## Vorsorge\n",
+); // Document: exists=false, language='de', isRootDocument=true
+$new->save(); // exists=true; vorhandenes Ziel wird niemals überschrieben
 ```
 
-`PagePatch::$content === null` bedeutet unverändert, `''` leert den Body. `FrontMatterPatch` ersetzt nur genannte Schlüssel; strukturierte Werte werden je Schlüssel vollständig ersetzt. Im Polyglot-Adapter sind `page_id`, `pid` und `lang` als dateilokale Header-Felder nicht zulässig; die Sprache und Gruppenidentität werden ausschließlich aus dem Pfad abgeleitet. `layout`, `published` und `permalink` werden anhand ihrer Felddefinition und der zulässigen Ziel-URL geprüft. `update()` erzeugt keine neue Datei. Schreibfehler werden als Exception gemeldet, nicht als erfolgreiches DTO. [geändert]
+[geändert] `createPage()` nimmt einen sprachneutralen Root-Pfad an. Eine Übersetzung entsteht über § 6.3. Anlage und Änderungen bleiben bis `save()` im Speicher. Neue Dateien werden kollisionssicher angelegt; Änderungen an bestehenden Dateien prüfen den beim Laden erfassten Quellstand und melden einen Konflikt, statt fremde Änderungen zu überschreiben. Die Anwendung koordiniert parallele Bearbeitung.
 
-Phore serialisiert beim Schreiben YAML erneut: Header-Kommentare, Einrückung und Schlüsselreihenfolge sind dabei nicht als erhalten garantiert. Ein reines Body-Update sollte daher den originalen Headerblock unangetastet lassen. Ein Header-Update bewahrt den Body bytegenau. Unveränderte Daten lösen keine Schreiboperation aus. Konfliktauflösung und Sperren sind kein Gegenstand dieses Entwurfs; die Anwendung serialisiert parallele Bearbeitungen, bis dafür ein eigener Vertrag besteht.
+[neu] `path`, `language`, `isRootDocument` und `exists` sind von außen nur lesbar. Pfade ändern sich ausschließlich durch `rename()`. Das ist ein API-Vertrag über Getter beziehungsweise PHPDoc-`@property-read`, kein natives PHP-`readonly` für einen intern veränderlichen Pfad. Innerhalb einer `SchillerDir`-Instanz verweist jede geladene Quelldatei auf dasselbe Dokumentobjekt.
 
 ## § 6 Polyglot und Übersetzungen
 
@@ -240,7 +226,7 @@ published: true
 Beispielinhalt.
 ```
 
-`docs/en/leistungen/diagnostik.md`: [geändert]
+`docs/en/leistungen/diagnostik.md`:
 
 ```markdown
 ---
@@ -250,11 +236,11 @@ published: true
 ## Diagnostics
 ```
 
-Für Schillers neuen Polyglot-Adapter gilt fest: Standardsprache im Root, Übersetzungen unter `<sprache>/<gleicher relativer Dateipfad>`. Weder `page_id` noch `lang` stehen in einzelnen Headern. Es gibt keine alternative ID-/Header-Zuordnung, keine anderswo liegenden Übersetzungen und keine konfigurierbare Pfadschablone. `index.md` ist die Root-Startseite, `en/index.md` deren englische Übersetzung. Schiller leitet Sprache und Gruppen-ID ausschließlich aus dieser Struktur ab. Diese Festlegung ist Schillers vereinfachter Vertrag; Polyglot selbst bietet weitere Modi. [geändert]
+Für Schillers neuen Polyglot-Adapter gilt fest: Standardsprache im Root, Übersetzungen unter `<sprache>/<gleicher relativer Dateipfad>`. Weder `page_id` noch `lang` stehen in einzelnen Headern. Es gibt keine alternative ID-/Header-Zuordnung, keine anderswo liegenden Übersetzungen und keine konfigurierbare Pfadschablone. `index.md` ist die Root-Startseite, `en/index.md` deren englische Übersetzung. Schiller leitet Sprache und Gruppen-ID ausschließlich aus dieser Struktur ab. Diese Festlegung ist Schillers vereinfachter Vertrag; Polyglot selbst bietet weitere Modi.
 
-Die zentrale Jekyll-Konfiguration setzt die Sprache über Verzeichnis-Defaults. Das hält die einzelnen Dateien frei von Sprachmetadaten und berücksichtigt im geprüften Polyglot-Code `coordinate_documents()` die Bedingung für die Normalisierung natürlicher URLs. `lang_from_path` wird hier nicht zusätzlich benötigt: Die Sprache wird bereits zentral zugewiesen. Der Default für alle Seiten muss zuerst stehen, die spezifischen Sprachordner folgen. Bei neuen Sprachen werden `languages` und der zugehörige Default ergänzt. Keine Permalink-Defaults setzen. [Polyglot-Quellcode](https://github.com/untra/polyglot/blob/main/lib/jekyll/polyglot/patches/jekyll/site.rb) [geändert]
+Die zentrale Jekyll-Konfiguration setzt die Sprache über Verzeichnis-Defaults. Das hält die einzelnen Dateien frei von Sprachmetadaten und berücksichtigt im geprüften Polyglot-Code `coordinate_documents()` die Bedingung für die Normalisierung natürlicher URLs. `lang_from_path` wird hier nicht zusätzlich benötigt: Die Sprache wird bereits zentral zugewiesen. Der Default für alle Seiten muss zuerst stehen, die spezifischen Sprachordner folgen. Bei neuen Sprachen werden `languages` und der zugehörige Default ergänzt. Keine Permalink-Defaults setzen. [Polyglot-Quellcode](https://github.com/untra/polyglot/blob/main/lib/jekyll/polyglot/patches/jekyll/site.rb)
 
-Sprachordner sind auf der obersten Ebene reserviert. Eine deutsche Datei wird nicht zusätzlich unter `de/` abgelegt. Sprachcodes in tieferen Ordner-/Dateinamensegmenten, von denen Polyglots allgemeine Normalisierung eine andere Route ableiten könnte, werden als nicht unterstützte Pfade diagnostiziert. Dateilokale `lang`-/ID-Felder werden als Abweichung vom Profil gemeldet; keine stillschweigende Migration oder alternative Zuordnung. [neu]
+Sprachordner sind auf der obersten Ebene reserviert. Eine deutsche Datei wird nicht zusätzlich unter `de/` abgelegt. Sprachcodes in tieferen Ordner-/Dateinamensegmenten, von denen Polyglots allgemeine Normalisierung eine andere Route ableiten könnte, werden als nicht unterstützte Pfade diagnostiziert. Dateilokale `lang`-/ID-Felder werden als Abweichung vom Profil gemeldet; keine stillschweigende Migration oder alternative Zuordnung.
 
 | Quelle | Sprache | Interne Gruppen-ID | Standard-URL |
 |---|---|---|---|
@@ -264,59 +250,52 @@ Sprachordner sind auf der obersten Ebene reserviert. Eine deutsche Datei wird ni
 | `leistungen/diagnostik.md` | de | `leistungen/diagnostik.md` | `/leistungen/diagnostik.html` |
 | `en/leistungen/diagnostik.md` | en | `leistungen/diagnostik.md` | `/en/leistungen/diagnostik.html` |
 
-Die Startseiten brauchen ebenfalls nur ihren Titel und Inhalt: `index.md` beispielsweise mit `title: Startseite`, `en/index.md` mit `title: Home`. Ein leerer YAML-Header genügt zur Seitenerkennung ebenfalls. Ein Permalink ist nicht erforderlich. [neu]
+Die Startseiten brauchen ebenfalls nur ihren Titel und Inhalt: `index.md` beispielsweise mit `title: Startseite`, `en/index.md` mit `title: Home`. Ein leerer YAML-Header genügt zur Seitenerkennung ebenfalls. Ein Permalink ist nicht erforderlich.
 
-### § 6.2 Übersetzungen samt Fallback anzeigen
+### § 6.2 Übersetzungen auflisten und lesen
+
+[geändert] `getTranslations()` liefert je konfigurierter und lesbarer Sprache einen kleinen Eintrag, einschließlich Standardsprache. `exists` bezeichnet ausschließlich eine gespeicherte Quelldatei. Fehlende Varianten haben bereits ihren fest berechneten Zielpfad; weder Fallbacks noch ungespeicherte Entwürfe zählen als vorhanden.
 
 ```php
-$translations = $page->translations(); // TranslationSet
-$english = $site->page('en/leistungen/diagnostik.md')->read(); // PageDocument
+$page = $site->getPage('leistungen/diagnostik.md');
+$translations = $page->getTranslations(); // array<string, TranslationInfo>
+$english = $page->getTranslation('en');   // ?Document, hier vorhanden
+$french = $page->getTranslation('fr');    // null
+$root = $english->getRootDocument();     // identisch zu $page
+assert($page->getRootDocument() === $page);
+assert($english->getTranslation('de') === $page);
 ```
 
 ```json
 {
-  "pageId": "leistungen/diagnostik.md",
-  "availableLanguages": ["de", "en"],
-  "missingLanguages": ["fr"],
-  "items": [
-    {"language": "de", "state": "existing", "path": "leistungen/diagnostik.md", "sourceLanguage": "de", "published": true, "targetPath": "/leistungen/diagnostik.html", "canCreate": false},
-    {"language": "en", "state": "existing", "path": "en/leistungen/diagnostik.md", "sourceLanguage": "en", "published": true, "targetPath": "/en/leistungen/diagnostik.html", "canCreate": false},
-    {"language": "fr", "state": "fallback", "path": null, "sourceLanguage": "de", "published": null, "targetPath": "/fr/leistungen/diagnostik.html", "canCreate": true}
-  ]
+  "de": {"language": "de", "path": "leistungen/diagnostik.md", "exists": true, "isRootDocument": true},
+  "en": {"language": "en", "path": "en/leistungen/diagnostik.md", "exists": true, "isRootDocument": false},
+  "fr": {"language": "fr", "path": "fr/leistungen/diagnostik.md", "exists": false, "isRootDocument": false}
 }
 ```
 
-`TranslationState` hat `existing`, `fallback`, `missing`. `existing` bedeutet eine wirkliche lesbare Quelldatei, auch wenn `published: false`. Fallback bedeutet keine eigene Datei; `path` bleibt `null`, und `sourceLanguage` zeigt die lesbare Ausgangssprache. Ohne geeignete veröffentlichbare Ausgangsseite lautet der Zustand `missing`, `targetPath` bleibt `null`. Schillers `missingLanguages` meint konsequent fehlende Quelldateien; diese Definition ist bewusst unabhängig von Polyglots möglicherweise anders definierter, beim Build erzeugter Variable gleichen Namens.
-
-Bei verweigertem Leserecht wird die betreffende Variante vollständig aus `items`, `availableLanguages` und `missingLanguages` entfernt, einschließlich URL und Quelle. Eine vorhandene verborgene Variante wird niemals als fehlend angeboten. Berechtigungseingeschränkte Rückgaben beanspruchen keine vollständige Inventarisierung. Vorhandene Varianten werden pro tatsächlichem Pfad geprüft; für fehlende Varianten ergibt `<sprache>/<sprachneutraler Quellpfad>` den Kandidaten, dessen Leserecht ebenfalls erforderlich ist. Fallback-Inhalte werden nur aus lesbaren Quellen abgeleitet. [geändert]
+[geändert] Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getRootDocument()` liefert stets das Stammdokument oder wirft `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist.
 
 ### § 6.3 Eine Übersetzungsdatei anlegen
 
 ```php
-use Leuffen\Schiller\NewTranslation;
-
-$french = $page->createTranslation(new NewTranslation(
-    language: 'fr',
-    title: 'Diagnostic',
-    content: "## Diagnostic\n\nTexte français.\n",
-)); // PageDocument
-```
-
-```json
-{
-  "path": "fr/leistungen/diagnostik.md",
-  "header": {"title": "Diagnostic", "published": false},
-  "publication": "unpublished"
+$french = $page->getTranslation('fr', create: true); // Document oder Exception
+if (!$french->exists) {
+    // Kopie des Stammdokuments, keine maschinelle Übersetzung.
+    // path='fr/leistungen/diagnostik.md'; published=false
+    $french->header['title'] = 'Diagnostic';
+    $french->content = "## Diagnostic\n\nTexte français.\n";
+    $french->save(); // erst hier entsteht die Datei
 }
 ```
 
-Die letzte Rückgabe ist eine Projektion des vollständigen `PageDocument`. Aus Quellpfad und Zielsprache berechnet Schiller automatisch `fr/leistungen/diagnostik.md`. `NewTranslation` hat für dieses einfache API weder einen freien Zielpfad noch einen Permalink-Parameter. Titel und Inhalt stammen aus dem Aufruf, `published` ist zunächst `false`; definierte Metafelder können übernommen werden. Fehlt `content`, wird die Quelle als Arbeitskopie kopiert. Die Quellgruppe bleibt unverändert. Es werden keine ID-/Sprachfelder geschrieben. Ein vorhandener ausnahmsweiser Permalink wird unverändert übernommen; ohne Permalink bleibt auch der neue Header ohne Permalink. [geändert]
+[geändert] Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender Übersetzung erzeugt `create: true` eine ungespeicherte Kopie von Header und Inhalt des Stammdokuments mit `published: false`, auch wenn der Aufruf von einer anderen Übersetzung ausgeht. Geerbte Defaults werden nicht kopiert. Im neuen Adapter werden keine ID-/Sprachfelder erzeugt. Der Zielpfad ist nicht frei veränderbar. Wiederholte Abfragen desselben Entwurfs liefern innerhalb derselben Instanz dasselbe Objekt.
 
-Benötigt werden Lesen der Quelle sowie `createTranslation` und `createFile` am berechneten Ziel. Existiert die Datei oder Sprachvariante bereits, folgt `AlreadyExistsException`; niemals überschreiben. Die Zielsprache muss konfiguriert sein; gleiche Quell-/Zielsprache ist ungültig. Fehlende Elternverzeichnisse werden in V1 nicht automatisch angelegt. Keine ID-Normalisierung und kein zusätzliches Umschreiben der Quelle. Der Legacy-Adapter bildet seine bisherige PID-/Sprachkonvention intern ab, sofern er Schreiboperationen unterstützt. [geändert]
+[neu] Die Standardsprache liefert immer das vorhandene Stammdokument; sie wird nicht durch Klonen einer Übersetzung angelegt. Zum Klonen muss das Stammdokument gespeichert, lesbar und ohne ungespeicherte Änderungen sein. `getTranslation(..., create: true)` und anschließend `save()` prüfen `createFile` und `createTranslation` am Ziel sowie vorhandene Elternordner. Eine zwischenzeitlich angelegte Datei wird nicht überschrieben. Für unverändert vorhandene Übersetzungen genügt zum Abruf Leserecht.
 
 ## § 7 schiller.yaml: Metafelder, Presets und Bereiche
 
-Die Datei liegt im übergebenen Root, also hier `docs/schiller.yaml`. `schema_version` versioniert ausschließlich die Schiller-YAML-Struktur. `adapter.version` bezeichnet einen Schiller-Kompatibilitätsvertrag, **nicht** die Gem-Version von Polyglot.
+[geändert] Die Datei liegt im übergebenen Root, also hier `docs/schiller.yaml`. `schema_version` versioniert ausschließlich die Schiller-YAML-Struktur. `adapter.version` bezeichnet einen Schiller-Kompatibilitätsvertrag, **nicht** die Gem-Version von Polyglot.
 
 ```yaml
 schema_version: 1
@@ -382,16 +361,16 @@ permissions:
     user:
       allow:
         - {path: "**", actions: [read]}
-        - {path: "leistungen/**", actions: [write, createFile]}
-        - {path: "en/**", actions: [write, createFile, createTranslation]}
-        - {path: "fr/**", actions: [write, createFile, createTranslation]}
+        - {path: "leistungen/**", actions: [write, createFile, rename, delete]}
+        - {path: "en/**", actions: [write, createFile, createTranslation, rename, delete]}
+        - {path: "fr/**", actions: [write, createFile, createTranslation, rename, delete]}
       deny:
-        - {path: "intern/**", actions: [read, write, createFile, createTranslation]}
+        - {path: "intern/**", actions: [read, write, createFile, createTranslation, rename, delete]}
         - {path: "schiller.yaml", actions: [read, write]}
         - {path: "_config.yml", actions: [read, write]}
     admin:
       allow:
-        - {path: "**", actions: [read, write, createFile, createTranslation, createTemplate]}
+        - {path: "**", actions: [read, write, createFile, createTranslation, createTemplate, rename, delete]}
 ```
 
 Diese `permissions` sind Projektregeln. Eine von der Host-Anwendung gesetzte `AccessPolicy` begrenzt sie zusätzlich und kann niemals durch YAML erweitert werden. Die Rolle wird ausschließlich serverseitig übergeben; `admin` im Request-Body ist keine Rollenquelle. Konfigurationsdateien, ausführbare Plugins und Policies sind über die Seiten-API auch für `admin` nicht schreibbar. Eine spätere Konfigurationsverwaltung benötigt einen eigenen vertrauenswürdigen Einstieg.
@@ -401,9 +380,9 @@ Alle passenden `scopes` werden in Dokumentreihenfolge angewendet, Preset-Feldlis
 Für Schiller-Pfade gilt: `*` trifft innerhalb eines Segments, `**` über Segmentgrenzen, `leistungen/**` umfasst auch den Ordner `leistungen`. Ein exakter Dateipfad ist ebenfalls zulässig. Das ist Schillers eigene Glob-Semantik, nicht ungeprüft die Semantik von Jekyll-Defaults oder Polyglot-Regulärausdrücken. Verzeichnis-Leserecht ist Voraussetzung zum Traversieren; eine gesperrte Elternstruktur wird nicht durch eine Kindfreigabe offengelegt.
 
 ```php
-$fields = $page->fields();                     // FieldSet
+$fields = $page->getFields();                     // FieldSet
 $shortTitle = $fields->get('short_title');      // FieldDefinition
-$value = $document->header->string('short_title'); // ?string
+$value = $page->header['short_title'] ?? null; // ?string
 ```
 
 Beispielprojektion einer Felddefinition:
@@ -424,14 +403,16 @@ Beispielprojektion einer Felddefinition:
 }
 ```
 
-`FieldType` ist ein string-backed Enum (`string`, `boolean`, `integer`, `select`, `multiselect`). Dropdown-Optionen sind `FieldOption`-Objekte mit `value: string` und `label: string`; Mehrfachauswahl speichert `list<string>`. `hasDefault` unterscheidet fehlenden Default von explizitem `null`; `nullable` regelt, ob `null` erlaubt ist. Unbekannte vorhandene Metafelder bleiben beim Lesen und Schreiben erhalten, dürfen über das reguläre Patch-API aber nicht neu gesetzt werden, solange keine Felddefinition existiert. Adaptereigene Standardfelder wie `description` und `permalink` werden als eingebaute Definitionen bereitgestellt; dateilokale `page_id`, `pid` und `lang` sind im Polyglot-Profil nicht zulässig. Geerbtes `lang` aus `_config.yml` darf in `effectiveHeader` auftauchen, wird jedoch niemals in den gespeicherten Header zurückgeschrieben. Neue Pflichtfelder dürfen Bestandsseiten lesbar lassen, verhindern jedoch ein nicht valides Speichern mit präzisen Feldfehlern. [geändert]
+`FieldType` ist ein string-backed Enum (`string`, `boolean`, `integer`, `select`, `multiselect`). Dropdown-Optionen sind `FieldOption`-Objekte mit `value: string` und `label: string`; Mehrfachauswahl speichert `list<string>`. `hasDefault` unterscheidet fehlenden Default von explizitem `null`; `nullable` regelt, ob `null` erlaubt ist. Unbekannte vorhandene Metafelder bleiben beim Lesen und Schreiben erhalten, dürfen durch Header-Zuweisung aber nicht neu gesetzt werden, solange keine Felddefinition existiert. Adaptereigene Standardfelder wie `description` und `permalink` werden als eingebaute Definitionen bereitgestellt; dateilokale `page_id`, `pid` und `lang` sind im Polyglot-Profil nicht zulässig. Geerbtes `lang` aus `_config.yml` darf in `getEffectiveHeader()` auftauchen, wird jedoch niemals in den gespeicherten Header zurückgeschrieben. Neue Pflichtfelder dürfen Bestandsseiten lesbar lassen, verhindern jedoch ein nicht valides Speichern mit präzisen Feldfehlern.
 
 ## § 8 Rechte und erlaubte Aktionen
+
+[geändert] Die UI kann erlaubte Aktionen abfragen; jede Mutation prüft sie erneut.
 
 ```php
 $actions = $site->capabilities('leistungen/diagnostik.md'); // Capabilities
 if ($actions->write) {
-    // UI darf den Speichern-Button aktivieren; update() prüft erneut.
+    // UI darf den Speichern-Button aktivieren; save() prüft erneut.
 }
 $targetActions = $site->capabilities('fr/leistungen/diagnostik.md');
 ```
@@ -442,7 +423,9 @@ $targetActions = $site->capabilities('fr/leistungen/diagnostik.md');
   "write": true,
   "createFile": false,
   "createTranslation": false,
-  "createTemplate": false
+  "createTemplate": false,
+  "rename": true,
+  "delete": true
 }
 ```
 
@@ -454,326 +437,188 @@ Jede Operation prüft Rechte, nicht nur das Listing. Verweigertes Lesen ergibt b
 
 Alle Speicheroperationen sind an das Root gebunden: keine absoluten Eingabepfade, `..`, Nullbytes oder Symlinks; Symlinks werden im ersten Ausbau nicht verfolgt. Ein HTTP-Layer decodiert Transportdaten einmal, Schiller betreibt keine zusätzliche URL-Decodierung von Dateipfaden. Auch von Adaptern berechnete Pfade durchlaufen dieselbe Prüfung. Bloße String-Präfixprüfungen reichen nicht; der Connector muss seine Root-Grenze für reale Lese-/Schreibzugriffe durchsetzen. Fehlertexte enthalten keine absoluten Serverpfade.
 
-## § 9 Ziel-URLs als separate, typisierte Berechnung
+### § 8.1 Umbenennen und Löschen
 
 ```php
-$url = $page->url('en');                  // PageUrl
-echo $url->targetPath;                   // /en/leistungen/diagnostik.html
-echo $url->absoluteUrl;                  // https://example.org/en/leistungen/diagnostik.html
-
-// Gleicher Resolver auch separat, mit bereits autorisierten Eingaben nutzbar:
-$resolver = new JekyllUrlResolver($site->config());
-$url = $resolver->resolve($page->urlInput('en')); // UrlInput -> PageUrl
+$page = $site->getPage('leistungen/diagnostik.md');
+$page->rename('medizin/diagnostik.md'); // sofort: Root und alle Übersetzungen
+// leistungen/diagnostik.md -> medizin/diagnostik.md
+// en/leistungen/diagnostik.md -> en/medizin/diagnostik.md
+$page->getTranslation('en')?->delete(); // sofort: nur die englische Datei
+$page->delete();                       // sofort: Root und verbleibende Übersetzungen
 ```
 
-```json
-{
-  "language": "en",
-  "sourceLanguage": "en",
-  "permalink": null,
-  "targetPath": "/en/leistungen/diagnostik.html",
-  "absoluteUrl": "https://example.org/en/leistungen/diagnostik.html",
-  "publication": "published",
-  "resolution": "resolved"
-}
-```
+[neu] `rename()` ist nur am Stammdokument zulässig; Übersetzungspfade folgen automatisch. Der Zielpfad ist sprachneutral. Vorhandene Ziele werden nicht überschrieben; alle Zielordner müssen existieren. Natürliche URLs folgen dem neuen Pfad, ein expliziter Permalink bleibt bestehen. Geladene Dokumentreferenzen werden mitgeführt. Löschen einer Übersetzung lässt Root und andere Sprachen bestehen: anschließend liefert `getTranslation()` dort `null`, der Listeneintrag `exists: false`. Polyglot kann danach wieder einen Root-Fallback ausgeben.
 
-`UrlInput` enthält bereits adapterseitig bestimmte Sprachzuordnung, unlokalisierten Seitenpfad, lokalen Permalink, Format, Publication und Fallback-Quelle. Es enthält keine unautorisierten Varianten. Der Resolver macht selbst keinen Filesystem-Zugriff und interpretiert nicht willkürlich andere Sprachdateien. `PageUrl` ist eine Berechnung gemäß Quellstand; es bestätigt weder Build-Erfolg noch Erreichbarkeit. Ein Preview-Host kann über einen expliziten `UrlContext` in der Anwendung ersetzt werden, ohne `_config.yml` umzuschreiben.
+[neu] Gruppenoperationen prüfen vor dem ersten Schreiben sämtliche betroffenen Dateien, auch verborgene Varianten. Fehlt eine Berechtigung oder kollidiert ein Ziel, scheitert die ganze Aktion ohne Änderung und ohne Offenlegung verborgener Pfade. Rename benötigt `rename` und `write` an den Quellen sowie `createFile` und für Sprachziele `createTranslation` an den Zielen. Delete benötigt `delete` an allen betroffenen Dateien. `Capabilities` berücksichtigt bei Root-Dokumenten die vollständige Gruppe.
 
-Berechnungsregeln für das initiale Profil:
+[neu] Nicht gespeicherte Entwürfe oder ungespeicherte Änderungen in betroffenen Dokumenten führen zu `UnsavedChangesException`; Rename/Delete speichern nicht implizit. Gelöschte Referenzen haben `exists: false`, werden für weitere Dokumentoperationen ungültig und können per `save()` keine Datei wiederherstellen. Für mehrere Dateien benötigt der Storage eine vorbereitete Batch-Operation mit Wiederherstellung bei I/O-Fehlern. Bietet er diese Fähigkeit nicht, wird die Gruppenmutation vorab abgelehnt. Universelle atomare Dateisystemtransaktionen werden nicht versprochen; ein gescheiterter Rollback wird ausdrücklich als unvollständige Operation gemeldet.
 
-1. Seitenpfad nach Jekyll bestimmen: dateilokaler `permalink` oder Standardausgabe von Quellpfad/Format; `index.md` wird `index.html` mit Verzeichnis-URL. Seiten unterstützen ihre eigenen Platzhalter `:path`, `:basename`, `:output_ext`. Globale Post-Permalinkmuster dürfen nicht als Post-Logik auf normale Seiten angewendet werden. Die aktuell dokumentierte Besonderheit, dass `permalink` aus Front-Matter-Defaults für Pages ignoriert wird, wird ausdrücklich berücksichtigt. [Jekyll Permalinks](https://jekyllrb.com/docs/permalinks/)
-2. Für die gewünschte Sprache deren Variante wählen; wenn zulässig und keine eigene Variante vorliegt, veröffentlichbare Default-Quelle als Fallback verwenden. `exclude_from_localization` beachten; ausgeschlossene Ziele werden nicht einfach mit einem Sprachpräfix erfunden.
-3. `baseurl`, eventuell Sprachpräfix und unlokalisierten Pfad genau einmal zusammenfügen. Ein Quellordner `en/` darf nicht zusätzlich zu einem bereits lokalisierten Ausgabepfad gezählt werden. Bei expliziten Permalinks bestimmt der Permalink die Route, nicht der Quellordner.
-4. `url` aus der effektiven Konfiguration ergibt die absolute URL. Ohne gültige Basis ist `absoluteUrl: null`, aber `targetPath` kann vorhanden sein. Keine Domain aus `CNAME` erraten. Nur HTTP(S)-Origins sind als absolute Basis erlaubt; Permalinks dürfen keine externen URLs oder Query-/Fragmentteile einschleusen.
-5. Nicht unterstützte Liquid-Ausdrücke, URL-verändernde Plugins oder uneindeutige Platzhalter liefern `resolution: unresolved`, nullable Zielwerte und Diagnose. Nicht raten. Für unveröffentlichte Seiten darf eine berechenbare potenzielle Ziel-URL vorliegen; `publication` bleibt `unpublished`.
+## § 9 URLs gehören zum Dokument
 
-| Eingang | Sprache | Erwarteter `targetPath` bei obiger Konfiguration (ohne `baseurl`) |
-|---|---|---|
-| `index.md`, kein Permalink | de | `/` |
-| `en/index.md`, kein Permalink | en | `/en/` |
-| `leistungen/index.md`, kein Permalink | de | `/leistungen/` |
-| `en/leistungen/diagnostik.md`, kein Permalink | en | `/en/leistungen/diagnostik.html` |
-| `leistungen/diagnostik.md`, kein Permalink | de | `/leistungen/diagnostik.html` |
-| Ausnahme `permalink: /diagnostik/` | de | `/diagnostik/` |
-| Gleicher Ausnahme-Permalink `/diagnostik/` in allen vorhandenen Varianten | en | `/en/diagnostik/` |
-| Französische Datei fehlt, deutsche Quelle ist publizierbar | fr | `/fr/leistungen/diagnostik.html`, ausdrücklich Fallback |
-| `published: false`, `permalink: /neu/` | de | `/neu/`, keine Aussage über öffentliche Erreichbarkeit |
-
-Jekyll-Defaults werden für andere Felder wie Layout, Sprache oder published gemäß Pfad-/Typregeln aufgelöst; spezifischere Scopes und anschließend Dateiwerte haben Vorrang. URL-Sonderregeln werden getrennt behandelt. [Jekyll Front Matter Defaults](https://jekyllrb.com/docs/configuration/front-matter-defaults/)
-
-### § 9.1 Rückrichtung: reale URL zu Quelldatei und Sprache
+[geändert] `getUrl()` liefert den lokalen Zielpfad des konkreten Dokuments einschließlich `baseurl`. Die Sprache steht bereits durch das Dokument fest; es gibt keinen Sprachparameter. `getUrl(absolute: true)` liefert mit konfiguriertem `url` die absolute URL, andernfalls eine `ConfigurationException`.
 
 ```php
-$match = $site->resolveUrl(
-    'https://example.org/en/leistungen/diagnostik.html?campaign=mail#details'
-); // UrlLookupResult
-
-if ($match->status === UrlMatchStatus::Matched) {
-    $source = $site->page($match->match->path)->read(); // PageDocument
-    echo $match->match->requestedLanguage;            // en
-    echo $match->match->sourceLanguage;               // en
-}
+$page = $site->getPage('leistungen/diagnostik.md');
+$page->getUrl();                        // '/leistungen/diagnostik.html'
+$page->getUrl(absolute: true);          // 'https://example.org/leistungen/diagnostik.html'
+$english = $page->getTranslation('en');
+$english->getUrl();                     // '/en/leistungen/diagnostik.html'
+$english->getRootDocument()->getUrl();   // '/leistungen/diagnostik.html'
 ```
 
-```json
-{
-  "status": "matched",
-  "match": {
-    "pageId": "leistungen/diagnostik.md",
-    "path": "en/leistungen/diagnostik.md",
-    "requestedLanguage": "en",
-    "sourceLanguage": "en",
-    "isFallback": false,
-    "targetPath": "/en/leistungen/diagnostik.html",
-    "absoluteUrl": "https://example.org/en/leistungen/diagnostik.html"
-  },
-  "diagnostics": []
-}
+### § 9.1 Von einer URL direkt zum Document
+
+```php
+$document = $site->getDocumentByUrl(
+    'https://user@example.org:8443/en/leistungen/diagnostik.html?preview=1#details'
+); // Document: path='en/leistungen/diagnostik.md', language='en'
+$root = $document->getRootDocument(); // Document: language='de'
 ```
 
-Für `https://example.org/fr/leistungen/diagnostik.html` liefert dieselbe Fixture: [geändert]
+[geändert] Die Methode liefert immer ein tatsächliches `Document` oder wirft `UrlNotResolvableException`. Kein Result-Wrapper und kein `null`. Es gibt keinen Netzwerkzugriff. Schema, Zugangsdaten, Host, Port, Query und Fragment werden für die Suche entfernt; auch ein abweichender Host verhindert den lokalen Treffer nicht.
 
-```json
-{
-  "status": "matched",
-  "match": {
-    "pageId": "leistungen/diagnostik.md",
-    "path": "leistungen/diagnostik.md",
-    "requestedLanguage": "fr",
-    "sourceLanguage": "de",
-    "isFallback": true,
-    "targetPath": "/fr/leistungen/diagnostik.html",
-    "absoluteUrl": "https://example.org/fr/leistungen/diagnostik.html"
-  },
-  "diagnostics": []
-}
-```
-
-Die französische URL zeigt hier deutschen Fallback-Quelltext. Der Editor kann damit ausdrücklich „französische Übersetzung anlegen“ anbieten. Er darf nicht unbemerkt die deutsche Datei als französische Übersetzung bearbeiten. `path` identifiziert immer die tatsächlich vorhandene Quelle; eine fehlende Sprachdatei wird nicht erfunden.
-
-Der Resolver invertiert den **gleichen berechneten Routenindex**, den auch die Vorwärtsauflösung benutzt. Er schneidet nicht bloß `.html` ab oder entfernt ein Sprachpräfix vom URL-Pfad. Pro publizierbarer, vom Adapter unterstützter Route werden Zielpfad, Gruppen-ID, angefragte Sprache und Quelldatei indiziert; so funktionieren auch vom Standardpfad abweichende Permalinks und Fallback-Routen. Alle echten Kollisionen werden intern erkannt, bevor die autorisierte Projektion erstellt wird. Ein durch private Kandidaten blockierter Treffer wird ohne Details als `not_found` behandelt. [geändert]
-
-`UrlMatchStatus` kennt `matched`, `not_found`, `ambiguous`, `unsupported`. `match` ist nur bei `matched` ein `UrlMatch`, sonst `null`. `ambiguous` gilt für mehrere erlaubte mögliche Quellen; es gibt keinen willkürlichen ersten Treffer. `unsupported` bedeutet, dass die Route durch einen bekannten, aber nicht unterstützten Generator/Redirect/Plugin nicht sicher auflösbar ist. Bei vollständig dynamischen, statisch unbekannten Routen kann nur `not_found` plus allgemeine Site-Diagnose über unvollständige Routenabdeckung geliefert werden. Verborgene Quellen erzeugen keine sichtbaren Kandidaten oder Fehlerdetails.
-
-```json
-{"status": "not_found", "match": null, "diagnostics": []}
-```
-
-Für absolute URLs werden Scheme, Host und effektiver Port mit dem konfigurierten Origin verglichen; kein Fetch und kein Folgen von Weiterleitungen. Query und Fragment werden für die Dateizuordnung ignoriert. Der `baseurl` muss an einer Segmentgrenze passen: `/praxis2/` gehört nicht zu `/praxis`. Case des Pfades bleibt erhalten. Ungültige Prozentkodierung, kodierte Separatoren, Nullbytes und Traversal-Segmente werden als ungültige Eingabe zurückgewiesen; erlaubte UTF-8-Segmente werden konsistent mit der Vorwärtsauflösung normalisiert. Pfadseparatoren werden nicht durch wiederholtes Decodieren eingeschleust.
-
-`resolveUrl()` akzeptiert Eingaben **mit und ohne Domain sowie mit und ohne HTTP(S)-Protokoll**. Ein reiner Pfad braucht keine konfigurierte Domain. Andere Hosts, alternative Domains oder Preview-Hosts gelten nur bei explizitem vertrauenswürdigem `UrlContext` als gleichwertig. Fehlende `url` in Jekyll erlaubt weiterhin pfadbasierte Aufrufe, aber keine automatische Zuordnung einer angegebenen Domain.
-
-| Aufruf ohne konfigurierten `baseurl` | Interpretation |
+| Eingabe | Gesuchter Pfad |
 |---|---|
-| `resolveUrl('https://example.org/en/leistungen/diagnostik.html')` | Vollständige absolute URL |
-| `resolveUrl('http://example.org/en/leistungen/diagnostik.html')` | Absolute URL; abweichendes Scheme nur mit ausdrücklich erlaubtem Origin |
-| `resolveUrl('//example.org/en/leistungen/diagnostik.html')` | Domain mit protokollrelativer Schreibweise |
-| `resolveUrl('example.org/en/leistungen/diagnostik.html')` | Domain ohne Protokoll; gegen den konfigurierten Host prüfen |
-| `resolveUrl('/en/leistungen/diagnostik.html')` | Origin-relativer Pfad, ohne Domain/Protokoll |
-| `resolveUrl('en/leistungen/diagnostik.html')` | Gleicher Origin-relativer Pfad ohne führenden Slash |
+| `https://other.example:8443/en/leistungen/diagnostik.html?q=1#details` | `/en/leistungen/diagnostik.html` |
+| `//example.org/en/leistungen/diagnostik.html` | `/en/leistungen/diagnostik.html` |
+| `example.org/en/leistungen/diagnostik.html` | `/en/leistungen/diagnostik.html` |
+| `/en/leistungen/diagnostik.html` | `/en/leistungen/diagnostik.html` |
+| `en/leistungen/diagnostik.html` | `/en/leistungen/diagnostik.html` |
 
-Die Tabelle definiert akzeptierte Schreibweisen; die HTTP-Zeile wird erst bei passender Origin-Freigabe gleichwertig. Ohne angegebenes Scheme wird bei einer Host-Eingabe der konfigurierte Origin verwendet. Domainlose Pfade beziehen sich immer auf das Origin-Root und enthalten daher einen vorhandenen `baseurl`; sie werden nicht relativ zu einer zufälligen aktuell geöffneten Seite interpretiert.
+[geändert] Die Normalisierung verwendet einen URL-Parser. Ein domainähnliches erstes Segment ohne Schema wird als Authority behandelt; lokale Pfade mit einem solchen Segment müssen mit `/` beginnen. Ein konfiguriertes `baseurl` wird nur an Segmentgrenzen entfernt, nicht irgendwo im Pfad. Ungültige Kodierung, Traversal, Nullbytes und kodierte Pfadseparatoren werden abgewiesen; URL-Decodierung erfolgt genau einmal. Groß-/Kleinschreibung wird nicht willkürlich vereinheitlicht.
 
-Ein erster Abschnitt wie `example.org` wird nur dann als Host akzeptiert, wenn er einem konfigurierten Host beziehungsweise Alias entspricht. Andere erkennbar hostförmige Eingaben werden abgelehnt, nicht still zu lokalen Dateien umgedeutet. Für einen lokalen ersten Pfadabschnitt mit Punkt sorgt ein führender Slash für Eindeutigkeit. Das Ergebnis aller erlaubten gleichwertigen Schreibweisen ist derselbe `UrlMatch`; es erfolgt weder ein Netzwerkzugriff noch ein implizites Ändern der Website-Domain.
+[geändert] Der interne Index beruht auf den vom Adapter berechneten Ausgabewegen. `leistungen/diagnostik.md` ergibt normalerweise `/leistungen/diagnostik.html`; `leistungen/index.md` ergibt `/leistungen/`. `/leistungen/index.html` ist ein Alias dieser Indexausgabe; `/leistungen` darf auf dieselbe eindeutige Verzeichnisroute zeigen. `/leistungen.html` ist dagegen eine eigenständige Dateiroute. Slash- und HTML-Varianten werden nur anhand der Konfiguration und tatsächlichen Ausgabewege zugeordnet, niemals pauschal angehängt oder entfernt. Mehrdeutige Ausgaben scheitern, statt zufällig eine Datei auszuwählen.
 
 ```php
-$absolute = $site->resolveUrl('https://example.org/en/leistungen/diagnostik.html');
-$withHost = $site->resolveUrl('example.org/en/leistungen/diagnostik.html');
-$pathOnly = $site->resolveUrl('/en/leistungen/diagnostik.html');
-$barePath = $site->resolveUrl('en/leistungen/diagnostik.html');
-// Jeweils: match->path === 'en/leistungen/diagnostik.md', sourceLanguage === 'en'.
+try {
+    $site->getDocumentByUrl('/en/leistungen/diagnostk.html');
+} catch (UrlNotResolvableException $error) {
+    echo $error->normalizedPath; // '/en/leistungen/diagnostk.html'
+    echo $error->reason;         // 'not_found'
+    // $error->suggestions === ['/en/leistungen/diagnostik.html']
+    // $error->hints: list<string>, beispielsweise Hinweis auf ähnlichen Dateinamen
+}
 ```
 
-Schiller kennt im ersten Vertrag exakt die generierten Routen und deren Jekyll-Indexalias: `/x/` und `/x/index.html` können dieselbe erzeugte Indexdatei bezeichnen. `/x`, `/x/` und `/x.html` werden ansonsten nicht pauschal gleichgesetzt. CDN-/Webserver-Rewrites, historische Deployments und Redirects sind ohne zusätzlich bereitgestellte Regeln nicht zuverlässig aus Quelldateien umkehrbar. Die Antwort beschreibt den aktuellen Quellstand, nicht einen garantierten aktuellen Live-Deploy. Unveröffentlichte Seiten werden im Standard-Routenindex nicht als echte öffentliche Treffer ausgegeben; `page()->url()` darf weiterhin ihre potenzielle URL anzeigen.
+[neu] Die Exception enthält typisierte Eigenschaften `inputUrl: string` (bereinigt), `normalizedPath: ?string`, `reason: string`, `suggestions: list<string>` und `hints: list<string>`. Gründe sind `invalid_url`, `not_found`, `ambiguous` oder `unsupported`. Zugangsdaten und Query-/Fragmentwerte werden weder in Meldungen noch in Diagnosefeldern weitergegeben. Hinweise unterscheiden beispielsweise Schreibfehler, Baseurl-Mismatch, fehlende Sprachdatei oder falsche Slash-/HTML-Form. Höchstens fünf deterministisch sortierte Vorschläge stammen ausschließlich aus lesbaren, bekannten Routen; ähnliche Treffer werden niemals automatisch ausgewählt. Ein verborgenes Ziel verhält sich wie ein nicht vorhandenes und liefert keine verräterischen Hinweise.
 
-Auch separat ist die Rückrichtung verfügbar: `JekyllUrlResolver::lookup(string $url, RouteIndex $routes): UrlLookupResult`. Den geprüften Index erzeugt der Website-Adapter unter Kontrolle von `SchillerDir`; die normale Anwendung braucht ihn nicht selbst aufzubauen. Nach Änderungen an Permalinks, Sprache, Publication oder Konfiguration wird er invalidiert. Die Grundinvariante lautet: Eine eindeutige veröffentlichbare Variante muss beim Vorwärts- und anschließenden Rückwärtsauflösen wieder dieselbe Quelldatei und beide Sprachangaben ergeben.
+[neu] Ein vom Adapter sicher erkannter Polyglot-Fallback wie `/fr/leistungen/diagnostik.html` liefert die tatsächlich verwendete deutsche Quelldatei, solange keine französische Übersetzung existiert. Das zurückgegebene Dokument behält `language='de'`, `isRootDocument=true` und seine deutsche `getUrl()`. Es wird kein französisches Dokument erfunden. `getTranslation('fr')` bleibt `null`. Für nicht sicher modellierbare Build-Routen wird `unsupported` gemeldet. Auflösung und Veröffentlichung beziehen sich auf den aktuellen Quellstand, nicht auf einen möglicherweise älteren Deploy. Unveröffentlichte Dokumente haben eine berechenbare Vorschau-URL, aber keinen regulären öffentlichen Indexeintrag.
 
-### § 9.2 Permalink als Ausnahme
+### § 9.2 Permalinks als Ausnahme
 
-Ohne `permalink` ergibt der sprachneutrale Quellpfad die Route: `index.md` → `/`, `leistungen/index.md` → `/leistungen/`, `leistungen/diagnostik.md` → `/leistungen/diagnostik.html`. Der Sprachpräfix wird genau einmal ergänzt. Schiller schreibt keine automatisch berechneten Permalinks in Dateien. [neu]
+[geändert] Ohne Permalink folgt die URL dem natürlichen Jekyll-Ausgabeweg. Ein explizites `permalink: /medizin/diagnostik/` ergibt für das Original `/medizin/diagnostik/` und für die englische Übersetzung `/en/medizin/diagnostik/`, jeweils zuzüglich `baseurl`. Innerhalb einer Sprachgruppe muss derselbe unlokalisierte Ausgabeweg entstehen; unterschiedliche übersetzte Slugs werden im festen Polyglot-Profil ohne IDs nicht unterstützt. Permalinks bestimmen keine Schiller-Gruppenidentität. Konflikte mit anderen Ausgaben werden vor dem Speichern abgelehnt. Nicht unterstützte Jekyll-Plugins, Platzhalter oder Build-Sonderfälle erzeugen Diagnosen statt erfundener URLs.
 
-Für eine bewusst abweichende Route kann die Gruppe etwa `permalink: /untersuchungen/` verwenden; dann sind die Ziele `/untersuchungen/` und `/en/untersuchungen/`. Da der hier gewählte Polyglot-Modus ohne `page_id` arbeitet, müssen alle Varianten dieselbe unlokalisierte Route ergeben. Unterschiedliche sprachspezifische Ausnahme-Permalinks sind in diesem festen Profil nicht zulässig. Schiller identifiziert weiterhin ausschließlich über den Dateipfad und prüft zusätzlich diese Build-Kompatibilität. Eine widersprüchliche Gruppe erhält eine Diagnose und wird nicht als sicher aufgelöste Route ausgegeben. Das ist eine Grenze von Polyglots eigener URL-Gruppierung, keine zusätzliche ID-Pflicht. [neu]
+## § 10 Typisierter öffentlicher Vertrag
 
-Eine Übersetzungsanlage übernimmt einen vorhandenen Ausnahme-Permalink; normale Seiten behalten keinen. Ein einzelnes Header-Patch darf keine widersprüchlichen Gruppenrouten erzeugen und wird andernfalls vor dem Schreiben abgelehnt. Das Anlegen neuer Seiten ohne Permalink ist der Standard. Die Rückauflösung benutzt weiterhin den berechneten Routenindex und funktioniert auch für erlaubte Ausnahme-Permalinks. [neu]
-
-## § 10 Kleine öffentliche API und DTO-Vertrag
-
-Die folgenden Interface-Signaturen beschreiben den Vertrag der vorgeschlagenen Klassen, keine bereits ausführbare Bibliothek:
+[geändert] Die folgenden Signaturen beschreiben den Entwurf; sie sind keine lauffähige Klassenimplementierung. `Document` wird durch `SchillerDir` erzeugt, nicht mit einem frei gesetzten Übersetzungspfad konstruiert.
 
 ```php
-interface SiteAccess
+final class SchillerDir
 {
+    public function __construct(
+        PhoreDirectory|SiteStorage $root,
+        ?AccessContext $access = null,
+        ?AccessPolicy $policy = null,
+        ?AdapterRegistry $adapters = null,
+    );
     public function config(): SiteConfig;
     public function files(string $path = '', bool $recursive = false): FileListing;
     public function pages(string $path = ''): PageTree;
-    public function page(string $path): SchillerPage;
-    public function resolveUrl(string $url): UrlLookupResult;
     public function capabilities(string $path): Capabilities;
-    public function createPage(NewPage $page): PageDocument;
+    public function getPage(string $path): Document;
+    /** @param array<string, YamlValue> $header */
+    public function createPage(string $path, array $header = [], string $content = ''): Document;
+    public function getDocumentByUrl(string $url): Document;
 }
 
-interface PageAccess
+/**
+ * @property-read string $path
+ * @property-read string $language
+ * @property-read bool $isRootDocument
+ * @property-read bool $exists
+ */
+final class Document
 {
-    public function read(): PageDocument;
-    public function fields(): FieldSet;
-    public function translations(): TranslationSet;
-    public function url(?string $language = null): PageUrl;
-    public function urlInput(?string $language = null): UrlInput;
-    public function update(PagePatch $patch): PageDocument;
-    public function createTranslation(NewTranslation $translation): PageDocument;
-}
-```
-
-`SchillerDir` implementiert `SiteAccess`, `SchillerPage` implementiert `PageAccess`. Arrays sind nur Listen/Maps mit angegebenem Elementtyp oder bewusst dynamisches YAML. DTOs serialisieren string-backed Enums als Strings; fehlende optionale Werte werden `null`, leere Listen `[]`, leere Maps `{}`. Benutzerrollen bleiben Strings, damit Kunden eigene Rollen definieren können. Sprachcodes sind validierte Strings aus der Site-Konfiguration, keine fest eingebauten Enums.
-
-Beispiel eines tatsächlichen PHP-Typentwurfs:
-
-```php
-enum ContentFormat: string { case Markdown = 'markdown'; case Html = 'html'; }
-enum Publication: string {
-    case Published = 'published';
-    case Unpublished = 'unpublished';
-    case Excluded = 'excluded';
-    case Unknown = 'unknown';
-}
-final class PageDocument
-{
-    public string $path;
-    public ContentFormat $format;
-    public FrontMatter $header;
-    public FrontMatter $effectiveHeader;
-    /** @var array<string, ValueOrigin> */
-    public array $origins;
+    /** @var array<string, YamlValue> */
+    public array $header;
     public string $content;
-    public Publication $publication;
+
+    /** @return array<string, YamlValue> */
+    public function getEffectiveHeader(): array;
+    public function getFields(): FieldSet;
+    public function getRootDocument(): Document;
+    public function getTranslation(string $language, bool $create = false): ?Document;
+    /** @return array<string, TranslationInfo> */
+    public function getTranslations(): array;
+    public function getUrl(bool $absolute = false): string;
+    public function save(): void;
+    public function rename(string $path): void;
+    public function delete(): void;
+}
+
+final readonly class TranslationInfo
+{
+    public function __construct(
+        public string $language,
+        public string $path,
+        public bool $exists,
+        public bool $isRootDocument,
+    ) {}
 }
 ```
 
-Weitere DTOs sind verbindlich wie folgt strukturiert; `?` bezeichnet nullable Werte:
+[geändert] `getPage()` akzeptiert den tatsächlichen Root-relativen Dateipfad, auch `en/leistungen/diagnostik.md`. Es lädt sofort oder wirft `NotFoundException`. `getTranslation(create: true)` liefert bei Erfolg immer ein Dokument; der nullable Rückgabetyp deckt ausschließlich den fehlenden Treffer bei `create: false` ab. Listen-DTOs bleiben typisiert: `FileListing`/`FileEntry`, `PageTree`/`PageFolder`/`PageGroup`/`TranslationSummary` gemäß § 4, `SiteConfig` gemäß § 3 und `FieldSet`/`FieldDefinition` gemäß § 7. `TranslationSummary` ergänzt für den Seitenbaum Veröffentlichungsstatus und URL; `TranslationInfo` ist die kleine Verfügbarkeitsliste einschließlich fehlender Sprachen.
 
-| Typ | Felder / Inhalt |
-|---|---|
-| `SiteConfig` | `adapter: AdapterSelection`, `languages: list<string>`, `defaultLanguage: ?string`, `url: ?string`, `baseurl: string`, `schemaVersion: int`; interne Resolver-Konfiguration nicht ungeprüft serialisieren |
-| `FileListing`, `FileEntry` | `path`, `entries: list<FileEntry>`, `diagnostics: list<Diagnostic>`; Entry: `path`, `kind: FileKind`, `children: list<FileEntry>` |
-| `TranslationSet` | `pageId: string`, `availableLanguages: list<string>`, `missingLanguages: list<string>`, `items: list<TranslationInfo>` |
-| `TranslationInfo` | `language: string`, `state: TranslationState`, `path: ?string`, `sourceLanguage: ?string`, `published: ?bool`, `targetPath: ?string`, `canCreate: bool` |
-| `FieldSet` | `fields: list<FieldDefinition>` sowie `get(string): FieldDefinition` |
-| `FieldDefinition` | `key`, `type: FieldType`, `label`, `description`, `required`, `nullable`, `maxLength: ?int`, `hasDefault`, `default: YamlValue`, `options: list<FieldOption>`, `editable: bool` |
-| `Capabilities` | Boolean-Felder `read`, `write`, `createFile`, `createTranslation`, `createTemplate` |
-| `PageUrl` | `language: ?string`, `sourceLanguage: ?string`, `permalink: ?string`, `targetPath: ?string`, `absoluteUrl: ?string`, `publication: Publication`, `resolution: UrlResolution` |
-| `UrlLookupResult` | `status: UrlMatchStatus`, `match: ?UrlMatch`, `diagnostics: list<Diagnostic>` |
-| `UrlMatch` | `pageId: string`, `path: string`, `requestedLanguage: ?string`, `sourceLanguage: ?string`, `isFallback: bool`, `targetPath: string`, `absoluteUrl: ?string` |
-| `Diagnostic` | `code: string`, `severity: Severity`, `path: ?string`, `field: ?string`, `message: string` |
-| `NewPage` | `path: string`, `header: FrontMatter`, `content: string`; Format aus zulässiger Endung |
-| `NewTranslation` | `language: string`, `title: string`, `content: ?string = null`; Zielpfad wird aus der Quelle abgeleitet |
-| `PagePatch` | `header: ?FrontMatterPatch = null`, `content: ?string = null` |
-| `FrontMatterPatch` | `set: array<string,YamlValue> = []`, `remove: list<string> = []`; Überschneidungen sind Fehler |
+[neu] Die einfachen DTOs können mit Phore Schema validiert werden. Das bearbeitbare `Document` besitzt dagegen eine interne Verbindung zu seiner `SchillerDir` und wird nicht als beliebiges Request-Array hydratisiert. Rollen, Pfade und Root-Beziehungen sind nicht durch Headerwerte überschreibbar.
 
-`UrlResolution` hat `resolved`, `unresolved`; `Severity` hat `warning`, `error`. Für eine nicht mehrsprachige Site ist eine unbekannte Sprache `null`, statt ein ungesichertes `de` zu erfinden. Ein vom Jekyll-Profil akzeptiertes `lang` kann als einzige Sprache verwendet werden. Übersetzungsanlage erfordert eine explizite mehrsprachige Konfiguration.
+## § 11 Filesystem und austauschbare Formatadapter
 
-Eine neue normale Seite anlegen:
+[geändert] `SchillerDir` adaptiert ein übergebenes `PhoreDirectory` intern auf einen `SiteStorage`. Alternative Connectoren liefern dieselben rootgebundenen Lese-/Schreiboperationen. Die Anwendung stellt das Verzeichnis bereit; Versionskontrolle gehört nicht zu diesem Vertrag.
 
-```php
-$new = $site->createPage(new NewPage(
-    path: 'leistungen/vorsorge.md',
-    header: new FrontMatter([
-        'title' => 'Vorsorge',
-        'layout' => 'default',
-    ]),
-    content: "## Vorsorge\n",
-)); // PageDocument; published wird aus dem Anlage-Default false ergänzt
-```
+Die vorhandenen Methoden `PhoreDirectory::genWalk()`, `PhoreFile::get_contents()`, `get_yaml()`, `get_front_matter()` und `put_front_matter()` bilden die Basis von `PhoreStorage`. Phore liefert bereits ein `FrontMatterFile` mit `filename`, `header` und `content`; Schiller übernimmt das Header-Array ohne weiteren Wrapper. Die optionale Phore-Klassenhydration verwendet derzeit `phore/hydrator` und ist nicht automatisch `phore/schema`. Es wird kein konkurrierender YAML-Parser eingeführt. Die konkrete Phore-Datenstruktur wird nicht zum zweiten öffentlichen Header-Modell. Phore Schema kann Konfiguration und einfache DTOs prüfen, ersetzt aber weder Zugriffsprüfung noch Dateisystemgrenzen.
 
-Rückgabeprojektion: `path = 'leistungen/vorsorge.md'`, `publication = Publication::Unpublished`, `header->bool('published') = false`. Die Anlage braucht `createFile`; Übersetzungsanlage braucht zusätzlich `createTranslation`. `createPage` darf das nicht umgehen: gehört der sprachneutrale Dateipfad zu einer bestehenden Sprachgruppe, ist der Übersetzungsweg mit seinen zusätzlichen Rechten zwingend. Vorhandene Dateien werden nicht überschrieben. [geändert]
-
-## § 11 Connector, Adapter und Versionierung
-
-Der normale Konstruktor nimmt `PhoreDirectory|SiteStorage` an. Eine Directory-Instanz wird intern in `PhoreStorage` gewrappt. `SiteStorage` ist eine optionale Erweiterungsnaht für andere bereits bereitgestellte Dateisysteme, kein Git-Client. V1 implementiert zunächst nur `PhoreStorage`; kein zweites Filesystem-Framework.
-
-| Schicht | Aufgabe | Bestehende Basis |
-|---|---|---|
-| `PhoreStorage` | Root-gebundene Enumeration, Text, YAML, Front Matter, geprüfte Dateioperationen | `PhoreDirectory::genWalk()`, `PhoreFile::get_contents()`, `get_yaml()`, `get_front_matter()`, `put_front_matter()` |
-| `SiteAdapter` | Seitenerkennung, Gruppierung, Sprachauflösung, Feld-/URL-Eingaben, Planung von Quelldateiänderungen | Jekyll-/Polyglot- beziehungsweise Legacy-Regeln |
-| `SchillerDir` / `SchillerPage` | Rechte, DTOs, Validierung und orchestrierte Ausführung | eigene kleine öffentliche API |
-| `JekyllUrlResolver` | Reine Ziel-URL-Berechnung aus geprüften Eingaben | Jekyll-Konfiguration und Profil |
-
-Der Adapter bekommt ausschließlich einen kontrollierten Storage-Zugang und kann Rechte nicht umgehen. Schreibpläne werden vor jeder Ausführung zentral auf alle betroffenen Pfade und Aktionen geprüft. Weder Adapter noch YAML können beliebige PHP-Klassennamen nachladen; die Anwendung registriert bekannte Adapter unter festen IDs.
-
-| Auswahl | Geplanter Vertrag |
-|---|---|
-| `jekyll`, Version `1` | Normale Jekyll-Seiten einschließlich unterstützter optionaler Front Matter |
-| `jekyll-polyglot`, Version `1` | Feste gespiegelte Sprachverzeichnisse, Standardsprache im Root, keine dateilokalen IDs/Sprachen; Fallback |
-| `micx-legacy`, Version `1` | Optionaler zunächst lesender Adapter für `_section.yml`, `pid`, Sprachsuffixe und alte Formdefinitionen |
-
-Fehlt die Adapterauswahl, wird ausschließlich zwischen bekannten Jekyll-Profilen anhand der Plugins gewählt: Polyglot explizit vorhanden → festes Polyglot-Verzeichnisprofil, sonst Jekyll; widersprüchliche Konfiguration → Fehler. Der Polyglot-Adapter prüft, dass die zentralen Sprach-Defaults zur Verzeichniszuordnung passen, ohne diese Werte in Seitenheader zu schreiben. Das Legacy-Format wird nicht automatisch aus Dateinamen geraten. Ein Adapterwechsel verändert nur die Interpretation, migriert weder Inhalte noch Build-Konfiguration und installiert kein Plugin. [geändert]
+[geändert] Ein interner Formatadapter übernimmt Seitenerkennung, Sprachpfade, Gruppierung, Jekyll-Defaults und Ausgabewege. Der interne `JekyllUrlResolver` baut daraus den vorwärts und rückwärts verwendeten Routenindex. Öffentliche Aufrufe bleiben `Document::getUrl()` und `SchillerDir::getDocumentByUrl()`.
 
 ```yaml
 schema_version: 1
-adapter:
-  id: micx-legacy
-  version: 1
+adapter: {id: jekyll-polyglot, version: 1}
 ```
 
-Nur der Legacy-Adapter behält PID und Sprache aus bisherigen Headern beziehungsweise Dateinamen bei (z. B. `home/home.de.md`, `pid: home/home`, `lang: de`). Diese Regeln gelten ausdrücklich nicht für den neuen Polyglot-Adapter. Interne DTO-Felder `id`/`pageId` bleiben für beide Adapter verfügbar; im neuen Profil enthalten sie ausschließlich den abgeleiteten sprachneutralen Dateipfad, keine zu speichernde ID. [neu]
+Für Altbestände wird ein gesonderter, zunächst lesender Vertrag vorgesehen:
 
-Die Legacy-Klasse liefert dieselben DTOs; nicht belegbare URLs sind `unresolved`, nicht unterstützte Schreibfunktionen liefern falsche Capabilities und `UnsupportedOperationException`. Für neue inkompatible Semantik wird später beispielsweise `jekyll-polyglot`, Version `2` registriert. Alte Versionen bleiben parallel auswählbar. Ein unbekanntes Profil darf niemals still auf die neueste Version fallen. Jeder veröffentlichte Adapter muss die tatsächlich getesteten Jekyll-/Gem-Versionen dokumentieren; eine universelle Garantie für alle zukünftigen Plugins ist aus statischem Dateizugriff nicht ableitbar.
-
-Phore Filesystem besitzt bereits `FrontMatterFile` mit `filename`, `header` und `content` sowie die oben genannten Lese-/Schreibmethoden. Die optionale Klassenhydration von `get_front_matter($class)` benutzt derzeit `phore/hydrator`; sie ist nicht automatisch die Hydration aus `phore/schema`. Daher zunächst untypisierten Header lesen, in Schillers `FrontMatter` einbetten und die feste DTO-Hülle typisieren. Kein eigener konkurrierender YAML-Parser.
-
-`phore/schema` bietet bereits Schema-Erzeugung, Validierung, Hydration und string-backed Enums. Es eignet sich optional für die festen DTOs und die Übertragung an einen späteren Page-Builder-Client:
-
-```php
-$schema = phore_schema_class(PageDocument::class)->toJsonSchema()->data();
+```yaml
+schema_version: 1
+adapter: {id: micx-legacy, version: 1}
 ```
 
-Der Aufruf ist eine vorhandene Phore-API; `PageDocument` bleibt hier ein Entwurf. Die dynamischen Metafelder aus `schiller.yaml` benötigen eine eigene Abbildung ihrer geprüften Definitionen auf Schematypen beziehungsweise Validierung. `phore/schema` wird nicht als bereits vorhandener Schiller-YAML-Interpreter dargestellt und nicht allein für Boolean-/Dropdown-Prüfungen verpflichtend gemacht. Die Composer-Namen und Namespaces des Zielprojekts sind noch Template-Platzhalter; sie werden in diesem Dokumentations-PR nicht geändert.
+[geändert] Der Legacy-Adapter darf die bisherigen PID-/Sprachinformationen im Header oder Dateinamen und `_section.yml` auswerten. Der neue Polyglot-Adapter verwendet ausschließlich die feste Struktur aus § 6. Die gemeinsame Document-API verlangt vom Adapter die entsprechenden Fähigkeiten; nicht unterstützte Schreiboperationen werden vorab abgelehnt.
 
-## § 12 Diagnosen und Abnahmefälle für die spätere Implementierung
+[geändert] `adapter.version` wählt eine registrierte Schiller-Vertragsversion. Keine dynamisch aus YAML geladenen PHP-Klassen, keine automatische Migration und kein Rückfall auf einen anderen Adapter bei unbekannter Version. Fehlt die optionale Auswahl, entscheidet die Plugin-Konfiguration zwischen registrierten Profilen: mit Polyglot gilt `jekyll-polyglot`, andernfalls `jekyll`, jeweils Version 1. Widersprüchliche Konfiguration ist ein Fehler; Legacy benötigt eine explizite Auswahl. Neue Polyglot-Kompatibilität kann als weitere Vertragsversion registriert werden, ohne alte Kunden automatisch umzustellen.
 
-Lesbare fehlerhafte Einzelseiten erzeugen eine `Diagnostic` im Baum, andere gültige Seiten bleiben verfügbar. Direkte Reads einer fehlerhaften Seite werfen `PageParseException`. Nicht lesbare Pfade dürfen nicht über Diagnosemeldungen auftauchen. Bei Konflikten mit versteckten Seiten lautet eine öffentliche Fehlermeldung beispielsweise `TARGET_UNAVAILABLE`, ohne den kollidierenden Pfad oder dessen Titel zu nennen. Ein zentraler Konfigurationsfehler bricht die Operation ab.
+## § 12 Fehler, Grenzen und spätere Abnahme
 
-```json
-{
-  "code": "INVALID_FIELD_TYPE",
-  "severity": "error",
-  "path": "leistungen/diagnostik.md",
-  "field": "published",
-  "message": "Boolean erwartet; String erhalten."
-}
-```
+[geändert] Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner lesbarer Dateien erscheinen als `Diagnostic` mit Code, relativem Pfad und Meldung im Listing; andere gültige Seiten bleiben sichtbar. Nicht lesbare Dateien erzeugen keine sichtbaren Diagnosen. Direkte Operationen werfen typisierte Exceptions: `ConfigurationException`, `NotFoundException`, `AccessDeniedException`, `FieldTypeException`, `ValidationException`, `AlreadyExistsException`, `ConflictException`, `UnsavedChangesException`, `UnsupportedOperationException`, `StorageException` oder `UrlNotResolvableException`.
 
-Vor Implementierungsfreigabe dienen diese Fälle als konkrete spätere Abnahme:
+[geändert] Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 
-| Fall | Erwartetes Verhalten |
-|---|---|
-| Nur Website-Root übergeben | Konfiguration selbst lesen, kein Zugriff außerhalb |
-| `_config.yml` zwischen zwei Aufrufen ändern | Neue URL-/Sprachwerte werden ohne neue Instanz sichtbar |
-| Plain Jekyll ohne Schiller-YAML | Read-only-Seitenbaum ohne Legacy-Voraussetzungen |
-| Verschachtelte Ordner, Index, Markdown/HTML | Physischer Baum und logische Gruppen bleiben unterscheidbar |
-| published fehlt / false / String | True gemäß Jekyll-Standard / unpublished / Typfehler |
-| Dateiwerte und mehrere Defaults | Korrekte Priorität und Herkunft; kein Persistieren geerbter Werte |
-| Gleicher relativer Dateipfad unter Root/en/fr | Eine Gruppe ohne ID-/Sprachheader |
-| Root-index.md und en/index.md ohne Permalink | `/` und `/en/`; Rückauflösung auf die jeweilige Datei |
-| Identischer Ausnahme-Permalink pro Sprachgruppe | Korrekte Sprachpräfixe; keine Verwendung zur Gruppenidentifikation |
-| Übersetzung fehlt / unveröffentlicht / verboten | Fallback getrennt / tatsächliche Variante getrennt / keinerlei Metadatenleck |
-| Fehlende URL-Basis, Liquid-Permalink, unbekanntes Plugin | Nullable/unresolved statt erfundener URL |
-| Reale URL mit sprachspezifischem Permalink | Exakte Quelldatei und Sprache über denselben Routenindex |
-| Rückauflösung einer Fallback-URL | Angefragte Sprache und tatsächliche Quellsprache getrennt |
-| Vorwärts-/Rückwärts-Roundtrip | Gleiche Quelle, Sprache und Fallback-Zuordnung für eindeutige öffentliche Routen |
-| Fremder Host, Query/Fragment, baseurl-Grenze, kodierter Pfad | Origin prüfen, Query/Fragment ignorieren, keine Pfadverwechslung |
-| Mehrere Routenkandidaten / verborgene Quelle | Ambiguous bei erlaubten Kollisionen / keine Offenlegung |
-| Verbotener Pfad, Symlink, Traversal | Listing und Direktzugriff geschützt; kein Write außerhalb Root |
-| Neue Sprachdatei bei bestehender Gruppe | Kein Überschreiben; zusätzliche Rechte werden geprüft |
-| Body-only und Header-only Update | Unbetroffener Dateibereich bleibt erhalten |
-| Boolean/Dropdown/Mehrfachauswahl | Strikte Typen und Optionsprüfung mit Feldpfad |
-| Alter oder unbekannter Adapter | Stabiler Legacy-Vertrag beziehungsweise expliziter Fehler |
+- Root-`index.md`, normale Unterseiten und gespiegelte Sprachdateien ohne ID-/Sprachheader oder Permalink.
+- Direktes Ändern, Entfernen und Leeren von Header/Body; keine Speicherung geerbter Defaults.
+- Anlage schreibt erst bei `save()`; parallele Zielanlage überschreibt keine Datei.
+- Übersetzungslisten einschließlich fehlender Sprachen; keine Existenz aus Fallbacks ableiten.
+- Root-Identität, Übersetzung zur Standardsprache und Kopie des gespeicherten Roots bei `create: true`.
+- Rename aller Sprachdateien, Delete einer Übersetzung und Delete der vollständigen Gruppe.
+- Vorabprüfung aller Gruppenrechte und Kollisionen; Fehler und Wiederherstellung bei Storage-Ausfällen.
+- URL mit und ohne Authority, mit Zugangsdaten/Port/Query/Fragment, baseurl und sprachspezifischem Dokument.
+- Index-Aliasse, natürliche HTML-Ausgabe und optionale Permalinks ohne pauschale Endungsersetzung.
+- Eindeutiger Fallback auf das tatsächliche Quelldokument; Mehrdeutigkeit und unbekannte Routen als Exception.
+- Bereinigte Fehlermeldungen, begrenzte URL-Vorschläge und keinerlei Leaks verborgener Seiten.
 
-Für die erste Implementierung empfehlen sich kleine synthetische Fixtures und ein Abgleich der URL-Ausgaben mit tatsächlich gepinnten Jekyll-/Polyglot-Builds. Dieser Entwurf verspricht keine bereits bestandenen Laufzeittests. Das aktuelle Dokument ist auf konsistente Beispielkonfiguration, JSON-Rückgaben und Methodenbenennung zu prüfen; kein Testcode oder Implementierung ist Teil dieses PRs.
+[geändert] Dieser PR enthält ausschließlich Entwurf und Beispiel-PHP-Dateien. Sie sind keine ausführbaren Integrationstests. Daten-/Collection-/Template-Editoren, Übersetzungsdienste, Deploy, Git und ein Sperrsystem bleiben Folgearbeiten beziehungsweise Aufgaben der Anwendung.
 
 ## § 13 Quellen und Entscheidungsstand
 
-Quellstand geprüft am 2026-09-12. Die Kundenwebsite wurde ausschließlich intern als Strukturreferenz betrachtet; ihre Inhalte und Konfiguration werden hier nicht veröffentlicht. Beispiele verwenden eigene Texte und `example.org`.
+[geändert] Quellstand geprüft am 2026-09-12. Die Kundenwebsite wurde ausschließlich intern als Strukturreferenz betrachtet; ihre Inhalte und Konfiguration werden hier nicht veröffentlicht. Beispiele verwenden eigene Texte und `example.org`.
 
 | Öffentliche Referenz | Relevanz |
 |---|---|
@@ -788,4 +633,4 @@ Quellstand geprüft am 2026-09-12. Die Kundenwebsite wurde ausschließlich inter
 | [Jekyll Permalinks](https://jekyllrb.com/docs/permalinks/) | Page-URL-Regeln und Grenzen |
 | [Jekyll Defaults](https://jekyllrb.com/docs/configuration/front-matter-defaults/) | Effektive Metadaten und Prioritäten |
 
-Empfohlene Reihenfolge: zunächst Root/Konfiguration, Rechte und Phore-Lesen; danach Seitenbaum, Polyglot und URL-Resolver; anschließend geprüfte Seiten-/Übersetzungsanlage und Metafeld-Patches. Legacy-Lesen lässt sich separat ergänzen. Daten-/Collection-/Template-Editoren bleiben ein eigener Folgeentwurf. Der vorliegende PR entscheidet noch keine Implementierung und verändert keine Referenzwebsite.
+Empfohlene Reihenfolge: zunächst Root/Konfiguration, Rechte und Phore-Lesen; danach Seitenbaum, Polyglot und URL-Resolver; anschließend Dokumentspeicherung, Übersetzungsanlage und Gruppenmutationen. Legacy-Lesen lässt sich separat ergänzen. Daten-/Collection-/Template-Editoren bleiben ein eigener Folgeentwurf. Der vorliegende PR entscheidet noch keine Implementierung und verändert keine Referenzwebsite.
