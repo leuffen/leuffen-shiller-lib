@@ -32,7 +32,7 @@ return static function (PhoreDirectory $root): Document {
         $document = $site->getDocumentByUrl($input); // Document oder Exception
         // Immer path='en/leistungen/diagnostik.md', language='en'.
         assert($document === $english);
-        assert($document->getRootDocument() === $page);
+        assert($document->getTranslation() === $page);
     }
 
     try {

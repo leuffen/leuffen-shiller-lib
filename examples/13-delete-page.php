@@ -18,7 +18,7 @@ return static function (PhoreDirectory $root): void {
     $english->delete(); // Sofort: ausschließlich en/leistungen/diagnostik.md.
     assert($page->getTranslation('en') === null);
     assert($page->getTranslations()['en']->exists === false);
-    // Root bleibt bestehen. create:true könnte jetzt wieder eine Kopie vorbereiten.
+    // Root bleibt bestehen. createIfMissing:true könnte jetzt wieder eine Kopie vorbereiten.
     // $english ist ungültig und darf nicht per save() wiederhergestellt werden.
 
     $page->delete(); // Sofort: Root und sämtliche noch vorhandenen Übersetzungen.

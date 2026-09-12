@@ -2,60 +2,65 @@
 
 declare(strict_types=1);
 
-// AUSFÜHRBARER ENTWURF der reinen Zuordnung, keine vollständige Adapterimplementierung.
-// Kein Filesystem-Zugriff: Der Aufrufer liefert bereits rootgeprüfte Pfade und Header.
-// Der gemeinsame Builder prüft Existenz/Rechte und erzeugt TreeNode/FileEntry.
-// PHPDoc-Rückgabe: array{nodePath:string, groupPath:string, filePath:string,
-// language:string, isRootDocument:bool, candidates:array<string,string>}
+namespace Leuffen\Schiller\Examples;
 
-// Beispiel:
-// $map = require __FILE__;
-// $result = $map('leistungen/diagnostik.de.md',
-//     ['pid'=>'leistungen/diagnostik', 'lang'=>'de', 'title'=>'Diagnostik'],
-//     ['de','en','fr'], 'de');
-// nodePath/groupPath='leistungen/diagnostik.md', filePath='leistungen/diagnostik.de.md'
-// candidates['fr']='leistungen/diagnostik.fr.md'; Existenz erst durch Storage prüfen.
-// 'leistungen/index.de.md' mit pid='leistungen/index' -> nodePath='leistungen'.
-// Eine _section.yml ohne Index erzeugt der Builder separat mit file=null.
+use Leuffen\Schiller\Document;
+use Leuffen\Schiller\PageTree;
+use Leuffen\Schiller\SiteConfig;
+use Leuffen\Schiller\SiteStorage;
 
-return static function (
-    string $path,
-    array $header,
-    array $languages,
-    string $defaultLanguage,
-): array {
-    if (!in_array($defaultLanguage, $languages, true)) {
-        throw new InvalidArgumentException('Standardsprache nicht konfiguriert.');
-    }
-    if (!preg_match('~^(.+)\.([^.\/]+)\.(md|html)$~D', $path, $match)) {
-        throw new InvalidArgumentException('Erwartet: <pid>.<lang>.md oder .html');
-    }
-    [, $pid, $language, $extension] = $match;
-    if (!in_array($language, $languages, true)) {
-        throw new InvalidArgumentException('Unbekannte Sprache.');
-    }
-    if (($header['pid'] ?? null) !== $pid || ($header['lang'] ?? null) !== $language) {
-        throw new InvalidArgumentException('PID oder Sprache stimmt nicht mit dem Dateipfad überein.');
+require_once __DIR__ . '/Adapter.php';
+
+// ENTWURFSIMPLEMENTIERUNG: nur Signaturen, Aufgaben und erwartete Rückgaben.
+// Alle Methoden sind absichtlich Stümpfe und werfen statt Dummy-Daten zu liefern.
+final class LegacyAdapter implements Adapter
+{
+    /**
+     * Liest alte Konfigurationsquellen und normalisiert sie zu SiteConfig, z.B. Sprachen de/en/fr. Unbekannte Konfigurationsformen melden einen Fehler.
+     */
+    public function loadConfig(SiteStorage $storage): SiteConfig
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::loadConfig');
     }
 
-    $groupPath = $pid . '.' . $extension;
-    $parent = dirname($pid);
-    $nodePath = basename($pid) === 'index'
-        ? ($parent === '.' ? '' : $parent)
-        : $groupPath;
-    $candidates = [];
-    foreach ($languages as $code) {
-        $candidates[$code] = $pid . '.' . $code . '.' . $extension;
+    /**
+     * Liest _section.yml und <pid>.<lang>.md/html. Prüft pid/lang im Header. Liefert z.B. Knoten leistungen mit file=null oder index.de.md und Kind diagnostik.md mit FileEntry diagnostik.de.md. Fehlendes fr: exists=false.
+     */
+    public function buildPageTree(SiteStorage $storage, SiteConfig $config, string $path = ''): PageTree
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::buildPageTree');
     }
 
-    // PID/lang bleiben Teil des Legacy-Headers; hier wird nichts umgeschrieben.
-    // md/html-Mischgruppen erfordern zusätzlich den gemeinsamen Bestandsindex.
-    return [
-        'nodePath' => $nodePath,
-        'groupPath' => $groupPath,
-        'filePath' => $path,
-        'language' => $language,
-        'isRootDocument' => $language === $defaultLanguage,
-        'candidates' => $candidates,
-    ];
-};
+    /**
+     * Liefert z.B. leistungen/diagnostik.en.md. Vorhandene md/html-Varianten werden über den Bestandsindex erkannt; ein neuer Kandidat übernimmt die Root-Endung.
+     */
+    public function getTranslationPath(Document $document, string $language, SiteConfig $config): string
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslationPath');
+    }
+
+    /**
+     * Liefert wirksame alte Jekyll-Defaults und Dateiwerte inklusive pid/lang. Diese bleiben im Legacy-Header zulässig.
+     * @return array<string, mixed> Wirksame YAML-Headerwerte.
+     */
+    public function getEffectiveHeader(Document $document, SiteConfig $config): array
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getEffectiveHeader');
+    }
+
+    /**
+     * Liefert eine anhand der alten Build-Regeln belegte Route, z.B. einen expliziten Permalink. Unbelegbare Routen werfen UnsupportedOperationException; keine Polyglot-Route erfinden.
+     */
+    public function getUrl(Document $document, SiteConfig $config, bool $absolute = false): string
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getUrl');
+    }
+
+    /**
+     * Liefert im ersten Legacy-Vertrag false: zunächst nur Lesen. Dies ist keine Aussage über den alten Page Builder selbst.
+     */
+    public function supportsWriting(): bool
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::supportsWriting');
+    }
+}

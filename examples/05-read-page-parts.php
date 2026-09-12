@@ -20,7 +20,7 @@ return static function (PhoreDirectory $root): Document {
     $layout = $effective['layout'] ?? null;     // 'default'
     $published = $effective['published'] ?? true; // true
 
-    // path='leistungen/diagnostik.md', language='de', isRootDocument=true, exists=true
+    // path='leistungen/diagnostik.md', language='de', isRootDocument=true, isPersisted()=true
     // header enthält weder lang noch IDs; effective['lang']='de' aus Jekyll-Defaults.
     // layout steht nur im effektiven Header, nicht in den gespeicherten Werten.
     // Arraywerte bleiben dynamisch; save() validiert sie gegen die Felddefinitionen.

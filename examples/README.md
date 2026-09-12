@@ -1,6 +1,6 @@
 # Einzelne PHP-Beispiele zum Schiller-Entwurf
 
-Diese Dateien zeigen die vorgeschlagene API aus dem [Proposal](../docs/proposals/2026-09-12-schiller-seiten-api.md). Die Schiller-Klassen sind noch nicht implementiert. Die Beispiele sind keine Integrationstests; 14 und 15 zeigen separat ausführbare, reine Zuordnungsfunktionen.
+Diese Dateien zeigen die vorgeschlagene API aus dem [Proposal](../docs/proposals/2026-09-12-schiller-seiten-api.md). Die Schiller-Klassen sind noch nicht implementiert. Die Beispiele sind keine Integrationstests; 14 und 15 zeigen Adapterklassen mit Methodenstümpfen.
 
 Die PHP-Dateien 01–13 liefern jeweils eine typisierte Closure zurück. Sie bekommt ein `PhoreDirectory` und initialisiert ihre eigene `SchillerDir`-Instanz. Es gibt keinen versteckten gemeinsamen Bootstrap, kein Git und keine Netzwerkverbindung.
 
@@ -66,7 +66,7 @@ Die Kommentare zeigen erwartete Rückgabewerte beziehungsweise klar bezeichnete 
 
 Der bestehende Composer-Namespace ist noch ein Template-Platzhalter. Die Beispiele ändern ihn nicht. Sie lassen sich später unabhängig aufrufen; zum derzeitigen Stand ist nur statische Prüfung möglich.
 
-Alle Seiten sind `Document`-Objekte. `header` ist ein Array, `content` ein String; `save()` schreibt Änderungen. `createPage()` und `getTranslation(create: true)` erzeugen zunächst ungespeicherte Dokumente. `getTranslations()` liefert pro lesbarer Sprache `TranslationInfo` mit `exists`. `getRootDocument()` verweist auf das Original, beim Original auf sich selbst.
+Alle Seiten sind `Document`-Objekte. `header` ist ein Array, `content` ein String; `save()` schreibt Änderungen. `createPage()` und `getTranslation('en', createIfMissing: true)` erzeugen zunächst ungespeicherte Dokumente. `getTranslations()` liefert pro lesbarer Sprache `TranslationInfo` mit `exists`. `getTranslation()` verweist auf das Original, beim Original auf sich selbst.
 
 `getDocumentByUrl()` liefert das tatsächliche Quelldokument oder wirft `UrlNotResolvableException` mit bereinigten Diagnosefeldern und passenden lesbaren URL-Vorschlägen. Host, Schema, Port, Zugangsdaten, Query und Fragment beeinflussen den lokalen Treffer nicht. `getUrl()` braucht keine Sprache; `getUrl(absolute: true)` verwendet die konfigurierte Domain.
 
@@ -76,4 +76,14 @@ Die Listings verwenden gemeinsam `TreeNode` mit `children`, `isLeaf()`, optional
 
 Adapterzuordnung als konkrete PHP-Entwürfe: [14-legacy-adapter.php](14-legacy-adapter.php) und [15-polyglot-adapter.php](15-polyglot-adapter.php). Legacy liest Sprachsuffix und PID-/Sprachheader; Polyglot liest ausschließlich gespiegelte Sprachpfade.
 
-Beispiele 14 und 15 sind separat aufrufbare reine PHP-Zuordnungsfunktionen: Sie erhalten Pfad, Header-Array, Sprachliste und Standardsprache und benötigen keine implementierte Schiller-Klasse. Sie ersetzen keinen vollständigen Adapter oder die Root-/Rechteprüfung. `file: null` bedeutet in beiden Formaten: kein Seitenlink/Editor, nur vorhandene Kinder aufklappen.
+Das gemeinsame [Adapter.php](Adapter.php) definiert die Signaturen für beide Beispielklassen. 14 und 15 implementieren dieses Interface ausschließlich mit dokumentierten Methodenstümpfen; jeder Aufruf wirft absichtlich eine LogicException. Keine fertige Formatimplementierung. Die Beispiele verwenden einen eigenen Examples-Namespace und ändern kein Composer-Autoloading.
+
+`getTranslation()` beziehungsweise `getTranslation(null)` liefert das Stammdokument; `getTranslation('en', createIfMissing: true)` bereitet bei fehlender Übersetzung eine ungespeicherte Originalkopie vor. `isPersisted()` prüft den Dateibestand, nicht ob lokale Änderungen gespeichert sind. Die Verfügbarkeitslisten behalten `exists`. `getHeaderDefinitions()` liefert Definitionen der Header-Einträge, die Werte stehen direkt in `header`.
+
+```php
+require_once __DIR__ . '/14-legacy-adapter.php';
+require_once __DIR__ . '/15-polyglot-adapter.php';
+$legacy = new \Leuffen\Schiller\Examples\LegacyAdapter();
+$polyglot = new \Leuffen\Schiller\Examples\PolyglotAdapter();
+// Beide implementieren Examples\Adapter; Methodenaufrufe sind noch nicht implementiert.
+```

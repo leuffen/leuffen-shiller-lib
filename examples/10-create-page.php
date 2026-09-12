@@ -20,9 +20,11 @@ return static function (PhoreDirectory $root): Document {
     );
 
     // Document: path='leistungen/vorsorge.md', language='de',
-    // isRootDocument=true, exists=false. Noch keine Datei angelegt.
-    assert($page->getRootDocument() === $page);
-    $page->save(); // exists=true; kein Überschreiben bestehender Dateien.
+    // isRootDocument=true, isPersisted()=false. Noch keine Datei angelegt.
+    assert($page->getTranslation() === $page);
+    assert(!$page->isPersisted());
+    $page->save(); // isPersisted()=true; kein Überschreiben bestehender Dateien.
+    assert($page->isPersisted());
     // getUrl() === '/leistungen/vorsorge.html'; keine Sprach-ID, kein Permalink.
     return $page;
 };

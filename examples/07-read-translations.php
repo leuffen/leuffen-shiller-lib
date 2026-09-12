@@ -26,11 +26,12 @@ return static function (PhoreDirectory $root): array {
         if ($document !== null) {
             $title = $document->header['title'] ?? null;
             // Für en: 'Diagnostics'.
-            assert($document->getRootDocument() === $page);
+            assert($document->getTranslation() === $page);
         }
     }
 
-    assert($page->getRootDocument() === $page);
+    assert($page->getTranslation() === $page);
+    assert($page->getTranslation(null) === $page);
     assert($page->getTranslation('de') === $page);
     assert($page->getTranslation('fr') === null);
     // Verborgene Varianten/Kandidaten fehlen vollständig, keine scheinbar fehlende Datei.

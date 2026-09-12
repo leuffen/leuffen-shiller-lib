@@ -13,7 +13,7 @@ use Phore\FileSystem\PhoreDirectory;
 return static function (PhoreDirectory $root): FieldSet {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
     $page = $site->getPage('leistungen/diagnostik.md');
-    $fields = $page->getFields();
+    $fields = $page->getHeaderDefinitions();
     $shortTitle = $fields->get('short_title'); // FieldDefinition
     $published = $fields->get('published');   // FieldDefinition
     $layout = $fields->get('layout');         // FieldDefinition

@@ -22,7 +22,7 @@ return static function (PhoreDirectory $root): Document {
     // $english->path === 'en/medizin/diagnostik.md'
     // $page->getUrl() === '/medizin/diagnostik.html'
     // $english->getUrl() === '/en/medizin/diagnostik.html'
-    assert($english->getRootDocument() === $page);
+    assert($english->getTranslation() === $page);
 
     // Kein rename() an der Übersetzung. Kein weiteres save() notwendig.
     // Vorab: alle Quellen/Ziele, Rechte, Kollisionen und Storage-Batchfähigkeit prüfen.

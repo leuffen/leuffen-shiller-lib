@@ -2,71 +2,65 @@
 
 declare(strict_types=1);
 
-// AUSFÜHRBARER ENTWURF der reinen Zuordnung, keine vollständige Adapterimplementierung.
-// Kein Filesystem-Zugriff: Der Aufrufer liefert bereits rootgeprüfte Pfade und Header.
-// Der gemeinsame Builder prüft Existenz/Rechte und erzeugt TreeNode/FileEntry.
-// PHPDoc-Rückgabe: array{nodePath:string, groupPath:string, filePath:string,
-// language:string, isRootDocument:bool, candidates:array<string,string>}
+namespace Leuffen\Schiller\Examples;
 
-// Beispiel:
-// $map = require __FILE__;
-// $result = $map('en/leistungen/diagnostik.md', ['title'=>'Diagnostics'],
-//     ['de','en','fr'], 'de');
-// nodePath/groupPath='leistungen/diagnostik.md', filePath='en/leistungen/diagnostik.md'
-// language='en', isRootDocument=false, candidates['fr']='fr/leistungen/diagnostik.md'
-// 'leistungen/index.md' -> nodePath='leistungen', language='de'.
-// Ein Ordner ohne Index erzeugt der Builder separat mit file=null.
+use Leuffen\Schiller\Document;
+use Leuffen\Schiller\PageTree;
+use Leuffen\Schiller\SiteConfig;
+use Leuffen\Schiller\SiteStorage;
 
-return static function (
-    string $path,
-    array $header,
-    array $languages,
-    string $defaultLanguage,
-): array {
-    if (!in_array($defaultLanguage, $languages, true)) {
-        throw new InvalidArgumentException('Standardsprache nicht konfiguriert.');
-    }
-    foreach (['pid', 'page_id', 'lang'] as $reserved) {
-        if (array_key_exists($reserved, $header)) {
-            throw new InvalidArgumentException('Sprach-/ID-Felder gehören nicht in Polyglot-Dateiheader.');
-        }
+require_once __DIR__ . '/Adapter.php';
+
+// ENTWURFSIMPLEMENTIERUNG: nur Signaturen, Aufgaben und erwartete Rückgaben.
+// Alle Methoden sind absichtlich Stümpfe und werfen statt Dummy-Daten zu liefern.
+final class PolyglotAdapter implements Adapter
+{
+    /**
+     * Liest _config.yml und Schiller-Adapterauswahl. Prüft languages/default_lang sowie zentrale Verzeichnis-Defaults; liefert SiteConfig.
+     */
+    public function loadConfig(SiteStorage $storage): SiteConfig
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::loadConfig');
     }
 
-    $parts = explode('/', $path);
-    $language = $defaultLanguage;
-    if (in_array($parts[0], $languages, true)) {
-        $language = array_shift($parts);
-        if ($language === $defaultLanguage) {
-            throw new InvalidArgumentException('Die Standardsprache liegt direkt im Root.');
-        }
-    }
-    $groupPath = implode('/', $parts);
-    if (!preg_match('~^(.+)\.(md|html)$~D', $groupPath, $match)) {
-        throw new InvalidArgumentException('Erwartet: Markdown- oder HTML-Seite.');
-    }
-    foreach (explode('/', $match[1]) as $segment) {
-        if (in_array($segment, $languages, true)) {
-            throw new InvalidArgumentException('Reservierter Sprachcode im neutralen Seitenpfad.');
-        }
+    /**
+     * Liefert Root mit index.md, Kategorien mit optionaler index.md und Kindern. Sprachordner werden am neutralen Knoten gruppiert; FileEntry zeigt z.B. leistungen/diagnostik.md, fr wird auch mit exists=false gelistet.
+     */
+    public function buildPageTree(SiteStorage $storage, SiteConfig $config, string $path = ''): PageTree
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::buildPageTree');
     }
 
-    $parent = dirname($groupPath);
-    $nodePath = basename($match[1]) === 'index'
-        ? ($parent === '.' ? '' : $parent)
-        : $groupPath;
-    $candidates = [];
-    foreach ($languages as $code) {
-        $candidates[$code] = $code === $defaultLanguage
-            ? $groupPath
-            : $code . '/' . $groupPath;
+    /**
+     * Liefert für de z.B. leistungen/diagnostik.md, für en en/leistungen/diagnostik.md. Keine Sprach-/ID-Header auswerten; keine Anlage.
+     */
+    public function getTranslationPath(Document $document, string $language, SiteConfig $config): string
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::getTranslationPath');
     }
 
-    return [
-        'nodePath' => $nodePath,
-        'groupPath' => $groupPath,
-        'filePath' => $path,
-        'language' => $language,
-        'isRootDocument' => $language === $defaultLanguage,
-        'candidates' => $candidates,
-    ];
-};
+    /**
+     * Liefert Header plus zentrale Jekyll-Defaults, z.B. geerbtes lang=en. Keine Übernahme dieser Defaults in den gespeicherten Header.
+     * @return array<string, mixed> Wirksame YAML-Headerwerte.
+     */
+    public function getEffectiveHeader(Document $document, SiteConfig $config): array
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::getEffectiveHeader');
+    }
+
+    /**
+     * Liefert z.B. /en/leistungen/diagnostik.html oder mit absolute=true die konfigurierte absolute URL. Index, baseurl und Ausnahme-Permalink beachten.
+     */
+    public function getUrl(Document $document, SiteConfig $config, bool $absolute = false): string
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::getUrl');
+    }
+
+    /**
+     * Liefert für dieses Profil grundsätzlich true. Tatsächliche Anlage/Rename/Delete hängen zusätzlich von Rechten, Validierung und Storage-Fähigkeiten ab.
+     */
+    public function supportsWriting(): bool
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::supportsWriting');
+    }
+}

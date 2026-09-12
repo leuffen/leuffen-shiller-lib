@@ -14,23 +14,25 @@ use Phore\FileSystem\PhoreDirectory;
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
     $page = $site->getPage('leistungen/diagnostik.md');
-    $french = $page->getTranslation('fr', create: true);
-    // Bei create:true: Document oder Exception, niemals null.
+    $french = $page->getTranslation('fr', createIfMissing: true);
+    // Bei createIfMissing:true: Document oder Exception, niemals null.
 
-    if (!$french->exists) {
+    if (!$french->isPersisted()) {
         // Ungespeicherte Kopie des Stammdokuments:
         // path='fr/leistungen/diagnostik.md', language='fr', isRootDocument=false
         // header['title']='Diagnostik', header['published']=false
         // content ist zunächst der deutsche Body; keine automatische Übersetzung.
         $french->header['title'] = 'Diagnostic';
         $french->content = "## Diagnostic\n\nTexte français.\n";
-        $french->save(); // Erst jetzt schreiben; exists wird true.
+        $french->save(); // Erst jetzt schreiben; isPersisted() liefert true.
     }
 
     // Bereits vorhandene Übersetzung bleibt unverändert.
     // Zielpfad automatisch, keine lang-/ID-Felder im Header.
     // Anlage braucht read der Quelle und createFile + createTranslation am Ziel.
     // Zwischenzeitlich angelegte Zieldateien werden nicht überschrieben.
-    assert($french->getRootDocument() === $page);
+    assert($french->getTranslation() === $page);
+    assert($french->isPersisted());
+    // Spätere ungespeicherte Inhaltsänderungen ändern isPersisted() nicht.
     return $french;
 };
