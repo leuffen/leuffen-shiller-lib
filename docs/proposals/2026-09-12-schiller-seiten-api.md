@@ -3,6 +3,7 @@
 | Datum | Benutzername | Kurzbeschreibung |
 |---|---|---|
 | 2026-09-12 | dermatthes | §§ 1–13: API-Entwurf mit Konfiguration, Beispielen, Rückgaben, bidirektionaler URL-Auflösung und Page-Builder-Zuordnung angelegt |
+| 2026-09-12 | dermatthes | § 9.1: URL-Eingaben mit und ohne Domain oder Protokoll konkretisiert |
 
 ## § 1 Ziel und Umfang
 
@@ -550,7 +551,28 @@ Der Resolver invertiert den **gleichen berechneten Routenindex**, den auch die V
 
 Für absolute URLs werden Scheme, Host und effektiver Port mit dem konfigurierten Origin verglichen; kein Fetch und kein Folgen von Weiterleitungen. Query und Fragment werden für die Dateizuordnung ignoriert. Der `baseurl` muss an einer Segmentgrenze passen: `/praxis2/` gehört nicht zu `/praxis`. Case des Pfades bleibt erhalten. Ungültige Prozentkodierung, kodierte Separatoren, Nullbytes und Traversal-Segmente werden als ungültige Eingabe zurückgewiesen; erlaubte UTF-8-Segmente werden konsistent mit der Vorwärtsauflösung normalisiert. Pfadseparatoren werden nicht durch wiederholtes Decodieren eingeschleust.
 
-Zusätzlich akzeptiert `resolveUrl('/praxis/en/diagnostics/')` einen origin-relativen Zielpfad. Andere Hosts, alternative Domains oder Preview-Hosts gelten nur bei explizitem vertrauenswürdigem `UrlContext` als gleichwertig. Fehlende `url` in Jekyll erlaubt weiterhin diesen relativen Aufruf, aber keine automatische Zuordnung fremder absoluter URLs.
+`resolveUrl()` akzeptiert Eingaben **mit und ohne Domain sowie mit und ohne HTTP(S)-Protokoll**. Ein reiner Pfad braucht keine konfigurierte Domain. Andere Hosts, alternative Domains oder Preview-Hosts gelten nur bei explizitem vertrauenswürdigem `UrlContext` als gleichwertig. Fehlende `url` in Jekyll erlaubt weiterhin pfadbasierte Aufrufe, aber keine automatische Zuordnung einer angegebenen Domain. [geändert]
+
+| Gleichwertiger Aufruf bei `baseurl: /praxis` | Interpretation |
+|---|---|
+| `resolveUrl('https://example.org/praxis/en/diagnostics/')` | Vollständige absolute URL |
+| `resolveUrl('http://example.org/praxis/en/diagnostics/')` | Absolute URL; abweichendes Scheme nur mit ausdrücklich erlaubtem Origin |
+| `resolveUrl('//example.org/praxis/en/diagnostics/')` | Domain mit protokollrelativer Schreibweise |
+| `resolveUrl('example.org/praxis/en/diagnostics/')` | Domain ohne Protokoll; gegen den konfigurierten Host prüfen |
+| `resolveUrl('/praxis/en/diagnostics/')` | Origin-relativer Pfad, ohne Domain/Protokoll |
+| `resolveUrl('praxis/en/diagnostics/')` | Gleicher Origin-relativer Pfad ohne führenden Slash |
+
+Die Tabelle definiert akzeptierte Schreibweisen; die HTTP-Zeile wird erst bei passender Origin-Freigabe gleichwertig. Ohne angegebenes Scheme wird bei einer Host-Eingabe der konfigurierte Origin verwendet. Domainlose Pfade beziehen sich immer auf das Origin-Root und enthalten daher einen vorhandenen `baseurl`; sie werden nicht relativ zu einer zufälligen aktuell geöffneten Seite interpretiert. [neu]
+
+Ein erster Abschnitt wie `example.org` wird nur dann als Host akzeptiert, wenn er einem konfigurierten Host beziehungsweise Alias entspricht. Andere erkennbar hostförmige Eingaben werden abgelehnt, nicht still zu lokalen Dateien umgedeutet. Für einen lokalen ersten Pfadabschnitt mit Punkt sorgt ein führender Slash für Eindeutigkeit. Das Ergebnis aller erlaubten gleichwertigen Schreibweisen ist derselbe `UrlMatch`; es erfolgt weder ein Netzwerkzugriff noch ein implizites Ändern der Website-Domain. [neu]
+
+```php
+$absolute = $site->resolveUrl('https://example.org/praxis/en/diagnostics/');
+$withHost = $site->resolveUrl('example.org/praxis/en/diagnostics/');
+$pathOnly = $site->resolveUrl('/praxis/en/diagnostics/');
+$barePath = $site->resolveUrl('praxis/en/diagnostics/');
+// Jeweils: match->path === 'en/diagnostics.md', sourceLanguage === 'en'.
+```
 
 Schiller kennt im ersten Vertrag exakt die generierten Routen und deren Jekyll-Indexalias: `/x/` und `/x/index.html` können dieselbe erzeugte Indexdatei bezeichnen. `/x`, `/x/` und `/x.html` werden ansonsten nicht pauschal gleichgesetzt. CDN-/Webserver-Rewrites, historische Deployments und Redirects sind ohne zusätzlich bereitgestellte Regeln nicht zuverlässig aus Quelldateien umkehrbar. Die Antwort beschreibt den aktuellen Quellstand, nicht einen garantierten aktuellen Live-Deploy. Unveröffentlichte Seiten werden im Standard-Routenindex nicht als echte öffentliche Treffer ausgegeben; `page()->url()` darf weiterhin ihre potenzielle URL anzeigen.
 
