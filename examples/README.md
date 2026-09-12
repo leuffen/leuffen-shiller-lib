@@ -1,8 +1,8 @@
 # Einzelne PHP-Beispiele zum Schiller-Entwurf
 
-Diese Dateien zeigen die vorgeschlagene API aus dem [Proposal](../docs/proposals/2026-09-12-schiller-seiten-api.md). Die Schiller-Klassen sind noch nicht implementiert. Die Beispiele sind keine ausführbaren Integrationstests und enthalten keine Ersatzimplementierung.
+Diese Dateien zeigen die vorgeschlagene API aus dem [Proposal](../docs/proposals/2026-09-12-schiller-seiten-api.md). Die Schiller-Klassen sind noch nicht implementiert. Die Beispiele sind keine Integrationstests; 14 und 15 zeigen separat ausführbare, reine Zuordnungsfunktionen.
 
-Jede PHP-Datei liefert eine typisierte Closure zurück. Sie bekommt ein `PhoreDirectory` und initialisiert ihre eigene `SchillerDir`-Instanz. Es gibt keinen versteckten gemeinsamen Bootstrap, kein Git und keine Netzwerkverbindung.
+Die PHP-Dateien 01–13 liefern jeweils eine typisierte Closure zurück. Sie bekommt ein `PhoreDirectory` und initialisiert ihre eigene `SchillerDir`-Instanz. Es gibt keinen versteckten gemeinsamen Bootstrap, kein Git und keine Netzwerkverbindung.
 
 Nach Implementierung und Einrichtung des Composer-Autoloaders wäre der Aufruf zum Beispiel:
 
@@ -42,7 +42,7 @@ adapter: {id: jekyll-polyglot, version: 1}
 
 Die Beispielseiten aus Proposal § 6 haben normale Header mit Titel und Inhalt, ohne Permalink. `index.md` ergibt `/`, `leistungen/index.md` ergibt `/leistungen/`, `leistungen/diagnostik.md` ergibt `/leistungen/diagnostik.html`. Ein optionaler Ausnahme-Permalink muss innerhalb einer Sprachgruppe dieselbe unlokalisierte Route ergeben; er dient Schiller nicht als Gruppen-ID.
 
-Für die erwarteten Rückgaben aller dreizehn Beispiele wird die größere Fixture aus Proposal §§ 6–7 verwendet: `url: https://example.org`, zusätzliche Sprache `fr` samt zentralem Verzeichnis-Default und vorhandener leerer Ordner `fr/leistungen/`. Außerdem gehören Felddefinitionen, Layout-Default und Projektberechtigungen aus § 7 dazu. Diese Voraussetzungen werden durch die PHP-Beispiele nicht automatisch angelegt. Die Minimalkonfiguration oben demonstriert nur die Verzeichniszuordnung, keine Schreibfreigabe.
+Für die erwarteten Rückgaben der Beispiele 01–13 wird die größere Fixture aus Proposal §§ 6–7 verwendet: `url: https://example.org`, zusätzliche Sprache `fr` samt zentralem Verzeichnis-Default und vorhandener leerer Ordner `fr/leistungen/`. Außerdem gehören Felddefinitionen, Layout-Default und Projektberechtigungen aus § 7 dazu. Diese Voraussetzungen werden durch die PHP-Beispiele nicht automatisch angelegt. Die Minimalkonfiguration oben demonstriert nur die Verzeichniszuordnung, keine Schreibfreigabe.
 
 Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere nach dem Anlegen einer französischen Übersetzung sind die ursprünglichen Verfügbarkeits- und Fallback-Rückgaben nicht mehr dieselben. Schreibbeispiele verändern eine übergebene Arbeitskopie und benötigen die im Proposal beschriebenen Projekt-/Hostrechte; die Rolle `user` wird als bereits serverseitig authentifiziert angenommen.
 
@@ -71,3 +71,9 @@ Alle Seiten sind `Document`-Objekte. `header` ist ein Array, `content` ein Strin
 `getDocumentByUrl()` liefert das tatsächliche Quelldokument oder wirft `UrlNotResolvableException` mit bereinigten Diagnosefeldern und passenden lesbaren URL-Vorschlägen. Host, Schema, Port, Zugangsdaten, Query und Fragment beeinflussen den lokalen Treffer nicht. `getUrl()` braucht keine Sprache; `getUrl(absolute: true)` verwendet die konfigurierte Domain.
 
 Rename und Delete schreiben sofort. Beispiel 12 benötigt zusätzlich vorhandene Ordner `medizin/` und `en/medizin/`. Beide Gruppenbeispiele verwenden die serverseitig vergebene Rolle `admin`; die Host-Policy und der Connector müssen diese Aktionen ebenfalls erlauben. Sie sind unabhängig auf frischen Arbeitskopien zu betrachten.
+
+Die Listings verwenden gemeinsam `TreeNode` mit `children`, `isLeaf()`, optionaler `FileEntry`-Referenz `file` und `getDocument()`. Im Seitenbaum gehört eine Indexseite direkt zu ihrem Ordnerknoten; eine Kategorie kann somit eigene Seite und Kinder haben. Ohne Index bleibt die Kategorie ohne Dokument. Der physische Dateibaum führt Ordner und Indexdatei separat auf. Jeder Seitenknoten listet alle konfigurierten lesbaren Sprachen mit `exists`, einschließlich fehlender Übersetzungen. Beispiel 04 funktioniert mit der Basisfixture ohne Kategorie-Index und erläutert zusätzlich den Fall mit Indexseite.
+
+Adapterzuordnung als konkrete PHP-Entwürfe: [14-legacy-adapter.php](14-legacy-adapter.php) und [15-polyglot-adapter.php](15-polyglot-adapter.php). Legacy liest Sprachsuffix und PID-/Sprachheader; Polyglot liest ausschließlich gespiegelte Sprachpfade.
+
+Beispiele 14 und 15 sind separat aufrufbare reine PHP-Zuordnungsfunktionen: Sie erhalten Pfad, Header-Array, Sprachliste und Standardsprache und benötigen keine implementierte Schiller-Klasse. Sie ersetzen keinen vollständigen Adapter oder die Root-/Rechteprüfung. `file: null` bedeutet in beiden Formaten: kein Seitenlink/Editor, nur vorhandene Kinder aufklappen.
