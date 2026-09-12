@@ -10,16 +10,17 @@ use Leuffen\Schiller\AccessContext;
 use Leuffen\Schiller\Document;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: frische Arbeitskopie; medizin/ und en/medizin/ existieren.
+// SCHREIBBEISPIEL: Polyglot, frische Arbeitskopie; Ordner werden berechtigt angelegt.
 // Die Host-Policy muss die Gruppenmutation ebenfalls erlauben.
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'admin'));
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $english = $page->getTranslation('en');
 
-    $page->rename('medizin/diagnostik.md'); // Sofortige Gruppenoperation.
-    // $page->path === 'medizin/diagnostik.md'
-    // $english->path === 'en/medizin/diagnostik.md'
+    $page->rename('/medizin/diagnostik'); // Sofortige Gruppenoperation.
+    // $page->id === '/medizin/diagnostik'; $english->id ebenfalls.
+    // $page->file->path === 'medizin/diagnostik.md'
+    // $english->file->path === 'en/medizin/diagnostik.md'
     // $page->getUrl() === '/medizin/diagnostik.html'
     // $english->getUrl() === '/en/medizin/diagnostik.html'
     assert($english->getTranslation() === $page);

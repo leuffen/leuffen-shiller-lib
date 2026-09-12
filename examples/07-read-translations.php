@@ -12,7 +12,7 @@ use Phore\FileSystem\PhoreDirectory;
 /** @return Closure(PhoreDirectory): array<string, TranslationInfo> */
 return static function (PhoreDirectory $root): array {
     $site = new SchillerDir($root);
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $translations = $page->getTranslations(); // array<string, TranslationInfo>
 
     // de: language='de', path='leistungen/diagnostik.md', exists=true, isRootDocument=true

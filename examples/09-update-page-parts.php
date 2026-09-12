@@ -13,9 +13,11 @@ use Phore\FileSystem\PhoreDirectory;
 // SCHREIBBEISPIEL: drei getrennte Änderungen an einer Arbeitskopie.
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
 
     $page->header['short_title'] = 'Untersuchungen';
+    $page->header['custom_tracking'] = ['campaign' => 'sommer'];
+    // Keine Definition nötig; eigene Metadaten bleiben auch beim nächsten save erhalten.
     $page->save(); // Kurztitel geändert, Body bytegenau erhalten.
 
     $page->content = "## Aktualisierte Diagnostik\n";

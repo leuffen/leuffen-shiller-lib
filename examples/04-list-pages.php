@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-// ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
-// Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
-
+// ENTWURFSBEISPIEL: keine implementierte Schiller-Laufzeit.
 use Leuffen\Schiller\SchillerDir;
 use Leuffen\Schiller\PageTree;
 use Leuffen\Schiller\TreeNode;
@@ -12,45 +10,32 @@ use Phore\FileSystem\PhoreDirectory;
 
 return static function (PhoreDirectory $root): PageTree {
     $site = new SchillerDir($root);
-    $tree = $site->pages('leistungen');
-
-    // root: TreeNode, path='leistungen', children: list<TreeNode>.
-    // In der Basisfixture hat leistungen/ keine index.md:
-    // root.file=null, root.translations=[], root.isLeaf()=false.
-    // Mit leistungen/index.md wäre diese Seite direkt dem root-Knoten zugeordnet;
-    // sie wäre kein zusätzlicher index.md-Kindknoten.
-    // file=null: kein Editor/Seitenlink; Kinder dürfen aufgeklappt werden.
-    $categoryPage = $tree->root->getDocument(); // ?Document
-    // Ohne Index: null. Mit Index: Document mit path='leistungen/index.md'.
+    $tree = $site->pages('/leistungen');
+    // root.id='/leistungen', root.path=null, children: list<TreeNode>.
+    // Basisfixture: Kategorie ohne index.md => file=null, getDocument()=null.
+    // Mit Index: file.path='leistungen/index.md'; kein zusätzlicher Index-Knoten.
+    // Dieselbe ID wäre auch für eine alleinige leistungen.md gültig.
+    // file=null: nur aufklappen, kein Seitenlink/Editor; metadata bleibt verfügbar.
 
     $visit = static function (TreeNode $node) use (&$visit): void {
+        $id = $node->id; // z.B. '/leistungen/diagnostik'; keine Endung oder Sprache.
+        $metadata = $node->metadata; // z.B. Legacy-Kategoriebeschreibung; sonst [].
         foreach ($node->translations as $language => $info) {
-            // Diagnostik-Knoten, array<string, TranslationInfo>:
-            // de: path='leistungen/diagnostik.md', exists=true, isRootDocument=true
-            // en: path='en/leistungen/diagnostik.md', exists=true, isRootDocument=false
-            // fr: path='fr/leistungen/diagnostik.md', exists=false, isRootDocument=false
-            // Alle konfigurierten lesbaren Sprachen; verborgene Varianten fehlen.
+            // de/en vorhanden, fr fehlt: alle lesbaren Sprachen mit exists.
+            // info.path ist eine interne Quellreferenz, kein Navigationsschlüssel.
             $exists = $info->exists;
         }
-
-        $document = $node->getDocument(); // Document bei Seiten, sonst null
+        $document = $node->getDocument();
         if ($document !== null) {
-            $published = $document->getEffectiveHeader()['published'] ?? true;
-            $url = $document->getUrl();
-            // Diagnostik: published=true, url='/leistungen/diagnostik.html'.
-            // Eine Sprachvariante bei Bedarf: $document->getTranslation('en').
+            $url = $document->getUrl(); // '/leistungen/diagnostik.html'
+            $english = $document->getTranslation('en');
+            // Navigation/Editor verwenden document.id und language.
         }
-
-        $isLeaf = $node->isLeaf(); // Kinderlos; unabhängig von der eigenen Seite.
+        $leaf = $node->isLeaf(); // Nur Kinderlosigkeit; unabhängig von eigener Seite.
         foreach ($node->children as $child) {
             $visit($child);
         }
     };
     $visit($tree->root);
-
-    // $node->file: ?FileEntry, z.B. path=leistungen/diagnostik.md, kind=page.
-    // Im Legacy-Profil könnte derselbe logische Knoten auf diagnostik.de.md zeigen.
-    // Gleicher TreeNode-Typ für Kategorien, Seiten und physische Dateiknoten.
-    // published=false bleibt sichtbar, sofern lesbar; Fehler in tree->diagnostics.
     return $tree;
 };

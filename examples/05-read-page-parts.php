@@ -11,7 +11,7 @@ use Phore\FileSystem\PhoreDirectory;
 
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root);
-    $document = $site->getPage('leistungen/diagnostik.md');
+    $document = $site->getPage('/leistungen/diagnostik');
 
     $title = $document->header['title'] ?? null; // 'Diagnostik'
     $content = $document->content;             // "## Diagnostik\n\nBeispielinhalt.\n"
@@ -20,7 +20,7 @@ return static function (PhoreDirectory $root): Document {
     $layout = $effective['layout'] ?? null;     // 'default'
     $published = $effective['published'] ?? true; // true
 
-    // path='leistungen/diagnostik.md', language='de', isRootDocument=true, isPersisted()=true
+    // id='/leistungen/diagnostik', file.path='leistungen/diagnostik.md', language='de', isRootDocument=true, isPersisted()=true
     // header enthält weder lang noch IDs; effective['lang']='de' aus Jekyll-Defaults.
     // layout steht nur im effektiven Header, nicht in den gespeicherten Werten.
     // Arraywerte bleiben dynamisch; save() validiert sie gegen die Felddefinitionen.

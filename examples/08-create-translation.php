@@ -10,16 +10,16 @@ use Leuffen\Schiller\AccessContext;
 use Leuffen\Schiller\Document;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: Arbeitskopie; fr/leistungen/ muss bereits existieren.
+// SCHREIBBEISPIEL: Arbeitskopie; Ordneranlage unterliegt createDirectory.
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $french = $page->getTranslation('fr', createIfMissing: true);
     // Bei createIfMissing:true: Document oder Exception, niemals null.
 
     if (!$french->isPersisted()) {
         // Ungespeicherte Kopie des Stammdokuments:
-        // path='fr/leistungen/diagnostik.md', language='fr', isRootDocument=false
+        // id='/leistungen/diagnostik', file=null, language='fr', isRootDocument=false
         // header['title']='Diagnostik', header['published']=false
         // content ist zunächst der deutsche Body; keine automatische Übersetzung.
         $french->header['title'] = 'Diagnostic';
@@ -29,6 +29,8 @@ return static function (PhoreDirectory $root): Document {
 
     // Bereits vorhandene Übersetzung bleibt unverändert.
     // Zielpfad automatisch, keine lang-/ID-Felder im Header.
+    // Alle eigenen Header-Metadaten werden aus dem Original übernommen.
+    // Legacy erlaubt nur vorhandene Übersetzungen: fehlend + createIfMissing => Exception.
     // Anlage braucht read der Quelle und createFile + createTranslation am Ziel.
     // Zwischenzeitlich angelegte Zieldateien werden nicht überschrieben.
     assert($french->getTranslation() === $page);

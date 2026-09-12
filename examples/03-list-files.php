@@ -13,6 +13,8 @@ return static function (PhoreDirectory $root): FileListing {
     $site = new SchillerDir($root);
     $listing = $site->files('leistungen', recursive: true);
 
+    // Technische Dateiansicht: node.id=null, node.path ist der physische Pfad.
+    // Seitenbedienung mit endungslosen IDs: Beispiel 04.
     // FileListing->entries: list<TreeNode>; Unterordner stehen in entry->children.
     // Für nur eine Ebene: $site->files('leistungen', recursive: false).
     // Erwartete Projektion für die Fixture:

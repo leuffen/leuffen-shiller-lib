@@ -4,63 +4,101 @@ declare(strict_types=1);
 
 namespace Leuffen\Schiller\Examples;
 
+use Leuffen\Schiller\Capabilities;
 use Leuffen\Schiller\Document;
+use Leuffen\Schiller\FieldSet;
 use Leuffen\Schiller\PageTree;
 use Leuffen\Schiller\SiteConfig;
 use Leuffen\Schiller\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
-// ENTWURFSIMPLEMENTIERUNG: nur Signaturen, Aufgaben und erwartete Rückgaben.
-// Alle Methoden sind absichtlich Stümpfe und werfen statt Dummy-Daten zu liefern.
+// ENTWURF: Stümpfe, keine produktive Implementierung. Alle Rückgaben sind beschrieben.
 final class LegacyAdapter implements Adapter
 {
-    /**
-     * Liest alte Konfigurationsquellen und normalisiert sie zu SiteConfig, z.B. Sprachen de/en/fr. Unbekannte Konfigurationsformen melden einen Fehler.
-     */
-    public function loadConfig(SiteStorage $storage): SiteConfig
+    public function __construct(private SiteStorage $storage) {}
+
+    /** Normalisiert Legacy-Konfiguration, _section.yml und Sprachquelle; keine automatische Migration. */
+    public function loadConfig(): SiteConfig
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::loadConfig');
     }
 
-    /**
-     * Liest _section.yml und <pid>.<lang>.md/html. Prüft pid/lang im Header. Liefert z.B. Knoten leistungen mit file=null oder index.de.md und Kind diagnostik.md mit FileEntry diagnostik.de.md. Fehlendes fr: exists=false.
-     */
-    public function buildPageTree(SiteStorage $storage, SiteConfig $config, string $path = ''): PageTree
+    /** ID /leistungen/diagnostik + de => vorhandene leistungen/diagnostik.de.md oder .html. PID/lang prüfen, Endung intern auflösen. */
+    public function load(string $id, ?string $language = null): Document
     {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::buildPageTree');
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::load');
     }
 
-    /**
-     * Liefert z.B. leistungen/diagnostik.en.md. Vorhandene md/html-Varianten werden über den Bestandsindex erkannt; ein neuer Kandidat übernimmt die Root-Endung.
-     */
-    public function getTranslationPath(Document $document, string $language, SiteConfig $config): string
+    /** Wirft UnsupportedOperationException: keine neuen Seiten oder Ordner im Legacy-Vertrag. */
+    public function create(string $id, array $header = [], string $content = ''): Document
     {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslationPath');
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::create');
     }
 
-    /**
-     * Liefert wirksame alte Jekyll-Defaults und Dateiwerte inklusive pid/lang. Diese bleiben im Legacy-Header zulässig.
-     * @return array<string, mixed> Wirksame YAML-Headerwerte.
-     */
-    public function getEffectiveHeader(Document $document, SiteConfig $config): array
+    /** Bearbeitet ausschließlich bestehende Datei; erhält unbekannte Metadaten und konsistente PID/lang. Fehlende Datei nicht neu anlegen. */
+    public function write(Document $document): void
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::write');
+    }
+
+    /** Entfernt Sprachsuffix und Endung aus IDs. _section.yml erzeugt auch Kategorien mit file=null und erhaltenen Metadaten. */
+    public function buildTree(string $id = '/'): PageTree
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::buildTree');
+    }
+
+    /** null liefert Root. Vorhandene Sprachdatei normal liefern; fehlend: null oder bei createIfMissing UnsupportedOperationException. */
+    public function getTranslation(Document $document, ?string $language = null, bool $createIfMissing = false): ?Document
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslation');
+    }
+
+    /** Alle lesbaren konfigurierten Sprachen mit exists, auch wenn im Legacy-Profil keine Neuanlage erlaubt ist. */
+    public function getTranslations(Document $document): array
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslations');
+    }
+
+    /** Alte Jekyll-Defaults plus Dateiheader einschließlich PID/lang; Originalheader nicht verändern. */
+    public function getEffectiveHeader(Document $document): array
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getEffectiveHeader');
     }
 
-    /**
-     * Liefert eine anhand der alten Build-Regeln belegte Route, z.B. einen expliziten Permalink. Unbelegbare Routen werfen UnsupportedOperationException; keine Polyglot-Route erfinden.
-     */
-    public function getUrl(Document $document, SiteConfig $config, bool $absolute = false): string
+    /** Bildet bekannte Legacy-Formdefinitionen ab. Manuelle unbekannte Headerwerte bleiben beim Schreiben erhalten. */
+    public function getHeaderDefinitions(Document $document): FieldSet
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getHeaderDefinitions');
+    }
+
+    /** Nur belegbare Legacy-Ausgabewege oder Permalinks verwenden; unbekannte Build-Semantik ausdrücklich melden. */
+    public function getUrl(Document $document, bool $absolute = false): string
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getUrl');
     }
 
-    /**
-     * Liefert im ersten Legacy-Vertrag false: zunächst nur Lesen. Dies ist keine Aussage über den alten Page Builder selbst.
-     */
-    public function supportsWriting(): bool
+    /** Ordnet eine belegbare Legacy-Route ihrer ID und tatsächlichen Sprache zu; keine Polyglot-Route erfinden. */
+    public function getDocumentByUrl(string $url): Document
     {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::supportsWriting');
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getDocumentByUrl');
+    }
+
+    /** read/write bei erlaubtem Bestand; createFile/createDirectory/createTranslation/rename/delete immer false, auch für Admin. */
+    public function capabilities(string $id, ?string $language = null): Capabilities
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::capabilities');
+    }
+
+    /** Wirft UnsupportedOperationException: keine Legacy-Strukturänderungen. */
+    public function rename(string $id, string $newId): void
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::rename');
+    }
+
+    /** Wirft UnsupportedOperationException: nur vorhandene Legacy-Inhalte bearbeiten. */
+    public function delete(Document $document): void
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::delete');
     }
 }

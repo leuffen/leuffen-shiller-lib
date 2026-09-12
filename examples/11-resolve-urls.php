@@ -12,7 +12,7 @@ use Phore\FileSystem\PhoreDirectory;
 
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root);
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $english = $page->getTranslation('en'); // In der Fixture vorhanden.
 
     // $page->getUrl() === '/leistungen/diagnostik.html'
@@ -30,7 +30,7 @@ return static function (PhoreDirectory $root): Document {
         'en/leistungen/diagnostik.html',
     ] as $input) {
         $document = $site->getDocumentByUrl($input); // Document oder Exception
-        // Immer path='en/leistungen/diagnostik.md', language='en'.
+        // Immer id='/leistungen/diagnostik', file.path='en/leistungen/diagnostik.md', language='en'.
         assert($document === $english);
         assert($document->getTranslation() === $page);
     }

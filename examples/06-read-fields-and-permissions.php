@@ -12,7 +12,7 @@ use Phore\FileSystem\PhoreDirectory;
 
 return static function (PhoreDirectory $root): FieldSet {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $fields = $page->getHeaderDefinitions();
     $shortTitle = $fields->get('short_title'); // FieldDefinition
     $published = $fields->get('published');   // FieldDefinition
@@ -23,9 +23,9 @@ return static function (PhoreDirectory $root): FieldSet {
     // layout: type->value='select'; options: list<FieldOption>
     // options enthalten {value:'default', label:'Standard'} und
     // {value:'landing', label:'Landingpage'}.
-    $actions = $site->capabilities('leistungen/diagnostik.md'); // Capabilities
+    $actions = $site->capabilities('/leistungen/diagnostik'); // Capabilities
     // Für user und eine vorhandene Seite:
-    // read=true, write=true, createFile=false, createTranslation=false,
+    // read=true, write=true, createFile=false, createDirectory=false, createTranslation=false,
     // createTemplate=false, rename=true, delete=true. save() prüft selbst erneut, auch ohne UI-Prüfung.
     return $fields;
 };

@@ -9,10 +9,11 @@ use Leuffen\Schiller\SchillerDir;
 use Leuffen\Schiller\AccessContext;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: frische Arbeitskopie; löscht zuerst en, anschließend die Gruppe.
+// SCHREIBBEISPIEL: Polyglot-Blattgruppe; Legacy lehnt delete ab.
+// frische Arbeitskopie; löscht zuerst en, anschließend die Gruppe.
 return static function (PhoreDirectory $root): void {
     $site = new SchillerDir($root, access: new AccessContext(role: 'admin'));
-    $page = $site->getPage('leistungen/diagnostik.md');
+    $page = $site->getPage('/leistungen/diagnostik');
     $english = $page->getTranslation('en');
 
     $english->delete(); // Sofort: ausschließlich en/leistungen/diagnostik.md.
@@ -22,7 +23,7 @@ return static function (PhoreDirectory $root): void {
     // $english ist ungültig und darf nicht per save() wiederhergestellt werden.
 
     $page->delete(); // Sofort: Root und sämtliche noch vorhandenen Übersetzungen.
-    // getPage('leistungen/diagnostik.md') wirft danach NotFoundException.
+    // getPage('/leistungen/diagnostik') wirft danach NotFoundException.
     // Fehlende Rechte auf einer Gruppendatei verhindern die gesamte Root-Löschung.
     // Kein implizites Speichern; ungespeicherte Änderungen führen zu einer Exception.
 

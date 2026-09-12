@@ -2,29 +2,28 @@
 
 declare(strict_types=1);
 
-// ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
-// Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
-
-use Leuffen\Schiller\SchillerDir;
+// ENTWURFSBEISPIEL: nur im neuen Polyglot-Adapter; Schreiben erst bei save().
 use Leuffen\Schiller\AccessContext;
 use Leuffen\Schiller\Document;
+use Leuffen\Schiller\SchillerDir;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: leistungen/ muss existieren, vorsorge.md darf nicht existieren.
 return static function (PhoreDirectory $root): Document {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
     $page = $site->createPage(
-        'leistungen/vorsorge.md',
-        header: ['title' => 'Vorsorge', 'published' => false],
+        '/leistungen/vorsorge',
+        header: ['title' => 'Vorsorge', 'published' => false, 'custom_flag' => true],
         content: "## Vorsorge\n",
     );
-
-    // Document: path='leistungen/vorsorge.md', language='de',
-    // isRootDocument=true, isPersisted()=false. Noch keine Datei angelegt.
-    assert($page->getTranslation() === $page);
+    assert($page->id === '/leistungen/vorsorge');
+    assert($page->file === null);
     assert(!$page->isPersisted());
-    $page->save(); // isPersisted()=true; kein Überschreiben bestehender Dateien.
+    assert($page->getTranslation() === $page);
+
+    $page->save(); // Adapter legt Ordner an/ordnet Eltern bei Bedarf als Index ein.
     assert($page->isPersisted());
-    // getUrl() === '/leistungen/vorsorge.html'; keine Sprach-ID, kein Permalink.
+    assert($page->file->path === 'leistungen/vorsorge.md');
+    // Neuer Blattknoten; eigener Header custom_flag bleibt erhalten.
+    // Elternumstellung: Beispiel 16. Legacy: createPage wirft UnsupportedOperationException.
     return $page;
 };
