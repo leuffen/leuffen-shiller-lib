@@ -99,3 +99,15 @@ Diese Matrix ist eine Abnahmeanforderung für die spätere Implementierung, kein
 | Vor save()/erneuter No-op | Keine vorzeitigen bzw. unnötigen Dateioperationen |
 
 Die Tests benötigen ein kontrollierbares Storage-Testdouble für Fehler an jedem Batch-Schritt und Integrationstests mit echten temporären Verzeichnissen. Zusätzlich Vorher-/Nachher-Manifeste aller Sprach- und Begleitdateien vergleichen, damit weder Datenverlust noch unbeabsichtigte Neuanlage verborgen bleiben.
+
+## Review-Vertrag für Aufrufer
+
+Ein rename-Button kann aus capabilities die Eignung der Quelle ableiten. Ohne Ziel-ID ist damit keine Aussage über Zielrechte oder Konflikte möglich. Der Aufruf rename(sourceId, targetId) ist die verbindliche Prüfung und schreibt bei Erfolg sofort. Bei unveränderter ID ist es ein No-op; bestehende Zugriffs- und Adaptergrenzen gelten dennoch. Legacy unterstützt auch dadurch keine Strukturaktionen.
+
+Eine Promotion beim save ist die ausdrücklich dokumentierte Nebenwirkung einer neuen Unterseite: alle betroffenen Elternvarianten werden bewegt, ihre Inhalte werden nicht mitgespeichert. Ein vorbereiteter, noch nicht gespeicherter Übersetzungsentwurf an einer betroffenen Elternseite verhindert die Strukturaktion wie andere ungespeicherte Änderungen. Auch saveDocuments muss sämtliche Promotionen gemeinsam planen und darf dieselbe Elternseite nicht mehrfach bewegen.
+
+Nach einer erfolgreichen Bewegung sind alte Listing-Objekte und die im Browser gespeicherten Revisionswerte veraltet. Die Anwendung liest Baum und bearbeitete Documents erneut für die nächste Anzeige; innerhalb derselben SchillerDir-Instanz sind IDs, FileEntries und Revisionen bereits aktualisiert. Die HTTP-Schicht nimmt IDs und Rollen nicht aus veränderbaren Headerfeldern.
+
+Löschen ist keine verkürzte Variante von rename: Das Stammdokument darf nur ohne Nachfahren in allen Sprachen gelöscht werden, die Root-Gruppe / niemals. Eine Übersetzung darf auch dann als einzelne Datei gelöscht werden, wenn Sprach-Unterseiten bestehen; diese bleiben erhalten. Begleitdateien und Ordner werden nicht rekursiv gelöscht. isLeaf im gefilterten Seitenbaum beweist keine vollständige physische Kinderlosigkeit.
+
+Zusätzliche spätere Abnahmefälle: zwei Kindanlagen in einem saveDocuments mit gemeinsamer Elternpromotion; transiente Elternübersetzung; Kategorieindex einer einzelnen Sprache löschen; verborgene Nachfahren beim Root-Delete; nach Move veraltete Editorrevision beim Speichern; No-op mit verweigerter Operation. Revisionsprüfung und Commit müssen im Storage gegen gleichzeitige Änderungen abgesichert sein. Ein bloßer Vergleich vor einem ungeschützten write genügt nicht; ohne geeignete Connector-Fähigkeit oder garantierte externe Serialisierung ist die Mutation abzuweisen.

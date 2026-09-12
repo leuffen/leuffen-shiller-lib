@@ -23,9 +23,13 @@ return static function (PhoreDirectory $root): FieldSet {
     // layout: type->value='select'; options: list<FieldOption>
     // options enthalten {value:'default', label:'Standard'} und
     // {value:'landing', label:'Landingpage'}.
+    // Formular für eine noch nicht vorhandene Seite: keine Datei/kein Entwurf entsteht.
+    $newPageFields = $site->getHeaderDefinitions('/leistungen/vorsorge', language: 'de');
+    // presentation kann z.B. widget='textarea' für description liefern.
     $actions = $site->capabilities('/leistungen/diagnostik'); // Capabilities
     // Für user und eine vorhandene Seite:
     // read=true, write=true, createFile=false, createDirectory=false, createTranslation=false,
     // createTemplate=false, rename=true, delete=true. save() prüft selbst erneut, auch ohne UI-Prüfung.
+    // rename=true bewertet die Quelle; erst rename(newId) prüft das konkrete Ziel.
     return $fields;
 };

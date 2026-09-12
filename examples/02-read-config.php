@@ -15,6 +15,9 @@ return static function (PhoreDirectory $root): SiteConfig {
 
     // Erwartete Werte für die Fixture aus Proposal § 6/7:
     // $config->languages       === ['de', 'en', 'fr']
+    // $config->languageLabels  === ['de' => 'de', 'en' => 'en', 'fr' => 'fr']
+    // Optional in schiller.yaml: language_labels: {de: Deutsch, en: English, fr: Français}
+    // Dann liefert languageLabels diese Namen; Legacy übernimmt seine Sprachdatei.
     // $config->defaultLanguage === 'de'
     // $config->url             === 'https://example.org'
     // $config->baseurl         === ''

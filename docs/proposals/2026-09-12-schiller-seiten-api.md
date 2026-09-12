@@ -9,6 +9,7 @@
 | 2026-09-12 | dermatthes | §§ 4, 10–12: TreeNode mit FileEntry, Kategorie-Seiten, vollständiger Sprachverfügbarkeit und konkreten Legacy-/Polyglot-Adapterentwürfen |
 | 2026-09-12 | dermatthes | §§ 2, 5–11: Header-Definitionen, null als Root-Übersetzung, createIfMissing/isPersisted und Adapter-Interface mit Methodenstümpfen |
 | 2026-09-12 | dermatthes | §§ 2–12: endungslose Seiten-IDs, Adapter-gesteuertes Laden/Schreiben, Indexumstellung, Teilbaum-Verschieben, Metadatenerhaltung und Legacy-Bestandsbearbeitung |
+| 2026-09-12 | dermatthes | §§ 2–12: Review der Aktionswirkungen, Entwurfszustände, Editor-Konflikte, gemeinsames Speichern, Metadaten und Page-Builder-Abdeckung |
 
 ## § 1 Ziel und Umfang
 
@@ -27,14 +28,16 @@ Die folgenden Befunde stammen aus `micx-io/micx-pagebuilder`; dessen Quellcode d
 | `PageListCtrl::__invoke()` | Sections mit `_section.yml`, Gruppierung nach `pid` und Sprache, Fehlerliste | `pages()` mit rekursivem Seitenbaum und `Diagnostic[]` |
 | `PageCtrl` / `FrontMatterFile::ReadPage()` | Markdown/HTML und YAML-Header lesen | `getPage(id)` |
 | `PageCtrl` / `FrontMatterFile::WritePage()` | Header und Inhalt speichern | Header/Body am `Document` ändern, `save()` |
-| `PageCtrl::copyPage()` | Neue Sprachdatei aus vorhandener Seite kopieren | `document->getTranslation(language, createIfMissing: true)`, dann `save()` |
-| `www/pages/edit-page.html` | Titel, Beschreibung, Layout, published, order, ptags, eigene Formulare | `document->getHeaderDefinitions()` und typisierte Feldwerte |
+| `PageCtrl::copyPage()` | Beliebige Quellsprache/PID kopieren; Permalink entfernen und sofort schreiben | Bewusst anderer Vertrag: neue Übersetzung nur aus dem Original vorbereiten und explizit speichern; Legacy legt keine an |
+| `www/pages/edit-page.html` | Titel, Beschreibung, Layout, published, order, ptags, eigene Formulare | Header-Array und `getHeaderDefinitions()` mit Darstellungsangaben; Formrenderer auf diese Definitionen umstellen |
 | `www/elements/page-list.html` | Seitengruppen, Sprachvarianten, Veröffentlichungsstatus | `PageTree`, `TranslationInfo`, Veröffentlichungsstatus |
 | Vorschau-Link im Editor | URL bisher im Browser zusammengesetzt | `document->getUrl()` |
 | Neue Anforderung für den Nachfolger | Von einer realen Website-URL zum bearbeitbaren Quelltext | `getDocumentByUrl(url): Document` |
-| `_data/languages.yml` | Verfügbare Sprachen | `config()->languages` aus Jekyll/Polyglot |
+| `_data/languages.yml` | Sprachcodes und Anzeigenamen | `config()->languages` plus `languageLabels`; Legacy liest seine Sprachliste intern |
 | `FileCtrl` und Daten-/Fragmenteditoren | Beliebige YAML-Daten bearbeiten | Später; bewusst keine allgemeine Schreib-Hintertür im ersten Ausbau |
 | `InfoCtrl`, `RepoCtrl`, Middleware | Preview-Host, Änderungsstatus, VCS und Notifications | Anwendung; optionaler URL-Kontext, kein VCS in Schiller |
+
+Der [vollständige Page-Builder-Abgleich](../pagebuilder-abgleich.md) nennt für jeden gefundenen Ablauf die Schiller-Aktion, deren Wirkung und die verbleibende Anwendungsarbeit. Der Entwurf ist kein unveränderter Drop-in für alte Controller- oder JSON-Verträge. Die Formatübersetzung liegt vollständig im Adapter; der neue Page Builder verwendet direkt Schillers API. Daten-/Fragmenteditoren bleiben ausdrücklich ein eigener Ausbau. [neu]
 
 Das alte Listing verlangt Sections und sprachcodierte Dateinamen. Der neue Standardadapter darf diese Voraussetzungen nicht übernehmen. Der alte Editor unterstützt außerdem Mehrfachauswahl und eine numerische Sortierung; deshalb schlägt § 7 neben Boolean und Dropdown auch `integer` und `multiselect` vor, ohne bereits einen Dateneditor zu entwerfen.
 
@@ -72,11 +75,14 @@ Beispiel für `SiteConfig`, hier als JSON dargestellt:
   "adapter": {"id": "jekyll-polyglot", "version": 1},
   "languages": ["de", "en", "fr"],
   "defaultLanguage": "de",
+  "languageLabels": {"de": "Deutsch", "en": "English", "fr": "Français"},
   "url": "https://example.org",
   "baseurl": "",
   "schemaVersion": 1
 }
 ```
+
+`languageLabels: array<string,string>` ergänzt die Sprachcodes um Anzeigenamen. Im Polyglot-Profil kommen optionale Namen aus `schiller.yaml` unter `language_labels`; ohne Angabe dient der Code als Label. Legacy übernimmt vorhandene Namen aus `_data/languages.yml`. Beide Profile liefern dieselbe öffentliche Form. [neu]
 
 `SiteConfig` ist eine geprüfte öffentliche Projektion, kein unbeschränkter Dump der Jekyll-Konfiguration oder aller Rollenregeln. Interne Konfigurationszugriffe geben dem Benutzer kein Recht, diese Dateien über `files()` oder andere Zugriffe auszulesen.
 
@@ -84,7 +90,7 @@ Beispiel für `SiteConfig`, hier als JSON dargestellt:
 
 ### § 4.1 Dateien: echte Quellpfade
 
-`files('leistungen', recursive: false)` bleibt die optionale physische Inspektion mit Root-relativen Dateipfaden. Ein `FileListing` enthält `entries: list<TreeNode>` und Diagnosen. In dieser Ansicht ist `node.path` der physische Pfad und `node.id` null; Dateien haben eine `FileEntry`-Referenz, Ordner haben `file: null`. Die eigentliche Seitenbedienung benutzt ausschließlich `pages()`, `getPage()` und endungslose IDs. [geändert]
+`files('leistungen', recursive: false)` bleibt die optionale physische Inspektion mit Root-relativen Dateipfaden. Ein `FileListing` enthält `entries: list<TreeNode>` und Diagnosen. In dieser Ansicht ist `node.path` der physische Pfad und `node.id` null; Dateien haben eine `FileEntry`-Referenz, Ordner haben `file: null`. Die eigentliche Seitenbedienung benutzt ausschließlich `pages()`, `getPage()` und endungslose IDs.
 
 ```php
 $listing = $site->files('leistungen', recursive: true);
@@ -93,11 +99,11 @@ foreach ($listing->entries as $node) {
 }
 ```
 
-Dateipfade sind Root-relativ, ohne führenden Slash; `''` bezeichnet das physische Root. `FileKind` kennt directory, page, asset, data, template und other. Kein Zugriff liefert einen rohen Filesystem-Handle. Nicht expandierte Ordner haben bei `recursive: false` leere `children`, aber `isLeaf()` prüft trotzdem lesbare Kinder. [geändert]
+Dateipfade sind Root-relativ, ohne führenden Slash; `''` bezeichnet das physische Root. `FileKind` kennt directory, page, asset, data, template und other. Kein Zugriff liefert einen rohen Filesystem-Handle. Nicht expandierte Ordner haben bei `recursive: false` leere `children`, aber `isLeaf()` prüft trotzdem lesbare Kinder.
 
 ### § 4.2 Seiten: endungslose IDs und optionale Datei
 
-Die öffentliche Seiten-ID heißt `id`. Kanonische IDs sind `/`, `/leistungen`, `/leistungen/allgemeinmedizin`: führender Slash, keine abschließenden Slashes außer beim Root, kein Sprachpräfix und keine Dateiendung. `leistungen` darf am API-Eingang zu `/leistungen` normalisiert werden. `root` ist kein reservierter Alias. Eine ID ist weder Dateipfad noch Ziel-URL und wird nicht in den YAML-Header geschrieben. Die Identität eines Documents besteht aus ID plus Sprache. [geändert]
+Die öffentliche Seiten-ID heißt `id`. Kanonische IDs sind `/`, `/leistungen`, `/leistungen/allgemeinmedizin`: führender Slash, keine abschließenden Slashes außer beim Root, kein Sprachpräfix und keine Dateiendung. `leistungen` darf am API-Eingang zu `/leistungen` normalisiert werden. `root` ist kein reservierter Alias. Eine ID ist weder Dateipfad noch Ziel-URL und wird nicht in den YAML-Header geschrieben. Die Identität eines Documents besteht aus ID plus Sprache.
 
 ```php
 $tree = $site->pages();                       // PageTree
@@ -107,11 +113,11 @@ $child = $site->getPage('/leistungen/allgemeinmedizin');
 $rootPage = $site->getPage('/');
 ```
 
-Im Seitenbaum hat jeder `TreeNode` eine `id`, `path: null`, `file: ?FileEntry`, `children: list<TreeNode>`, `translations: array<string,TranslationInfo>` und optionale `metadata: array<string,YamlValue>`. Kategorienmetadaten, etwa eine alte Section-Beschreibung, bleiben unabhängig von einer Seitendatei erhalten. Eine Kategorie ohne Seite hat `file: null` und leere translations. Sie öffnet keinen Editor; Kinder sind aufklappbar. `isLeaf()` beschreibt allein, ob lesbare Kinder existieren. [geändert]
+Im Seitenbaum hat jeder `TreeNode` eine `id`, `path: null`, `file: ?FileEntry`, `children: list<TreeNode>`, `translations: array<string,TranslationInfo>` und optionale `metadata: array<string,YamlValue>`. Kategorienmetadaten, etwa eine alte Section-Beschreibung, bleiben unabhängig von einer Seitendatei erhalten. Eine Kategorie ohne Seite hat `file: null` und leere translations. Sie öffnet keinen Editor; Kinder sind aufklappbar. `isLeaf()` beschreibt allein, ob lesbare Kinder existieren.
 
-`getDocument()` lädt die zugeordnete Seite oder liefert bei einem Knoten ohne Seite null. Eine nachträglich verschwundene/gesperrte Datei erzeugt NotFoundException. `FileEntry::path` bleibt ausschließlich die tatsächliche Dateireferenz für Diagnose und Dateizugriff. Indexdateien sind im Seitenbaum niemals zusätzliche Kinder. Listings laden keine vollständigen Bodies. [geändert]
+`getDocument()` lädt die zugeordnete Seite oder liefert bei einem Knoten ohne Seite null. Eine nachträglich verschwundene/gesperrte Datei erzeugt NotFoundException. `FileEntry::path` bleibt ausschließlich die tatsächliche Dateireferenz für Diagnose und Dateizugriff. Indexdateien sind im Seitenbaum niemals zusätzliche Kinder. Listings laden keine vollständigen Bodies.
 
-Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite existiert, für die Unterseite zunächst nur de: [geändert]
+Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite existiert, für die Unterseite zunächst nur de:
 
 ```json
 {
@@ -121,9 +127,9 @@ Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite 
     "file": {"path": "leistungen/index.md", "kind": "page"},
     "metadata": {},
     "translations": {
-      "de": {"language": "de", "path": "leistungen/index.md", "exists": true, "isRootDocument": true},
-      "en": {"language": "en", "path": "en/leistungen/index.md", "exists": true, "isRootDocument": false},
-      "fr": {"language": "fr", "path": "fr/leistungen/index.md", "exists": false, "isRootDocument": false}
+      "de": {"language": "de", "path": "leistungen/index.md", "exists": true, "isRootDocument": true, "published": true},
+      "en": {"language": "en", "path": "en/leistungen/index.md", "exists": true, "isRootDocument": false, "published": true},
+      "fr": {"language": "fr", "path": "fr/leistungen/index.md", "exists": false, "isRootDocument": false, "published": null}
     },
     "children": [{
       "id": "/leistungen/allgemeinmedizin",
@@ -131,9 +137,9 @@ Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite 
       "file": {"path": "leistungen/allgemeinmedizin.md", "kind": "page"},
       "metadata": {},
       "translations": {
-        "de": {"language": "de", "path": "leistungen/allgemeinmedizin.md", "exists": true, "isRootDocument": true},
-        "en": {"language": "en", "path": "en/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false},
-        "fr": {"language": "fr", "path": "fr/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false}
+        "de": {"language": "de", "path": "leistungen/allgemeinmedizin.md", "exists": true, "isRootDocument": true, "published": false},
+        "en": {"language": "en", "path": "en/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false, "published": null},
+        "fr": {"language": "fr", "path": "fr/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false, "published": null}
       },
       "children": []
     }]
@@ -142,11 +148,11 @@ Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite 
 }
 ```
 
-Alle konfigurierten lesbaren Sprachen werden mit exists ausgegeben. Verborgene Varianten/Kandidaten und Kinder werden ausgelassen; Dateinamen dürfen weder über Metadaten noch Diagnosen offengelegt werden. Die bevorzugte FileEntry verweist auf die lesbare Standardsprache, sonst auf die erste lesbare Variante; deren Sprache bleibt unverändert. Ein fehlendes Original verhindert nicht das Lesen bestehender Übersetzungen, wohl aber deren Ableitung vom Original. [geändert]
+Alle konfigurierten lesbaren Sprachen werden mit exists ausgegeben. Verborgene Varianten/Kandidaten und Kinder werden ausgelassen; Dateinamen dürfen weder über Metadaten noch Diagnosen offengelegt werden. Die bevorzugte FileEntry verweist auf die lesbare Standardsprache, sonst auf die erste lesbare Variante; deren Sprache bleibt unverändert. Ein fehlendes Original verhindert nicht das Lesen bestehender Übersetzungen, wohl aber deren Ableitung vom Original.
 
-Der physische Aufbau bestimmt keine zusätzliche öffentliche ID: `leistungen.md` und `leistungen/index.md` sind alternative Ablagen für `/leistungen`. Liegen beide in derselben Sprache vor, meldet der Adapter einen Konflikt. Gleiches gilt für konkurrierende md/html-Dateien oder andere Zuordnungen zur selben ID/Sprache. [neu]
+Der physische Aufbau bestimmt keine zusätzliche öffentliche ID: `leistungen.md` und `leistungen/index.md` sind alternative Ablagen für `/leistungen`. Liegen beide in derselben Sprache vor, meldet der Adapter einen Konflikt. Gleiches gilt für konkurrierende md/html-Dateien oder andere Zuordnungen zur selben ID/Sprache.
 
-Unveröffentlichte lesbare Seiten bleiben im Editor sichtbar. Excluded-Dateien sowie Daten, Layouts, Includes, Posts, Collections und Build-Ziele werden nicht als normale Seiten interpretiert. Der physische Dateibaum darf sie bei Leserecht zeigen. Markdown ohne Header erfordert das unterstützte optionale Front-Matter-Profil. [geändert]
+Unveröffentlichte lesbare Seiten bleiben im Editor sichtbar. Excluded-Dateien sowie Daten, Layouts, Includes, Posts, Collections und Build-Ziele werden nicht als normale Seiten interpretiert. Der physische Dateibaum darf sie bei Leserecht zeigen. Markdown ohne Header erfordert das unterstützte optionale Front-Matter-Profil.
 
 ## § 5 Einzelne Datei: ein Document mit Header-Array
 
@@ -160,9 +166,9 @@ $page->content = "## Neuer Inhalt\n";
 $page->save();
 ```
 
-Original und Übersetzungen sind Documents. `id`, `language`, `isRootDocument` und `file` sind außen nur lesbar. `header` ist ein direkt bearbeitbares Array, `content` ein String. `getEffectiveHeader()` ergänzt Jekyll-Defaults, ohne sie zurückzuschreiben. `YamlValue` bezeichnet rekursiv null, bool, int, float, string und entsprechende Listen/Maps. [geändert]
+Original und Übersetzungen sind Documents. `id`, `language`, `isRootDocument` und `file` sind außen nur lesbar. `header` ist ein direkt bearbeitbares Array, `content` ein String. `getEffectiveHeader()` ergänzt Jekyll-Defaults, ohne sie zurückzuschreiben. `YamlValue` bezeichnet rekursiv null, bool, int, float, string und entsprechende Listen/Maps.
 
-Optionale und unbekannte Metadaten werden vollständig erhalten, dürfen manuell gesetzt werden und werden auch in neue Übersetzungen kopiert. Definitionen validieren bekannte Header-Schlüssel, bilden aber keine Positivliste erlaubter Zusatzfelder. Nur ein ausdrückliches `unset()` entfernt einen Schlüssel; die Zuweisung von null speichert YAML-null, sofern bei einem bekannten Feld zulässig. Verschachtelte eigene Werte bleiben erhalten. Der Legacy-Adapter hält seine Identitätsfelder konsistent; im neuen Profil werden dateilokale PID-/Sprachfelder als Profilkonflikt gemeldet, niemals still gelöscht. [geändert]
+Optionale und unbekannte Metadaten werden vollständig erhalten, dürfen manuell gesetzt werden und werden auch in neue Übersetzungen kopiert. Definitionen validieren bekannte Header-Schlüssel, bilden aber keine Positivliste erlaubter Zusatzfelder. Nur ein ausdrückliches `unset()` entfernt einen Schlüssel; die Zuweisung von null speichert YAML-null, sofern bei einem bekannten Feld zulässig. Verschachtelte eigene Werte bleiben erhalten. Der Legacy-Adapter hält seine Identitätsfelder konsistent; im neuen Profil werden dateilokale PID-/Sprachfelder als Profilkonflikt gemeldet, niemals still gelöscht.
 
 ```php
 $new = $site->createPage(
@@ -177,11 +183,29 @@ $new->file->path;                 // 'leistungen/vorsorge.md'
 $new->isPersisted();              // true
 ```
 
-`createPage()` erzeugt im neuen Adapter ein ungespeichertes Stammdokument mit den Anlage-Defaults, etwa published=false. Der Zielpfad ist adapterspezifisch und wird nicht vom Aufrufer festgelegt. Bestehende IDs oder Dateien werden nicht überschrieben. Im Legacy-Adapter ist Neuanlage nicht unterstützt. [geändert]
+`createPage()` erzeugt im neuen Adapter ein ungespeichertes Stammdokument mit den Anlage-Defaults, etwa published=false. Der Zielpfad ist adapterspezifisch und wird nicht vom Aufrufer festgelegt. Bestehende Seitengruppen, Entwürfe oder Dateien werden nicht überschrieben. Eine vorhandene reine Kategorie ohne Seitengruppe darf hingegen mit createPage unter derselben ID ein Stammdokument erhalten; es wird direkt als index.md angelegt, vorhandene Kinder und Metadaten bleiben erhalten. Im Legacy-Adapter ist Neuanlage nicht unterstützt. [geändert]
 
-`isPersisted()` sagt aus, ob die Quelldatei existiert; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. Änderungen an einem bestehenden Dokument prüfen den geladenen Quellstand. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare. [geändert]
+`isPersisted()` beschreibt den bestätigten Speicherzustand der Document-Instanz; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. `hasChanges()` vergleicht Header und Body mit dem geladenen beziehungsweise zuletzt gespeicherten Stand; jeder neue Entwurf gilt als ungespeicherte Änderung. `revision: ?string` enthält eine opake Version des bestätigten Quellstands, bei Entwürfen null. Ein erfolgreiches Speichern aktualisiert diesen Stand; unverändertes `save()` schreibt keine Bytes. Externe Änderungen werden bei Operationen geprüft, nicht durch laufendes Polling von `isPersisted()` erkannt. [geändert]
 
-Innerhalb derselben SchillerDir-Instanz wird pro ID/Sprache dieselbe Document-Instanz verwendet. Eine automatische Umstellung auf Indexablage ändert nur die FileEntry, nicht die ID, Sprache oder Root-Beziehung. Schon ausgegebene Listings bleiben Snapshots und werden erneut abgefragt. [geändert]
+Änderungen an einem bestehenden Dokument prüfen den geladenen Quellstand. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare.
+
+Innerhalb derselben SchillerDir-Instanz wird pro ID/Sprache dieselbe Document-Instanz verwendet. Eine automatische Umstellung auf Indexablage ändert nur die FileEntry, nicht die ID, Sprache oder Root-Beziehung. Schon ausgegebene Listings bleiben Snapshots und werden erneut abgefragt.
+
+### § 5.1 Editor-Speicherung und Konflikte
+
+`save(?string $expectedRevision = null)` speichert genau dieses Dokument, gegebenenfalls einschließlich der notwendigen Elternpromotion nach § 11.2. Ohne Argument vergleicht es die beim Laden erfasste Revision; ein neuer Entwurf wird ausschließlich neu angelegt. Für einen HTTP-Editor muss die Anwendung die Revision des GET im Formular halten und beim POST ausdrücklich als `expectedRevision` übergeben. Ein frisches Laden im POST allein erkennt ein veraltetes Browserformular nicht. Die Revision gilt für ID, Sprache, Quellinhalt und schreibrelevante Konfiguration; sie ist weder Dateipfad noch Git-Commit. Abweichungen führen vor jedem Schreiben zu `ConflictException`. [neu]
+
+Die Anwendung übernimmt nur die tatsächlich bearbeiteten Schlüssel in den frisch geladenen Header. Fehlende Formularfelder sind keine Löschanweisung. Bekannte Felder werden typisiert; eigene Metadaten dürfen weiterhin direkt gesetzt werden. Explizites Entfernen erfolgt über `unset()`. Keinen partiellen Formular-Body als gesamten Header zuweisen und weder `getEffectiveHeader()` noch komplette Request-Objekte zurückschreiben. [Beispiel 18](../../examples/18-editor-save.php) zeigt GET/POST samt Konfliktbehandlung ohne Patch-Objekte. [neu]
+
+`SchillerDir::saveDocuments(array $documents, array $expectedRevisions = []): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Beide Listen haben dieselbe Reihenfolge; eine nicht leere Revisionsliste muss genau so viele Einträge enthalten. Null ist nur bei neuen Documents zulässig; eine leere Liste verwendet die intern geladenen Revisionen. Doppelte Identitäten, fremde SchillerDir-Instanzen und leere Dokumentlisten werden abgewiesen. Alle Rechte, Feldwerte, Quellen und endgültigen Routen werden gemeinsam vorab validiert. Jeder Fehler verhindert den gesamten Schreibvorgang; die Batch-/Wiederherstellungsregeln aus § 8 gelten. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. [neu]
+
+### § 5.2 Objektzustand und erneute Abfragen
+
+Pro SchillerDir und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException. [neu]
+
+Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert das Speichern des Entwurfs als Konflikt, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original. [neu]
+
+SchillerDir ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer SchillerDir lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen. [neu]
 
 ## § 6 Polyglot und Übersetzungen
 
@@ -248,7 +272,7 @@ Die Startseiten brauchen ebenfalls nur ihren Titel und Inhalt: `index.md` beispi
 
 ### § 6.2 Übersetzungen auflisten und lesen
 
-`getTranslations()` liefert je konfigurierter und lesbarer Sprache einen kleinen Eintrag, einschließlich Standardsprache. `exists` bezeichnet ausschließlich eine gespeicherte Quelldatei. Fehlende Varianten haben bereits ihren fest berechneten Zielpfad; weder Fallbacks noch ungespeicherte Entwürfe zählen als vorhanden.
+`getTranslations()` liefert je konfigurierter und lesbarer Sprache einen kleinen Eintrag, einschließlich Standardsprache. `exists` bezeichnet ausschließlich eine gespeicherte Quelldatei. `published: ?bool` liefert deren effektiven Veröffentlichungsstatus ohne Body-Laden; bei fehlender Datei ist der Wert null. exists und published sind unabhängig: eine unveröffentlichte Datei existiert weiterhin. Fehlende Varianten haben bereits ihren fest berechneten Zielpfad; weder Fallbacks noch ungespeicherte Entwürfe zählen als vorhanden. [geändert]
 
 ```php
 $page = $site->getPage('/leistungen/diagnostik');
@@ -262,15 +286,15 @@ assert($english->getTranslation('de') === $page);
 
 ```json
 {
-  "de": {"language": "de", "path": "leistungen/diagnostik.md", "exists": true, "isRootDocument": true},
-  "en": {"language": "en", "path": "en/leistungen/diagnostik.md", "exists": true, "isRootDocument": false},
-  "fr": {"language": "fr", "path": "fr/leistungen/diagnostik.md", "exists": false, "isRootDocument": false}
+  "de": {"language": "de", "path": "leistungen/diagnostik.md", "exists": true, "isRootDocument": true, "published": true},
+  "en": {"language": "en", "path": "en/leistungen/diagnostik.md", "exists": true, "isRootDocument": false, "published": true},
+  "fr": {"language": "fr", "path": "fr/leistungen/diagnostik.md", "exists": false, "isRootDocument": false, "published": null}
 }
 ```
 
-Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument beziehungsweise `getTranslation(null)` liefert stets das Stammdokument oder wirft `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist.
+Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ohne bekannten Entwurf ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument beziehungsweise `getTranslation(null)` liefert stets das Stammdokument oder wirft `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist. [geändert]
 
-Ohne Sprachargument oder mit `null` liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert für eine fehlende Variante ohne Anlageoption `null`.
+Ohne Sprachargument oder mit `null` liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2). [geändert]
 
 ### § 6.3 Eine Übersetzungsdatei anlegen
 
@@ -286,11 +310,11 @@ if (!$french->isPersisted()) {
 }
 ```
 
-Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender Übersetzung erzeugt `createIfMissing: true` eine ungespeicherte Kopie von Header und Inhalt des Stammdokuments mit `published: false`, auch wenn der Aufruf von einer anderen Übersetzung ausgeht. Geerbte Defaults werden nicht kopiert. Im neuen Adapter werden keine ID-/Sprachfelder erzeugt. Der Zielpfad ist nicht frei veränderbar. Wiederholte Abfragen desselben Entwurfs liefern innerhalb derselben Instanz dasselbe Objekt.
+Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender Übersetzung erzeugt `createIfMissing: true` eine ungespeicherte Kopie von Header und Inhalt des Stammdokuments mit `published: false`, auch wenn der Aufruf von einer anderen Übersetzung ausgeht. Geerbte Defaults werden nicht kopiert. Im neuen Adapter werden keine ID-/Sprachfelder erzeugt. Der Zielpfad ist nicht frei veränderbar. Wiederholte Abfragen desselben Entwurfs liefern innerhalb derselben Instanz dasselbe Objekt, auch ohne gesetztes createIfMissing. isPersisted bleibt bis zum Speichern false. [geändert]
 
-`null`, ein weggelassenes Sprachargument und die konfigurierte Standardsprache liefern immer das Stammdokument; es wird nicht durch Klonen einer Übersetzung angelegt; `createIfMissing` erzeugt in diesem Fall kein neues Original. Bei null beziehungsweise der Standardsprache hat `createIfMissing` keine Wirkung. Zum Klonen muss das Stammdokument gespeichert, lesbar und ohne ungespeicherte Änderungen sein. `getTranslation(..., createIfMissing: true)` und anschließend `save()` prüfen `createFile` und `createTranslation` am Ziel sowie createDirectory für erforderliche neue Elternordner. Eine zwischenzeitlich angelegte Datei wird nicht überschrieben. Für unverändert vorhandene Übersetzungen genügt zum Abruf Leserecht. [geändert]
+`null`, ein weggelassenes Sprachargument und die konfigurierte Standardsprache liefern immer das Stammdokument; es wird nicht durch Klonen einer Übersetzung angelegt; `createIfMissing` erzeugt in diesem Fall kein neues Original. Bei null beziehungsweise der Standardsprache hat `createIfMissing` keine Wirkung. Zum Klonen muss das Stammdokument gespeichert, lesbar und ohne ungespeicherte Änderungen sein. `getTranslation(..., createIfMissing: true)` und anschließend `save()` prüfen `createFile` und `createTranslation` am Ziel sowie createDirectory für erforderliche neue Elternordner. Eine zwischenzeitlich angelegte Datei wird nicht überschrieben. Für unverändert vorhandene Übersetzungen genügt zum Abruf Leserecht.
 
-Bei einer fehlenden Legacy-Übersetzung liefert `createIfMissing: false` null; `createIfMissing: true` wirft UnsupportedOperationException. Eine vorhandene Legacy-Übersetzung wird auch mit gesetzter Option normal zurückgegeben und kann nach Rechteprüfung bearbeitet werden. Bei neuen Polyglot-Übersetzungen bestimmt die aktuelle Ablage der Gruppe den Kandidaten: nach der Umstellung einer Elternseite also `<sprache>/leistungen/index.md`. Fehlende Sprachdateien werden durch die Umstellung nicht angelegt. [neu]
+Bei einer fehlenden Legacy-Übersetzung liefert `createIfMissing: false` null; `createIfMissing: true` wirft UnsupportedOperationException. Eine vorhandene Legacy-Übersetzung wird auch mit gesetzter Option normal zurückgegeben und kann nach Rechteprüfung bearbeitet werden. Bei neuen Polyglot-Übersetzungen bestimmt die aktuelle Ablage der Gruppe den Kandidaten: nach der Umstellung einer Elternseite also `<sprache>/leistungen/index.md`. Fehlende Sprachdateien werden durch die Umstellung nicht angelegt.
 
 ## § 7 schiller.yaml: Metafelder, Presets und Bereiche
 
@@ -402,11 +426,15 @@ Beispielprojektion einer Felddefinition:
 }
 ```
 
-`FieldType` ist ein string-backed Enum (`string`, `boolean`, `integer`, `select`, `multiselect`). Dropdown-Optionen sind `FieldOption`-Objekte mit `value: string` und `label: string`; Mehrfachauswahl speichert `list<string>`. `hasDefault` unterscheidet fehlenden Default von explizitem `null`; `nullable` regelt, ob `null` erlaubt ist. Unbekannte Metafelder bleiben erhalten, dürfen manuell angelegt werden und werden beim Erzeugen einer Übersetzung kopiert. Felddefinitionen validieren bekannte Schlüssel; zusätzliche Metadaten benötigen keine vorherige Registrierung. Adaptereigene Standardfelder wie `description` und `permalink` werden als eingebaute Definitionen bereitgestellt; dateilokale `page_id`, `pid` und `lang` sind im Polyglot-Profil nicht zulässig. Geerbtes `lang` aus `_config.yml` darf in `getEffectiveHeader()` auftauchen, wird jedoch niemals in den gespeicherten Header zurückgeschrieben. Neue Pflichtfelder dürfen Bestandsseiten lesbar lassen, verhindern jedoch ein nicht valides Speichern mit präzisen Feldfehlern. [geändert]
+`getHeaderDefinitions()` ist auch als `SchillerDir::getHeaderDefinitions($id, $language = null)` verfügbar, damit ein Editor das Formular vor einer Neuanlage aufbauen kann. Die ID bezeichnet die geplante Seite, nicht den Elternordner. Schiller prüft Lesbarkeit des Kandidaten und berechnet dessen tatsächliche Zielablage; es erzeugt keine Datei und benötigt zum reinen Lesen der Definitionen kein Anlagerecht. Das Document delegiert mit seiner Identität. [neu]
+
+Felddefinitionen können optionale `presentation`-Angaben enthalten: `widget` (input, textarea, select, switch, checkboxes), `placeholder` und `checkLabel`. Beispiel: `description: {type: string, presentation: {widget: textarea}}` unter fields. `editable=false` ist serverseitig durchzusetzen, max_length bleibt eine Validierungsregel. Legacy bildet text/textarea/select/switch/multi und unterstützte Attribute aus `_section.yml` auf denselben Vertrag ab; Layout-Auswahl, Sortierung und ptags werden eingebaute Definitionen. Trennlinien (`hr`) sind Kategorienmetadaten für das Formular, keine Header-Schlüssel. Unbekannte Darstellungshinweise bleiben als Metadaten erhalten und erzeugen Diagnosen; der Editor rendert sie nicht als ungeprüftes HTML. [neu]
+
+`FieldType` ist ein string-backed Enum (`string`, `boolean`, `integer`, `select`, `multiselect`). Dropdown-Optionen sind `FieldOption`-Objekte mit `value: string` und `label: string`; Mehrfachauswahl speichert `list<string>`. `hasDefault` unterscheidet fehlenden Default von explizitem `null`; `nullable` regelt, ob `null` erlaubt ist. Unbekannte Metafelder bleiben erhalten, dürfen manuell angelegt werden und werden beim Erzeugen einer Übersetzung kopiert. Felddefinitionen validieren bekannte Schlüssel; zusätzliche Metadaten benötigen keine vorherige Registrierung. Adaptereigene Standardfelder wie `description` und `permalink` werden als eingebaute Definitionen bereitgestellt; dateilokale `page_id`, `pid` und `lang` sind im Polyglot-Profil nicht zulässig. Geerbtes `lang` aus `_config.yml` darf in `getEffectiveHeader()` auftauchen, wird jedoch niemals in den gespeicherten Header zurückgeschrieben. Neue Pflichtfelder dürfen Bestandsseiten lesbar lassen, verhindern jedoch ein nicht valides Speichern mit präzisen Feldfehlern.
 
 ## § 8 Rechte und erlaubte Aktionen
 
-Die UI kann erlaubte Aktionen abfragen; jede Mutation prüft sie erneut.
+Die UI kann erlaubte Aktionen abfragen; jede Mutation prüft sie erneut. Ein `rename=true` bestätigt die Eignung der Quelle einschließlich ihres Teilbaums, nicht irgendein noch unbekanntes Ziel. Zielrechte, Konflikte und notwendige Promotionen werden erst bei rename geprüft. `write` bezieht sich auf gespeicherten Bestand; Entwürfe benötigen die Anlageaktionen. Capabilities sind keine dauerhafte Freigabe. [geändert]
 
 ```php
 $actions = $site->capabilities('/leistungen/diagnostik'); // Capabilities
@@ -433,9 +461,9 @@ Das Beispiel bezieht sich auf eine bereits vorhandene normale Seite als `user`; 
 
 Jede Operation prüft Rechte, nicht nur das Listing. Verweigertes Lesen ergibt bei Direktzugriff dieselbe `NotFoundException` wie eine fehlende Datei. Listen, Sprachgruppen, Zähler und Diagnosen enthalten keinerlei Namen, IDs oder Metadaten verborgener Dateien. Nur wenn eine Datei lesbar ist, darf fehlendes Schreibrecht als `AccessDeniedException` sichtbar werden. Nicht erlaubte Schreibaktionen bleiben auch dann verboten, wenn der Benutzer das JSON manuell manipuliert.
 
-`deny` gewinnt immer gegenüber `allow`; keine Rollenvererbung im ersten Vertrag. Unbekannte Rollen haben keine Rechte. Für Anlageoperationen sind Ziel und notwendige Elternverzeichnisse zu prüfen. Der neue Adapter legt notwendige Elternordner innerhalb einer geprüften Speicheroperation an; dafür ist zusätzlich createDirectory am jeweiligen physischen Ziel nötig. Der Legacy-Adapter erstellt keine Verzeichnisse. Eine interne Existenzprüfung verhindert Überschreiben, ohne verborgene Ziele über unterschiedliche Fehlermeldungen offenzulegen. [geändert]
+`deny` gewinnt immer gegenüber `allow`; keine Rollenvererbung im ersten Vertrag. Unbekannte Rollen haben keine Rechte. Für Anlageoperationen sind Ziel und notwendige Elternverzeichnisse zu prüfen. Der neue Adapter legt notwendige Elternordner innerhalb einer geprüften Speicheroperation an; dafür ist zusätzlich createDirectory am jeweiligen physischen Ziel nötig. Der Legacy-Adapter erstellt keine Verzeichnisse. Eine interne Existenzprüfung verhindert Überschreiben, ohne verborgene Ziele über unterschiedliche Fehlermeldungen offenzulegen.
 
-Alle Speicheroperationen sind an das Root gebunden: keine absoluten physischen Dateipfade (der führende Slash einer Seiten-ID bezeichnet ausschließlich das logische Root), `..`, Nullbytes oder Symlinks; Symlinks werden im ersten Ausbau nicht verfolgt. Ein HTTP-Layer decodiert Transportdaten einmal, Schiller betreibt keine zusätzliche URL-Decodierung von Dateipfaden. Auch von Adaptern berechnete Pfade durchlaufen dieselbe Prüfung. Bloße String-Präfixprüfungen reichen nicht; der Connector muss seine Root-Grenze für reale Lese-/Schreibzugriffe durchsetzen. Fehlertexte enthalten keine absoluten Serverpfade. [geändert]
+Alle Speicheroperationen sind an das Root gebunden: keine absoluten physischen Dateipfade (der führende Slash einer Seiten-ID bezeichnet ausschließlich das logische Root), `..`, Nullbytes oder Symlinks; Symlinks werden im ersten Ausbau nicht verfolgt. Ein HTTP-Layer decodiert Transportdaten einmal, Schiller betreibt keine zusätzliche URL-Decodierung von Dateipfaden. Auch von Adaptern berechnete Pfade durchlaufen dieselbe Prüfung. Bloße String-Präfixprüfungen reichen nicht; der Connector muss seine Root-Grenze für reale Lese-/Schreibzugriffe durchsetzen. Fehlertexte enthalten keine absoluten Serverpfade.
 
 ### § 8.1 Umbenennen und Löschen
 
@@ -448,13 +476,15 @@ $page->getTranslation('en')?->delete(); // sofort: nur die englische Datei
 $page->delete();                       // sofort: Root und verbleibende Übersetzungen
 ```
 
-`rename()` ist nur am Stammdokument zulässig; Übersetzungspfade folgen automatisch. Die Ziel-ID ist sprachneutral und endungslos. Reine Kategorien ohne Document werden über `SchillerDir::rename($id, $newId)` verschoben; `Document::rename($newId)` delegiert an denselben Ablauf. Vorhandene Ziele werden nicht überschrieben; notwendige Zielordner unterliegen der createDirectory-Prüfung. Natürliche URLs folgen dem neuen Pfad, ein expliziter Permalink bleibt bestehen. Geladene Dokumentreferenzen werden mitgeführt. Löschen einer Übersetzung lässt Root und andere Sprachen bestehen: anschließend liefert `getTranslation()` dort `null`, der Listeneintrag `exists: false`. Polyglot kann danach wieder einen Root-Fallback ausgeben. [geändert]
+`rename()` ist nur am Stammdokument zulässig; Übersetzungspfade folgen automatisch. Die Ziel-ID ist sprachneutral und endungslos. Reine Kategorien ohne Document werden über `SchillerDir::rename($id, $newId)` verschoben; `Document::rename($newId)` delegiert an denselben Ablauf. Vorhandene Ziele werden nicht überschrieben; notwendige Zielordner unterliegen der createDirectory-Prüfung. Natürliche URLs folgen dem neuen Pfad, ein expliziter Permalink bleibt bestehen. Geladene Dokumentreferenzen werden mitgeführt. Löschen einer Übersetzung lässt Root und andere Sprachen bestehen: anschließend liefert `getTranslation($gelöschteSprache)` am verbliebenen Original `null`, der Listeneintrag `exists: false`. Polyglot kann danach wieder einen Root-Fallback ausgeben.
 
 Gruppenoperationen prüfen vor dem ersten Schreiben sämtliche betroffenen Dateien, auch verborgene Varianten. Fehlt eine Berechtigung oder kollidiert ein Ziel, scheitert die ganze Aktion ohne Änderung und ohne Offenlegung verborgener Pfade. Rename benötigt `rename` und `write` an den Quellen sowie `createFile` und für Sprachziele `createTranslation` an den Zielen. Delete benötigt `delete` an allen betroffenen Dateien. `Capabilities` berücksichtigt bei Root-Dokumenten die vollständige Gruppe.
 
 Nicht gespeicherte Entwürfe oder ungespeicherte Änderungen in betroffenen Dokumenten führen zu `UnsavedChangesException`; Rename/Delete speichern nicht implizit. Gelöschte Referenzen liefern `isPersisted() === false`, werden für weitere Dokumentoperationen ungültig und können per `save()` keine Datei wiederherstellen. Für mehrere Dateien benötigt der Storage eine vorbereitete Batch-Operation mit Wiederherstellung bei I/O-Fehlern. Bietet er diese Fähigkeit nicht, wird die Gruppenmutation vorab abgelehnt. Universelle atomare Dateisystemtransaktionen werden nicht versprochen; ein gescheiterter Rollback wird ausdrücklich als unvollständige Operation gemeldet.
 
-Im Legacy-Profil bleibt nur das Schreiben bestehender Seitendateien erlaubt: write kann true sein; createFile, createDirectory, createTranslation, rename und delete bleiben false. Die Beschränkung gilt auch für Administratoren. Rename verschiebt auch Kategorien samt Nachfahren gemäß [Verschiebelogik](../verschieben.md); delete einer Kategorie mit Nachfahren bleibt bis zu einem gesonderten Löschvertrag abgewiesen. Die Beispiele 12/13 betreffen Blatt-Seitengruppen. Automatische Umstellung einer Elternseite nach § 11.2 ist eine interne Ablageoperation mit unveränderter ID. [neu]
+Im Legacy-Profil bleibt nur das Schreiben bestehender Seitendateien erlaubt: write kann true sein; createFile, createDirectory, createTranslation, rename und delete bleiben false. Die Beschränkung gilt auch für Administratoren. Rename verschiebt auch Kategorien samt Nachfahren gemäß [Verschiebelogik](../verschieben.md); delete am Stammdokument mit Nachfahren bleibt bis zu einem gesonderten Löschvertrag abgewiesen. Die Beispiele 12/13 betreffen Blatt-Seitengruppen. Automatische Umstellung einer Elternseite nach § 11.2 ist eine interne Ablageoperation mit unveränderter ID.
+
+Das Löschen einer Übersetzung außerhalb der Standardsprache entfernt immer nur deren konkrete Datei, auch bei einer Kategorie mit Kindern. Deren Kinder bleiben erhalten, der Knoten kann zur reinen Kategorie werden. Das Löschen des Stammdokuments ist nur ohne Nachfahren in sämtlichen Sprachen erlaubt; `isLeaf()` des bereinigten UI-Baums reicht dafür nicht. Die Root-Seitengruppe `/` kann nicht gelöscht werden. Begleitdateien und Ordner werden durch Document::delete niemals rekursiv entfernt, auch bei einer Blattgruppe nicht. Fremde Metadaten bleiben bestehen. Kein automatischer Rückbau von index zu Blatt. [neu]
 
 ## § 9 URLs gehören zum Dokument
 
@@ -505,17 +535,21 @@ try {
 
 Die Exception enthält typisierte Eigenschaften `inputUrl: string` (bereinigt), `normalizedPath: ?string`, `reason: string`, `suggestions: list<string>` und `hints: list<string>`. Gründe sind `invalid_url`, `not_found`, `ambiguous` oder `unsupported`. Zugangsdaten und Query-/Fragmentwerte werden weder in Meldungen noch in Diagnosefeldern weitergegeben. Hinweise unterscheiden beispielsweise Schreibfehler, Baseurl-Mismatch, fehlende Sprachdatei oder falsche Slash-/HTML-Form. Höchstens fünf deterministisch sortierte Vorschläge stammen ausschließlich aus lesbaren, bekannten Routen; ähnliche Treffer werden niemals automatisch ausgewählt. Ein verborgenes Ziel verhält sich wie ein nicht vorhandenes und liefert keine verräterischen Hinweise.
 
-Ein vom Adapter sicher erkannter Polyglot-Fallback wie `/fr/leistungen/diagnostik.html` liefert die tatsächlich verwendete deutsche Quelldatei, solange keine französische Übersetzung existiert. Das zurückgegebene Dokument behält `language='de'`, `isRootDocument=true` und seine deutsche `getUrl()`. Es wird kein französisches Dokument erfunden. `getTranslation('fr')` bleibt `null`. Für nicht sicher modellierbare Build-Routen wird `unsupported` gemeldet. Auflösung und Veröffentlichung beziehen sich auf den aktuellen Quellstand, nicht auf einen möglicherweise älteren Deploy. Unveröffentlichte Dokumente haben eine berechenbare Vorschau-URL, aber keinen regulären öffentlichen Indexeintrag.
+Ein vom Adapter sicher erkannter Polyglot-Fallback wie `/fr/leistungen/diagnostik.html` liefert die tatsächlich verwendete deutsche Quelldatei, solange keine französische Übersetzung existiert. Das zurückgegebene Dokument behält `language='de'`, `isRootDocument=true` und seine deutsche `getUrl()`. Es wird kein französisches Dokument erfunden. `getTranslation('fr')` bleibt ohne vorbereiteten Entwurf `null`. Für nicht sicher modellierbare Build-Routen wird `unsupported` gemeldet. Auflösung und Veröffentlichung beziehen sich auf den aktuellen Quellstand, nicht auf einen möglicherweise älteren Deploy. Unveröffentlichte Dokumente haben eine berechenbare Vorschau-URL, aber keinen regulären öffentlichen Indexeintrag.
 
 ### § 9.2 Permalinks als Ausnahme
 
 Ohne Permalink folgt die URL dem natürlichen Jekyll-Ausgabeweg. Ein explizites `permalink: /medizin/diagnostik/` ergibt für das Original `/medizin/diagnostik/` und für die englische Übersetzung `/en/medizin/diagnostik/`, jeweils zuzüglich `baseurl`. Innerhalb einer Sprachgruppe muss derselbe unlokalisierte Ausgabeweg entstehen; unterschiedliche übersetzte Slugs werden im festen Polyglot-Profil ohne IDs nicht unterstützt. Permalinks bestimmen keine Schiller-Gruppenidentität. Konflikte mit anderen Ausgaben werden vor dem Speichern abgelehnt. Nicht unterstützte Jekyll-Plugins, Platzhalter oder Build-Sonderfälle erzeugen Diagnosen statt erfundener URLs.
 
-Die URL wird aus der aktuellen Dateiablage berechnet, nicht aus der endungslosen ID erraten. Bei `/leistungen` ändert eine automatische Umstellung von `leistungen.md` auf `leistungen/index.md` die natürliche URL von `/leistungen.html` auf `/leistungen/`; die ID bleibt gleich. Ein expliziter Permalink bleibt erhalten und kann die URL stabil halten. Der Routenindex wird nach dem Schreiben erneuert. Alte natürliche URLs werden nicht automatisch als Redirect weitergeführt; Redirect-Erzeugung ist ein gesondertes Thema. [neu]
+Eine Änderung des gruppenweiten Permalinks wird durch direktes Setzen/Entfernen desselben Headerwerts an allen betroffenen vorhandenen Documents und `saveDocuments([...])` gespeichert. Die Validierung betrachtet deren gemeinsamen Endzustand; sequentielles save darf keinen vorübergehend widersprüchlichen Gruppenvertrag erzeugen. Nicht lesbare/schreibbare Varianten verhindern die Änderung der Gruppe. Fehlende Sprachen werden nicht angelegt. [Beispiel 19](../../examples/19-save-language-group.php) zeigt diesen Ausnahmefall ohne Patch-Objekte. [neu]
+
+`getUrl()` berechnet die vorgeschlagene Route aus dem aktuellen Document, also auch aus ungespeicherten Headeränderungen. Dagegen löst getDocumentByUrl ausschließlich gespeicherte, veröffentlichbare Routen auf und liefert deren verwaltetes Document, das lokal bereits verändert sein kann. Deshalb ist eine Rückwärtsauflösung der Vorschau-URL vor save nicht garantiert. Neue Entwürfe und published=false erzeugen keine öffentliche Route; die tatsächliche Vorschau und der Deploystand bleiben Sache des Page Builders. Bei einem Polyglot-Fallback zeigt die UI ausdrücklich die tatsächlich gelieferte Sprache; ein Speichern des deutschen Documents bearbeitet Deutsch, nicht die angefragte französische URL. [neu]
+
+Die URL wird aus der aktuellen Dateiablage berechnet, nicht aus der endungslosen ID erraten. Bei `/leistungen` ändert eine automatische Umstellung von `leistungen.md` auf `leistungen/index.md` die natürliche URL von `/leistungen.html` auf `/leistungen/`; die ID bleibt gleich. Ein expliziter Permalink bleibt erhalten und kann die URL stabil halten. Der Routenindex wird nach dem Schreiben erneuert. Alte natürliche URLs werden nicht automatisch als Redirect weitergeführt; Redirect-Erzeugung ist ein gesondertes Thema.
 
 ## § 10 Typisierter öffentlicher Vertrag
 
-Diese Signaturen sind ein API-Entwurf, keine lauffähige Implementierung. Die normale Anwendung kennt Seiten-IDs und Documents; Dateinamen werden nur über die optionale FileEntry sichtbar. [geändert]
+Diese Signaturen sind ein API-Entwurf, keine lauffähige Implementierung. Die normale Anwendung kennt Seiten-IDs und Documents; Dateinamen werden nur über die optionale FileEntry sichtbar.
 
 ```php
 final class SchillerDir
@@ -535,6 +569,9 @@ final class SchillerDir
     /** @param array<string, YamlValue> $header */
     public function createPage(string $id, array $header = [], string $content = ''): Document;
     public function getDocumentByUrl(string $url): Document;
+    public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet;
+    /** @param list<Document> $documents @param list<?string> $expectedRevisions */
+    public function saveDocuments(array $documents, array $expectedRevisions = []): void;
 }
 
 /**
@@ -542,6 +579,7 @@ final class SchillerDir
  * @property-read string $language
  * @property-read bool $isRootDocument
  * @property-read ?FileEntry $file
+ * @property-read ?string $revision
  */
 final class Document
 {
@@ -556,14 +594,15 @@ final class Document
     public function getTranslations(): array;
     public function getUrl(bool $absolute = false): string;
     public function isPersisted(): bool;
-    public function save(): void;
+    public function hasChanges(): bool;
+    public function save(?string $expectedRevision = null): void;
     public function rename(string $id): void;
     public function delete(): void;
 }
 
-final readonly class FileEntry
+final class FileEntry
 {
-    public function __construct(public string $path, public FileKind $kind) {}
+    public function __construct(public readonly string $path, public readonly FileKind $kind) {}
 }
 
 /**
@@ -581,26 +620,27 @@ final class TreeNode
     public function getDocument(): ?Document;
 }
 
-final readonly class TranslationInfo
+final class TranslationInfo
 {
     public function __construct(
-        public string $language,
-        public string $path,
-        public bool $exists,
-        public bool $isRootDocument,
+        public readonly string $language,
+        public readonly string $path,
+        public readonly bool $exists,
+        public readonly bool $isRootDocument,
+        public readonly ?bool $published,
     ) {}
 }
 ```
 
-`getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` liefert das Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab. [geändert]
+`getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` liefert das Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab.
 
-`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs können mit Phore Schema validiert werden; Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet, nicht aus unkontrollierten Requests hydratisiert. [geändert]
+`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden PHP-8.1-kompatible readonly-Eigenschaften (das Referenzprojekt nutzt PHP 8.1) und können mit Phore Schema validiert werden; Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet, nicht aus unkontrollierten Requests hydratisiert. [geändert]
 
 ## § 11 Filesystem und austauschbare Formatadapter
 
-SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load, write, Tree-Building, Übersetzungen, URL-Zuordnung und strukturelle Dateioperationen. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen. [geändert]
+SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load, write, Tree-Building, Übersetzungen, URL-Zuordnung und strukturelle Dateioperationen. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen.
 
-PhoreDirectory und PhoreFile stellen Enumeration, Text, YAML und Front Matter bereit: genWalk(), get_contents(), get_yaml(), get_front_matter(), put_front_matter(). Die Header-Arrays werden direkt übernommen; kein zweiter YAML-Parser. Schiller prüft alle geplanten Quell-/Zielzugriffe, auch die vom Adapter intern berechneten. Wiederverwendbare Abläufe dürfen intern in einer AbstractAdapter-Basis liegen. [geändert]
+PhoreDirectory und PhoreFile stellen Enumeration, Text, YAML und Front Matter bereit: genWalk(), get_contents(), get_yaml(), get_front_matter(), put_front_matter(). Die Header-Arrays werden direkt übernommen; kein zweiter YAML-Parser. Schiller prüft alle geplanten Quell-/Zielzugriffe, auch die vom Adapter intern berechneten. Wiederverwendbare Abläufe dürfen intern in einer AbstractAdapter-Basis liegen.
 
 ```yaml
 schema_version: 1
@@ -612,11 +652,11 @@ schema_version: 1
 adapter: {id: micx-legacy, version: 1}
 ```
 
-Adapter-Versionen sind registrierte Schiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt das zur Plugin-Konfiguration passende registrierte Jekyll-Profil. Legacy wird explizit gewählt. [geändert]
+Adapter-Versionen sind registrierte Schiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt das zur Plugin-Konfiguration passende registrierte Jekyll-Profil. Legacy wird explizit gewählt.
 
 ### § 11.1 Konkreter Adapterentwurf: gleiche IDs, andere Dateien
 
-Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [LegacyAdapter](../../examples/14-legacy-adapter.php)/[PolyglotAdapter](../../examples/15-polyglot-adapter.php) enthalten dokumentierte Methodenstümpfe. Sie werfen absichtlich LogicException. Der gemeinsame Kontext enthält Konfiguration, kontrollierten Storage, Rechteprüfung und Document-Verwaltung; die Klassen sind keine fertige Implementierung. [geändert]
+Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [LegacyAdapter](../../examples/14-legacy-adapter.php)/[PolyglotAdapter](../../examples/15-polyglot-adapter.php) enthalten dokumentierte Methodenstümpfe. Sie werfen absichtlich LogicException. Der gemeinsame Kontext enthält Konfiguration, kontrollierten Storage, Rechteprüfung und Document-Verwaltung; die Klassen sind keine fertige Implementierung.
 
 | Seiten-ID | Legacy de | Polyglot de | Polyglot en |
 |---|---|---|---|
@@ -624,9 +664,11 @@ Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [LegacyAda
 | `/leistungen` | `leistungen/index.de.md` oder `leistungen.de.md` | `leistungen.md` oder `leistungen/index.md` | spiegelbildlich `en/leistungen.md` oder `en/leistungen/index.md` |
 | `/leistungen/diagnostik` | `leistungen/diagnostik.de.md` | `leistungen/diagnostik.md` | `en/leistungen/diagnostik.md` |
 
-Die Legacy-ID wird aus dem tatsächlichen Bestand und dem PID-/Sprachsuffix abgeleitet; eine vorhandene index-Seite fällt auf die Kategorie-ID zusammen. Mehrdeutige Zuordnungen werden diagnostiziert, nicht geraten. `_section.yml` kann reine Kategorien samt optionalen Metadaten erzeugen. Das Root darf eine Kategorie ohne eigene Seite sein; eine beliebige home-Datei wird nicht still zur Root-Seite erklärt. [geändert]
+Die Legacy-ID wird aus dem tatsächlichen Bestand und dem PID-/Sprachsuffix abgeleitet; eine vorhandene index-Seite fällt auf die Kategorie-ID zusammen. Mehrdeutige Zuordnungen werden diagnostiziert, nicht geraten. `_section.yml` kann reine Kategorien samt optionalen Metadaten erzeugen. Das Root darf eine Kategorie ohne eigene Seite sein; eine beliebige home-Datei wird nicht still zur Root-Seite erklärt.
 
-Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließlich eigener Header-Metadaten. Es legt keine Seiten, Sprachdateien oder Ordner an und führt kein Rename/Delete aus. PID/lang bleiben beim Schreiben vorhanden und müssen zur Quelldatei passen. Polyglot leitet Sprache ausschließlich aus den gespiegelten Pfaden ab und verwaltet alle Neuanlagen und Umstrukturierungen intern. [geändert]
+Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließlich eigener Header-Metadaten. Es legt keine Seiten, Sprachdateien oder Ordner an und führt kein Rename/Delete aus. PID/lang bleiben beim Schreiben vorhanden und müssen zur Quelldatei passen. Polyglot leitet Sprache ausschließlich aus den gespiegelten Pfaden ab und verwaltet alle Neuanlagen und Umstrukturierungen intern.
+
+`write(Document, expectedRevision)` und `writeMany(documents, expectedRevisions)` verwenden denselben internen Ablauf für Validierung, Revisionsvergleich, Planung und Commit; write ist der Ein-Dokument-Fall. Ebenso gibt es einen gemeinsamen kontrollierten Lese-/Baum-/Übersetzungszugriff. Der Adapter liefert die Formatzuordnung und den vollständigen Operationsplan; er erhält keinen unbeschränkten Filesystem-Ausweg. Interne Konfigurations- und Strukturinventarisierung darf benötigte Dateien prüfen, aber keine verborgenen Informationen in Rückgaben ausgeben. Die Beispiele sind Verträge für implementierende Klassen, keine Erlaubnis zur direkten unkontrollierten Benutzung im Editor. [neu]
 
 ### § 11.2 Neue Unterseite: Blatt wird Kategorie mit Index
 
@@ -644,19 +686,27 @@ $child->save();
 // child.id='/leistungen/allgemeinmedizin'; file.path='leistungen/allgemeinmedizin.md'
 ```
 
-Eine neue Blattseite erhält im Polyglot-Adapter eine md-Datei. Sobald sie eine Unterseite bekommt, wird die bisherige Datei zur index.md im gleichnamigen Verzeichnis. Eine vorhandene HTML-Seite wird entsprechend zu index.html, ohne Konvertierung des Inhalts. Bereits vorhandene Indexablagen bleiben bestehen. Neue Unterseiten können wiederum später zu Kategorien werden. Root wird immer als Index behandelt. [neu]
+Eine neue Blattseite erhält im Polyglot-Adapter eine md-Datei. Sobald sie eine Unterseite bekommt, wird die bisherige Datei zur index.md im gleichnamigen Verzeichnis. Eine vorhandene HTML-Seite wird entsprechend zu index.html, ohne Konvertierung des Inhalts. Bereits vorhandene Indexablagen bleiben bestehen. Neue Unterseiten können wiederum später zu Kategorien werden. Root wird immer als Index behandelt.
 
-Beim Speichern prüft der Adapter alle nötigen Vorfahren. Existierende Elternseiten werden über sämtliche tatsächlich vorhandenen Sprachen auf dieselbe relative Indexablage umgestellt; fehlende Übersetzungen bleiben fehlend. Auch das Speichern einer ersten Übersetzung nach der Umstellung verwendet den Indexpfad. Fehlende reine Ordner werden bei createDirectory-Recht angelegt, ohne Eltern-Dokumente zu erfinden. Alle Metadaten und Inhalte der verschobenen Eltern bleiben erhalten, einschließlich published und Permalink. [neu]
+Beim Speichern prüft der Adapter alle nötigen Vorfahren. Existierende Elternseiten werden über sämtliche tatsächlich vorhandenen Sprachen auf dieselbe relative Indexablage umgestellt; fehlende Übersetzungen bleiben fehlend. Auch das Speichern einer ersten Übersetzung nach der Umstellung verwendet den Indexpfad. Fehlende reine Ordner werden bei createDirectory-Recht angelegt, ohne Eltern-Dokumente zu erfinden. Alle Metadaten und Inhalte der verschobenen Eltern bleiben erhalten, einschließlich published und Permalink.
 
-Die Umstellung und die neue Datei bilden eine gemeinsame vorbereitete Speicheroperation: alle Quellen, Zielkonflikte, Vorfahren, Rechte und Storage-Fähigkeiten werden vorab geprüft. Ein Konflikt, eine verborgene betroffene Datei ohne Berechtigung oder ungespeicherte Änderungen an einer betroffenen Elternseite verhindern jede Änderung. Die bereits definierten Batch-/Rollback-Regeln gelten. Eine erfolgreiche Operation aktualisiert geladene FileEntry-Referenzen und den URL-Index. [neu]
+Die Umstellung und die neue Datei bilden eine gemeinsame vorbereitete Speicheroperation: alle Quellen, Zielkonflikte, Vorfahren, Rechte und Storage-Fähigkeiten werden vorab geprüft. Ein Konflikt, eine verborgene betroffene Datei ohne Berechtigung oder ungespeicherte Änderungen an einer betroffenen Elternseite verhindern jede Änderung. Die bereits definierten Batch-/Rollback-Regeln gelten. Eine erfolgreiche Operation aktualisiert geladene FileEntry-Referenzen und den URL-Index.
 
-Das gleiche Prinzip gilt beim Verschieben einer bestehenden Seite oder Kategorie unter eine Blattseite. Sämtliche Nachfahren, Begleitdateien und vorhandenen Übersetzungen werden mit verschoben; Details und verpflichtende spätere Tests stehen in [docs/verschieben.md](../verschieben.md). Die IDs der verschobenen Quellen ändern sich entsprechend dem neuen Präfix, die ID einer lediglich zur Indexablage umgestellten Ziel-Elternseite bleibt unverändert. [neu]
+Das gleiche Prinzip gilt beim Verschieben einer bestehenden Seite oder Kategorie unter eine Blattseite. Sämtliche Nachfahren, Begleitdateien und vorhandenen Übersetzungen werden mit verschoben; Details und verpflichtende spätere Tests stehen in [docs/verschieben.md](../verschieben.md). Die IDs der verschobenen Quellen ändern sich entsprechend dem neuen Präfix, die ID einer lediglich zur Indexablage umgestellten Ziel-Elternseite bleibt unverändert.
 
 ## § 12 Fehler, Grenzen und spätere Abnahme
 
 Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner lesbarer Dateien erscheinen als `Diagnostic` mit Code, relativem Pfad und Meldung im Listing; andere gültige Seiten bleiben sichtbar. Nicht lesbare Dateien erzeugen keine sichtbaren Diagnosen. Direkte Operationen werfen typisierte Exceptions: `ConfigurationException`, `NotFoundException`, `AccessDeniedException`, `FieldTypeException`, `ValidationException`, `AlreadyExistsException`, `ConflictException`, `UnsavedChangesException`, `UnsupportedOperationException`, `StorageException` oder `UrlNotResolvableException`.
 
 Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
+
+- Derselbe Translation-Entwurf mit und ohne createIfMissing; getPage liefert dieselbe Instanz, Listings bleiben exists=false.
+- Browser-Revision aus GET gegen einen inzwischen geänderten Stand im POST; keine verlorenen Headerwerte oder stillen Überschreibungen.
+- Gemeinsamer Permalink-Wechsel: Endzustand statt einzelner Zwischenschritte validieren, Teilfehler vollständig zurücknehmen.
+- Eine reine Kategorie mit createPage um ihre Indexseite ergänzen; keine Überschreibung oder Kinderverluste.
+- Headerdefinitionen vor Neuanlage, Legacy-Formtypen und Sprachnamen ohne zusätzlichen Formatzugriffs-Layer.
+- Übersetzungsindex einer Kategorie löschen erhält Kinder; Root-Löschung mit verborgenen Nachfahren wird abgewiesen.
+- No-op, neue Entwürfe, Abbruch, externe Änderung und URL-Fallback mit tatsächlicher Zielsprache.
 
 - Root-`index.md`, normale Unterseiten und gespiegelte Sprachdateien ohne ID-/Sprachheader oder Permalink.
 - Einheitliche TreeNode-Knoten: Kategorie mit/ohne Indexseite, Blatt mit/ohne Dokument, keine doppelte Indexdatei; sämtliche lesbaren Sprachen samt exists auch im Seitenbaum.
@@ -674,7 +724,7 @@ Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 
 Dieser PR enthält ausschließlich Entwurf und Beispiel-PHP-Dateien. Sie sind keine ausführbaren Integrationstests. Daten-/Collection-/Template-Editoren, Übersetzungsdienste, Deploy, Git und ein Sperrsystem bleiben Folgearbeiten beziehungsweise Aufgaben der Anwendung.
 
-Für die spätere Implementierung sind die Szenarien aus [Verschieben und Testplan](../verschieben.md) verbindlich: Blattpromotion, Teilbaum-Rename, Verschieben unter ein Blatt, Sprachvarianten, Metadatenerhaltung und Fehlerwiederherstellung. Beispiel 16 zeigt Anlage, Beispiel 17 das Verschieben eines Teilbaums. [neu]
+Für die spätere Implementierung sind die Szenarien aus [Verschieben und Testplan](../verschieben.md) verbindlich: Blattpromotion, Teilbaum-Rename, Verschieben unter ein Blatt, Sprachvarianten, Metadatenerhaltung und Fehlerwiederherstellung. Beispiel 16 zeigt Anlage, Beispiel 17 das Verschieben eines Teilbaums.
 
 ## § 13 Quellen und Entscheidungsstand
 
@@ -694,4 +744,3 @@ Quellstand geprüft am 2026-09-12. Die Kundenwebsite wurde ausschließlich inter
 | [Jekyll Defaults](https://jekyllrb.com/docs/configuration/front-matter-defaults/) | Effektive Metadaten und Prioritäten |
 
 Empfohlene Reihenfolge: zunächst Root/Konfiguration, Rechte und Phore-Lesen; danach Seitenbaum, Polyglot und URL-Resolver; anschließend Dokumentspeicherung, Übersetzungsanlage und Gruppenmutationen. Legacy-Lesen und Bearbeiten vorhandener Seiten lässt sich separat ergänzen. Daten-/Collection-/Template-Editoren bleiben ein eigener Folgeentwurf. Der vorliegende PR entscheidet noch keine Implementierung und verändert keine Referenzwebsite.
- [geändert]

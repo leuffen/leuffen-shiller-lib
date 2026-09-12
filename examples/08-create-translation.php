@@ -22,6 +22,11 @@ return static function (PhoreDirectory $root): Document {
         // id='/leistungen/diagnostik', file=null, language='fr', isRootDocument=false
         // header['title']='Diagnostik', header['published']=false
         // content ist zunächst der deutsche Body; keine automatische Übersetzung.
+        assert($page->getTranslation('fr') === $french); // Kein zweiter Entwurf.
+        assert($site->getPage($page->id, 'fr') === $french);
+        assert($page->getTranslations()['fr']->exists === false); // Nur Dateibestand.
+        assert($french->revision === null);
+        assert($french->hasChanges());
         $french->header['title'] = 'Diagnostic';
         $french->content = "## Diagnostic\n\nTexte français.\n";
         $french->save(); // Erst jetzt schreiben; isPersisted() liefert true.

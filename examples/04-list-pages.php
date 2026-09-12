@@ -24,6 +24,8 @@ return static function (PhoreDirectory $root): PageTree {
             // de/en vorhanden, fr fehlt: alle lesbaren Sprachen mit exists.
             // info.path ist eine interne Quellreferenz, kein Navigationsschlüssel.
             $exists = $info->exists;
+            $published = $info->published; // true/false bei Bestand, null bei fehlender Datei.
+            // Statusanzeige braucht keinen vollständigen Body.
         }
         $document = $node->getDocument();
         if ($document !== null) {

@@ -10,7 +10,7 @@ $example = require '/path/to/leuffen-shiller-lib/examples/07-read-translations.p
 $translations = $example(phore_dir('/path/to/working-copy/docs'));
 ```
 
-Die Beispiele 01–13 sowie 16/17 liefern jeweils eine Closure für PhoreDirectory. Beispiele 14/15 definieren Klassen mit dem gemeinsamen [Adapter-Interface](Adapter.php). Jeder funktionale Methodenstumpf wirft absichtlich LogicException. SiteStorage, DTOs und Composer-Anbindung bleiben Teil des Entwurfs; kein VCS oder Netzwerkzugriff.
+Die Beispiele 01–13 sowie 16–19 liefern jeweils eine Closure für PhoreDirectory. Beispiele 14/15 definieren Klassen mit dem gemeinsamen [Adapter-Interface](Adapter.php). Beispiel 18 nimmt zusätzlich ein optionales Formular-Array entgegen. Jeder funktionale Methodenstumpf wirft absichtlich LogicException. SiteStorage, DTOs und Composer-Anbindung bleiben Teil des Entwurfs; kein VCS oder Netzwerkzugriff.
 
 ## Konfiguration und Basisfixture
 
@@ -59,13 +59,19 @@ Jedes Schreibbeispiel betrachtet eine frische Arbeitskopie. Beispiele 16/17 habe
 | [15-polyglot-adapter.php](15-polyglot-adapter.php) | Neue Ablage, Schreiben und Teilbaumoperationen |
 | [16-create-child-page.php](16-create-child-page.php) | Blattseite wird beim ersten Kind zur Indexseite |
 | [17-move-page-tree.php](17-move-page-tree.php) | Teilbaum unter eine Blattseite verschieben |
+| [18-editor-save.php](18-editor-save.php) | GET/POST mit Formularrevision, gezielten Headeränderungen und Konflikt |
+| [19-save-language-group.php](19-save-language-group.php) | Permalink einer Sprachgruppe ausdrücklich gemeinsam speichern |
 
 ## Verhalten
 
-Document.id bleibt bei einer internen Umstellung auf Indexablage gleich. file ist bei Entwürfen null, nach dem Speichern eine FileEntry. isPersisted() prüft Dateibestand, nicht ungespeicherte Änderungen. Header ist ein Array; auch zusätzliche manuelle Werte bleiben erhalten und werden in neue Übersetzungen kopiert. getHeaderDefinitions() beschreibt bekannte Schlüssel.
+Document.id bleibt bei einer internen Umstellung auf Indexablage gleich. file ist bei Entwürfen null, nach dem Speichern eine FileEntry. isPersisted() beschreibt den bestätigten Speicherzustand, nicht ungespeicherte Änderungen. hasChanges() zeigt lokale Änderungen; revision schützt mit save(expectedRevision) vor veralteten Formularständen. Header ist ein Array; auch zusätzliche manuelle Werte bleiben erhalten und werden in neue Übersetzungen kopiert. getHeaderDefinitions() beschreibt bekannte Schlüssel und optionale Darstellungshinweise; am SchillerDir auch vor Neuanlage mit ID/Sprache abfragbar.
 
-getTranslation() oder null liefert das Stammdokument. createIfMissing:true liefert im Polyglot-Profil bei fehlender Sprache eine ungespeicherte Originalkopie mit published=false. Vorhandene Varianten bleiben unangetastet. Die Listen zeigen alle lesbaren Sprachen mit exists, auch fehlende. Eine Kategorie ohne Seite hat file=null und kann ausschließlich ihre Kinder öffnen.
+getTranslation() oder null liefert das Stammdokument. createIfMissing:true liefert im Polyglot-Profil bei fehlender Sprache eine ungespeicherte Originalkopie mit published=false. Vorhandene Varianten bleiben unangetastet. Ein bereits vorbereiteter Entwurf wird auch ohne createIfMissing erneut zurückgegeben, bleibt im Listing aber exists=false. Die Listen zeigen alle lesbaren Sprachen mit exists, auch fehlende. Eine Kategorie ohne Seite hat file=null und kann ausschließlich ihre Kinder öffnen.
 
 Beim ersten Kind beziehungsweise beim Verschieben unter eine Blattseite stellt Polyglot deren bestehende Sprachdateien gemeinsam auf index.md/.html um. Rename einer Kategorie bewegt den gesamten Teilbaum einschließlich Begleitdateien und Übersetzungen. Neue Elternordner werden nach Rechteprüfung angelegt. Natürliche URLs können sich dabei ändern; IDs und explizite Permalinks werden nur nach ihrem jeweiligen Vertrag geändert. Ausführliche [Verschiebelogik und spätere Tests](../docs/verschieben.md).
 
-Legacy unterstützt nur das Bearbeiten vorhandener Seiten/Sprachdateien; keine Anlage, kein Rename/Delete, keine Indexumstellung. Der Adapter bildet IDs intern auf die vorhandenen pid.lang.md/html-Dateien ab. Eine zusätzliche Anpassungsschicht vor Schiller wird nicht benötigt.
+Legacy unterstützt nur das Bearbeiten vorhandener Seiten/Sprachdateien; keine Anlage, kein Rename/Delete, keine Indexumstellung. Der Adapter bildet IDs intern auf die vorhandenen pid.lang.md/html-Dateien ab. Die Formatabbildung liegt vollständig im Adapter. Die alte Controller-/UI-Struktur muss dennoch auf die Document-/TreeNode-Verträge umgestellt werden; der [Page-Builder-Abgleich](../docs/pagebuilder-abgleich.md) nennt jeden Ablauf und die noch ausgeschlossenen Dateneditoren.
+
+save() speichert ein Document, saveDocuments([...]) ausdrücklich mehrere als gemeinsamen Endzustand. rename/delete schreiben dagegen sofort und speichern keine lokalen Bearbeitungen mit. delete einer Übersetzung entfernt nur deren Datei, auch bei einem Kategorieindex; delete am Original ist nur ohne Nachfahren in sämtlichen Sprachen erlaubt. Die Root-Gruppe / ist geschützt. Baum und Editorrevisionen nach Strukturänderungen erneut laden.
+
+Eine reine Kategorie kann im Polyglot-Profil eine eigene Seite erhalten: createPage('/leistungen', header: ['title' => 'Leistungen'])->save() legt in der Basisfixture leistungen/index.md an; bestehende Kinder bleiben erhalten. Bereits vorhandene Seitengruppen werden nicht überschrieben. TranslationInfo.published zeigt den effektiven Veröffentlichungsstatus ohne Body-Laden; bei exists=false ist published=null.

@@ -37,9 +37,20 @@ final class LegacyAdapter implements Adapter
     }
 
     /** Bearbeitet ausschließlich bestehende Datei; erhält unbekannte Metadaten und konsistente PID/lang. Fehlende Datei nicht neu anlegen. */
-    public function write(Document $document): void
+    public function write(Document $document, ?string $expectedRevision = null): void
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::write');
+    }
+
+    /**
+     * Speichert ausschließlich vorhandene Legacy-Documents gemeinsam; PID/lang und eigene Werte erhalten.
+     * Revisionen in Listenreihenfolge vergleichen; alle Rechte vorab prüfen; bei Fehler gesamten Batch zurücknehmen.
+     * @param list<Document> $documents
+     * @param list<?string> $expectedRevisions
+     */
+    public function writeMany(array $documents, array $expectedRevisions = []): void
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::writeMany');
     }
 
     /** Entfernt Sprachsuffix und Endung aus IDs. _section.yml erzeugt auch Kategorien mit file=null und erhaltenen Metadaten. */
@@ -66,8 +77,8 @@ final class LegacyAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getEffectiveHeader');
     }
 
-    /** Bildet bekannte Legacy-Formdefinitionen ab. Manuelle unbekannte Headerwerte bleiben beim Schreiben erhalten. */
-    public function getHeaderDefinitions(Document $document): FieldSet
+    /** Bildet _section.yml-Formtypen, Layouts, Sortierung und ptags auf Definitionen/presentation ab; auch für eine geplante ID rein lesend. */
+    public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getHeaderDefinitions');
     }

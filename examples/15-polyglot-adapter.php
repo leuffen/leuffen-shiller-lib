@@ -30,16 +30,27 @@ final class PolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::load');
     }
 
-    /** ID /leistungen/allgemeinmedizin => transienter Root mit header/content, file=null. Noch keine Ordner oder Eltern bewegen. */
+    /** ID /leistungen/allgemeinmedizin => transienter Root mit header/content, file=null. Reine Kategorie erhält später index.md. Noch keine Ordner oder Eltern bewegen. */
     public function create(string $id, array $header = [], string $content = ''): Document
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::create');
     }
 
-    /** Legt beim ersten Kind Elternordner an und verschiebt Elternseiten aller vorhandenen Sprachen nach index.md/.html; schreibt Kind in derselben vorbereiteten Operation. */
-    public function write(Document $document): void
+    /** Legt beim ersten Kind Elternordner an und verschiebt Elternseiten aller vorhandenen Sprachen nach index.md/.html; schreibt Kind in derselben vorbereiteten Operation. Revision prüfen; delegiert an gemeinsamen writeMany-Ablauf. */
+    public function write(Document $document, ?string $expectedRevision = null): void
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::write');
+    }
+
+    /**
+     * Speichert alle aufgeführten Documents samt nötigen Promotionen gemeinsam; Gruppen-Permalinks am Endzustand prüfen.
+     * Revisionen in Listenreihenfolge vergleichen; alle Rechte vorab prüfen; bei Fehler gesamten Batch zurücknehmen.
+     * @param list<Document> $documents
+     * @param list<?string> $expectedRevisions
+     */
+    public function writeMany(array $documents, array $expectedRevisions = []): void
+    {
+        throw new \LogicException('Entwurfsstub: PolyglotAdapter::writeMany');
     }
 
     /** Endungslose IDs: /, /leistungen, /leistungen/allgemeinmedizin. Index am Kategorie-Knoten; keine eigene Index-ID. */
@@ -60,14 +71,14 @@ final class PolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::getTranslations');
     }
 
-    /** Header plus zentrale Jekyll-Defaults, ohne geerbtes lang in den Dateiheader zu schreiben. */
+    /** Aktueller Document-Header plus zentrale Jekyll-Defaults, ohne geerbtes lang in den Dateiheader zu schreiben. */
     public function getEffectiveHeader(Document $document): array
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::getEffectiveHeader');
     }
 
-    /** Definierte Schlüssel validieren, zusätzliche manuelle YAML-Werte erhalten und in neue Übersetzungen übernehmen. */
-    public function getHeaderDefinitions(Document $document): FieldSet
+    /** Definitionen samt presentation aus Config für bestehende/geplante ID liefern; keine Datei anlegen. */
+    public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::getHeaderDefinitions');
     }
@@ -84,7 +95,7 @@ final class PolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::getDocumentByUrl');
     }
 
-    /** Prüft betroffene Quellen/Ziele einschließlich Übersetzungen, Ordneranlage und nötiger Elternumstellung; keine reine globale Schreibfreigabe. */
+    /** Liefert Eignung der ID/Sprache samt Quellgruppe; rename=true garantiert kein noch unbekanntes Ziel. */
     public function capabilities(string $id, ?string $language = null): Capabilities
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::capabilities');
@@ -96,7 +107,7 @@ final class PolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::rename');
     }
 
-    /** Einzelne Übersetzung oder Blatt-Seitengruppe; vorhandene Nachfahren verhindern Kategorienlöschung. Keine automatische Rückwandlung von Index zu Blatt. */
+    /** Übersetzung: nur diese Datei, auch Kategorieindex. Stammdokument: nur ohne Nachfahren in allen Sprachen; / abweisen. Keine automatische Rückwandlung von Index zu Blatt. */
     public function delete(Document $document): void
     {
         throw new \LogicException('Entwurfsstub: PolyglotAdapter::delete');

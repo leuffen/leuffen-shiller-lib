@@ -27,4 +27,8 @@ return static function (PhoreDirectory $root): void {
     // Fehlende Rechte auf einer Gruppendatei verhindern die gesamte Root-Löschung.
     // Kein implizites Speichern; ungespeicherte Änderungen führen zu einer Exception.
 
+    // Allgemeine Regel: delete an einer Übersetzung mit Kindern löscht nur deren
+    // Indexdatei. Kinder, Assets und Ordner bleiben bestehen.
+    // delete am Stammdokument mit Nachfahren in irgendeiner Sprache wird abgewiesen;
+    // ebenso delete der Root-Gruppe '/'. Kein rekursives Verzeichnislöschen.
 };

@@ -15,9 +15,9 @@ return static function (PhoreDirectory $root): array {
     $page = $site->getPage('/leistungen/diagnostik');
     $translations = $page->getTranslations(); // array<string, TranslationInfo>
 
-    // de: language='de', path='leistungen/diagnostik.md', exists=true, isRootDocument=true
-    // en: language='en', path='en/leistungen/diagnostik.md', exists=true, isRootDocument=false
-    // fr: language='fr', path='fr/leistungen/diagnostik.md', exists=false, isRootDocument=false
+    // de: language='de', path='leistungen/diagnostik.md', exists=true, isRootDocument=true, published=true
+    // en: language='en', path='en/leistungen/diagnostik.md', exists=true, isRootDocument=false, published=true
+    // fr: language='fr', path='fr/leistungen/diagnostik.md', exists=false, isRootDocument=false, published=null
     foreach ($translations as $language => $info) {
         if (!$info->exists) {
             continue; // Kein Body geladen; auch ein Build-Fallback zählt nicht als Datei.
