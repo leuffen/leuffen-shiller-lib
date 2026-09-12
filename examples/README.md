@@ -1,0 +1,36 @@
+# Einzelne PHP-Beispiele zum Schiller-Entwurf
+
+Diese Dateien zeigen die vorgeschlagene API aus dem [Proposal](../docs/proposals/2026-09-12-schiller-seiten-api.md). Die Schiller-Klassen sind noch nicht implementiert. Die Beispiele sind keine ausführbaren Integrationstests und enthalten keine Ersatzimplementierung.
+
+Jede PHP-Datei liefert eine typisierte Closure zurück. Sie bekommt ein `PhoreDirectory` und initialisiert ihre eigene `SchillerDir`-Instanz. Es gibt keinen versteckten gemeinsamen Bootstrap, kein Git und keine Netzwerkverbindung.
+
+Nach Implementierung und Einrichtung des Composer-Autoloaders wäre der Aufruf zum Beispiel:
+
+```php
+require '/path/to/application/vendor/autoload.php';
+
+$example = require '/path/to/leuffen-shiller-lib/examples/07-read-translations.php';
+$translations = $example(phore_dir('/path/to/working-copy/docs'));
+```
+
+Das übergebene Verzeichnis enthält die Konfiguration und Beispieldateien aus Proposal §§ 6–7: `_config.yml`, `schiller.yaml`, `leistungen/diagnostik.md`, `en/diagnostics.md` sowie einen vorhandenen leeren Ordner `fr/`. `url` ist `https://example.org`, `baseurl` ist `/praxis`. Diese Voraussetzungen werden durch die Beispiele nicht automatisch angelegt.
+
+Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere nach dem Anlegen einer französischen Übersetzung sind die ursprünglichen Fallback-Rückgaben nicht mehr dieselben. Schreibbeispiele verändern eine übergebene Arbeitskopie und benötigen die im Proposal beschriebenen Projekt-/Hostrechte; die Rolle `user` wird als bereits serverseitig authentifiziert angenommen.
+
+| Datei | Anwendungsfall |
+|---|---|
+| [01-initialize.php](01-initialize.php) | Verzeichnis anbinden, automatisch initialisieren, Rolle setzen |
+| [02-read-config.php](02-read-config.php) | Aktuelle Website-Konfiguration lesen |
+| [03-list-files.php](03-list-files.php) | Physische Dateien und Unterordner auflisten |
+| [04-list-pages.php](04-list-pages.php) | Logischen Seitenbaum mit Sprachgruppen lesen |
+| [05-read-page-parts.php](05-read-page-parts.php) | Header, wirksame Defaults und Body getrennt lesen |
+| [06-read-fields-and-permissions.php](06-read-fields-and-permissions.php) | Metafelder, Dropdowns und erlaubte Aktionen lesen |
+| [07-read-translations.php](07-read-translations.php) | Sprachvarianten finden und deren Inhalt lesen |
+| [08-create-translation.php](08-create-translation.php) | Französische Übersetzungsdatei anlegen |
+| [09-update-page-parts.php](09-update-page-parts.php) | Header oder Body ändern, Feld entfernen |
+| [10-create-page.php](10-create-page.php) | Neue normale Seite anlegen |
+| [11-resolve-urls.php](11-resolve-urls.php) | Datei zu URL und URL zu Datei/Sprache, auch ohne Domain |
+
+Die Kommentare zeigen erwartete Rückgabewerte beziehungsweise klar bezeichnete Projektionen. Enum-Werte werden überwiegend über `->value` beschrieben, um keine zusätzlichen Case-Namen festzulegen. Referenzen auf `YamlValue` sind PHPDoc-Konzepte aus dem Entwurf, keine nativen PHP-Klassen.
+
+Der bestehende Composer-Namespace ist noch ein Template-Platzhalter. Die Beispiele ändern ihn nicht. Sie lassen sich später unabhängig aufrufen; zum derzeitigen Stand ist nur statische Prüfung möglich.
