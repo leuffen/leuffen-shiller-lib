@@ -13,7 +13,36 @@ $example = require '/path/to/leuffen-shiller-lib/examples/07-read-translations.p
 $translations = $example(phore_dir('/path/to/working-copy/docs'));
 ```
 
-Das übergebene Verzeichnis enthält die Konfiguration und Beispieldateien aus Proposal §§ 6–7: `_config.yml`, `schiller.yaml`, `leistungen/diagnostik.md`, `en/diagnostics.md` sowie einen vorhandenen leeren Ordner `fr/`. `url` ist `https://example.org`, `baseurl` ist `/praxis`. Diese Voraussetzungen werden durch die Beispiele nicht automatisch angelegt.
+Das übergebene Root enthält die Standardsprache: `index.md`, `leistungen/diagnostik.md` und die Unterverzeichnisse der Website. Übersetzungen liegen ausschließlich unter `en/index.md`, `en/leistungen/diagnostik.md` usw. Die identischen relativen Dateipfade bilden die Gruppen; alle Dateien kommen ohne `page_id` und `lang` im Header aus.
+
+Minimale zentrale Jekyll-Konfiguration für zwei Sprachen:
+
+```yaml
+# docs/_config.yml
+plugins: [jekyll-polyglot]
+languages: [de, en]
+default_lang: de
+exclude: [schiller.yaml]
+defaults:
+  - scope: {path: "", type: pages}
+    values: {lang: de}
+  - scope: {path: en, type: pages}
+    values: {lang: en}
+```
+
+Die Sprache wird zentral aus dem Verzeichnis zugewiesen. Die Defaults sorgen auch für die Normalisierung natürlicher URLs im geprüften Polyglot-Code; einzelne Dateien brauchen keine Sprachangabe. `lang_from_path` ist bei diesen Defaults nicht zusätzlich nötig. `url: https://example.org` ergänzt bei Bedarf absolute URLs; ohne Domain funktioniert die pfadbasierte Schiller-Auflösung. `baseurl` bleibt für die normale Root-Website weg.
+
+Minimale Adapterauswahl (Felder und Rechte siehe Proposal § 7):
+
+```yaml
+# docs/schiller.yaml
+schema_version: 1
+adapter: {id: jekyll-polyglot, version: 1}
+```
+
+Die Beispielseiten aus Proposal § 6 haben normale Header mit Titel und Inhalt, ohne Permalink. `index.md` ergibt `/`, `leistungen/index.md` ergibt `/leistungen/`, `leistungen/diagnostik.md` ergibt `/leistungen/diagnostik.html`. Ein optionaler Ausnahme-Permalink muss innerhalb einer Sprachgruppe dieselbe unlokalisierte Route ergeben; er dient Schiller nicht als Gruppen-ID.
+
+Für die erwarteten Rückgaben aller elf Beispiele wird die größere Fixture aus Proposal §§ 6–7 verwendet: `url: https://example.org`, zusätzliche Sprache `fr` samt zentralem Verzeichnis-Default und vorhandener leerer Ordner `fr/leistungen/`. Außerdem gehören Felddefinitionen, Layout-Default und Projektberechtigungen aus § 7 dazu. Diese Voraussetzungen werden durch die PHP-Beispiele nicht automatisch angelegt. Die Minimalkonfiguration oben demonstriert nur die Verzeichniszuordnung, keine Schreibfreigabe.
 
 Jedes Beispiel betrachtet eine frische Kopie dieses Ausgangsstands. Insbesondere nach dem Anlegen einer französischen Übersetzung sind die ursprünglichen Fallback-Rückgaben nicht mehr dieselben. Schreibbeispiele verändern eine übergebene Arbeitskopie und benötigen die im Proposal beschriebenen Projekt-/Hostrechte; die Rolle `user` wird als bereits serverseitig authentifiziert angenommen.
 

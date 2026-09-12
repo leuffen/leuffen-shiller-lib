@@ -17,8 +17,9 @@ return static function (PhoreDirectory $root): PageTree {
     // root->folders: list<PageFolder>, rekursiv
     // root->pages: list<PageGroup>
     // Erwartete Gruppe:
-    // id = 'diagnostics', primaryPath = 'leistungen/diagnostik.md'
-    // translations enthält de und en, obwohl en/diagnostics.md woanders liegt.
+    // id = 'leistungen/diagnostik.md', primaryPath = 'leistungen/diagnostik.md'
+    // translations enthält de und en, aus den gespiegelten Pfaden
+    // leistungen/diagnostik.md und en/leistungen/diagnostik.md.
     // Jede TranslationSummary enthält language, path, published, targetPath.
     // published=false bleibt im Editor sichtbar, sofern lesbar.
     // tree->diagnostics enthält Fehler lesbarer Seiten; andere Seiten bleiben nutzbar.

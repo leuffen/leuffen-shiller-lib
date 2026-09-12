@@ -19,9 +19,6 @@ return static function (PhoreDirectory $root): PageDocument {
         path: 'leistungen/vorsorge.md',
         header: new FrontMatter([
             'title' => 'Vorsorge',
-            'page_id' => 'prevention',
-            'lang' => 'de',
-            'permalink' => '/vorsorge/',
             'layout' => 'default',
         ]),
         content: "## Vorsorge\n",
@@ -30,6 +27,8 @@ return static function (PhoreDirectory $root): PageDocument {
     // PageDocument: path='leistungen/vorsorge.md',
     // publication->value='unpublished'; header->bool('published') === false
     // aus dem Anlage-Default in schiller.yaml.
+    // Standard-URL: /leistungen/vorsorge.html; kein Permalink nötig.
+    // Sprache de stammt aus der Root-Ablage, nicht aus dem Header.
     // Bestehende Dateien werden nicht überschrieben. Eine zusätzliche Sprache
     // einer bestehenden Gruppe muss die Übersetzungsrechte erfüllen (Beispiel 08).
     return $created;

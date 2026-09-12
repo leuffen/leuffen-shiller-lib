@@ -17,7 +17,7 @@ return static function (PhoreDirectory $root): SiteConfig {
     // $config->languages       === ['de', 'en', 'fr']
     // $config->defaultLanguage === 'de'
     // $config->url             === 'https://example.org'
-    // $config->baseurl         === '/praxis'
+    // $config->baseurl         === ''
     // $config->adapter->id     === 'jekyll-polyglot'
     // $config->adapter->version === 1
     // config() prüft bei einem späteren Aufruf den aktuellen Dateistand erneut.

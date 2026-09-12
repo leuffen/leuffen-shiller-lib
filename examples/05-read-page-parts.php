@@ -21,6 +21,8 @@ return static function (PhoreDirectory $root): PageDocument {
     $layout = $document->effectiveHeader->string('layout');  // ?string: 'default'
     $origin = $document->origins['layout'];                 // ValueOrigin, ->value === 'jekyll_default'
 
+    // header enthält weder page_id noch lang; effectiveHeader kann lang='de'
+    // aus zentralen Jekyll-Defaults enthalten. Gruppen-ID kommt aus dem Dateipfad.
     // header enthält KEIN layout, wenn es nur aus _config.yml geerbt wurde.
     // content beginnt mit "## Diagnostik\n", ohne YAML-Header und ohne Liquid-Rendering.
     // Die gesamte Datei bleibt als PageDocument typisiert; zusätzliche YAML-Felder

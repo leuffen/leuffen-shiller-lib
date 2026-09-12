@@ -11,23 +11,21 @@ use Leuffen\Schiller\PageDocument;
 use Leuffen\Schiller\SchillerDir;
 use Phore\FileSystem\PhoreDirectory;
 
-// SCHREIBBEISPIEL: nur eine Arbeitskopie übergeben; fr/ muss bereits existieren.
+// SCHREIBBEISPIEL: nur eine Arbeitskopie übergeben; fr/leistungen/ muss bereits existieren.
 return static function (PhoreDirectory $root): PageDocument {
     $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
     $source = $site->page('leistungen/diagnostik.md');
 
     $created = $source->createTranslation(new NewTranslation(
         language: 'fr',
-        path: 'fr/diagnostics.md',
-        permalink: '/diagnostic/',
         title: 'Diagnostic',
         content: "## Diagnostic\n\nTexte français.\n",
     ));
 
     // PageDocument:
-    // path='fr/diagnostics.md', publication->value='unpublished'
-    // header: page_id='diagnostics', lang='fr', title='Diagnostic',
-    // permalink='/diagnostic/', published=false
+    // path='fr/leistungen/diagnostik.md', publication->value='unpublished'
+    // header: title='Diagnostic', published=false; keine ID, kein lang, kein Permalink
+    // Zielpfad aus Quellpfad und language automatisch bestimmt.
     // Eigene Metafelder können aus der Quelle übernommen werden.
     // Keine automatische Übersetzung, kein Commit/Deploy.
     // Erfordert read der Quelle und createFile + createTranslation am Ziel.

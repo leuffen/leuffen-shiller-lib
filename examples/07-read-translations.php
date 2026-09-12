@@ -13,11 +13,11 @@ return static function (PhoreDirectory $root): TranslationSet {
     $site = new SchillerDir($root);
     $translations = $site->page('leistungen/diagnostik.md')->translations();
 
-    // pageId='diagnostics'
+    // pageId='leistungen/diagnostik.md'
     // availableLanguages=['de','en'], missingLanguages=['fr']
     // items: list<TranslationInfo>:
     // de: state='existing', path='leistungen/diagnostik.md', sourceLanguage='de'
-    // en: state='existing', path='en/diagnostics.md', sourceLanguage='en'
+    // en: state='existing', path='en/leistungen/diagnostik.md', sourceLanguage='en'
     // fr: state='fallback', path=null, sourceLanguage='de'
     // Für reader ist canCreate überall false.
     foreach ($translations->items as $translation) {
