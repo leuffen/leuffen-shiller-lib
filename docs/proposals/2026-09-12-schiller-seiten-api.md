@@ -11,6 +11,7 @@
 | 2026-09-12 | dermatthes | §§ 2–12: endungslose Seiten-IDs, Adapter-gesteuertes Laden/Schreiben, Indexumstellung, Teilbaum-Verschieben, Metadatenerhaltung und Legacy-Bestandsbearbeitung |
 | 2026-09-12 | dermatthes | §§ 2–12: Review der Aktionswirkungen, Entwurfszustände, Editor-Konflikte, gemeinsames Speichern, Metadaten und Page-Builder-Abdeckung |
 | 2026-09-13 | dermatthes | §§ 2, 5–6, 10–12: opaker Adapterzustand, ein Schreibauftrag, gemeinsame Übersetzungslogik und Examples nach neuer Lesereihenfolge |
+| 2026-09-13 | dermatthes | §§ 3, 5, 10–12: mitgelieferte Jekyll-Adapter, Konstruktor-Auswahl und Revisionskonflikte als spätere Erweiterung |
 
 ## § 1 Ziel und Umfang
 
@@ -49,6 +50,7 @@ Der verbindliche Standard für das neue Polyglot-Profil ist eine Website mit `in
 ```php
 use Leuffen\Schiller\SchillerDir;
 use Leuffen\Schiller\AccessContext;
+use Leuffen\Schiller\Adapter\JekyllLegacyAdapter;
 
 // Checkout und Auswahl von docs/ erledigt die Anwendung.
 $site = new SchillerDir(phore_dir('/srv/websites/customer/docs'));
@@ -61,13 +63,21 @@ $site = new SchillerDir(
     phore_dir('/srv/websites/customer/docs'),
     access: new AccessContext(role: 'user'),
 );
+
+// Mitgelieferter Adapter für den alten Bestand; Auswahl überschreibt schiller.yaml.
+$legacy = new SchillerDir(
+    phore_dir('/srv/websites/legacy/docs'),
+    adapter: new JekyllLegacyAdapter(),
+);
 ```
+
+Mitgeliefert werden `Leuffen\Schiller\Adapter\JekyllPolyglotAdapter` und `Leuffen\Schiller\Adapter\JekyllLegacyAdapter`. Auswahlreihenfolge: explizite Adapterinstanz im SchillerDir-Konstruktor, sonst adapter in schiller.yaml, sonst ein neuer JekyllPolyglotAdapter. Die IDs jekyll-polyglot und micx-legacy bleiben für YAML erhalten. Beide Klassen werden ohne Storage-Argument erzeugt; SchillerDir bindet die gewählte Instanz intern einmalig über bind(SiteStorage). Eine Instanz darf nicht an mehrere SchillerDir gebunden werden. Für den normalen Aufruf ist keine Registry erforderlich. [neu]
 
 Ohne `AccessContext` verwendet Schiller die Rolle `reader`: ausschließlich lesend und nur für explizit freigegebene Bereiche. Fehlt `schiller.yaml`, ist die Inspektion normaler Seiten und ihrer Vorfahren read-only erlaubt; sonstige Dateien bleiben verborgen. Keine stillschweigenden Administratorrechte. Eine fehlende optionale Schiller-Konfiguration verhindert also nicht das Lesen einer bestehenden Website.
 
 `_config.yml` und `schiller.yaml` werden ausschließlich im übergebenen Root gesucht. Keine Suche im Repository-Elternverzeichnis. Ein gesetztes Jekyll-`source`, das auf ein anderes Root zeigt, erzeugt `SOURCE_ROOT_MISMATCH`; Schiller wechselt das Root nicht selbst. Fehlende `_config.yml`, ungültiges YAML oder unbekannte explizite Adapter erzeugen einen `ConfigurationException` mit geeigneter Diagnose. Beide Dateien werden nicht durch das Öffnen angelegt oder verändert.
 
-Jede öffentliche Operation prüft die Konfigurationsdateien erneut. Ein geladenes `Document` hält Header und Inhalt als bearbeitbaren Snapshot. Methoden prüfen die aktuelle Konfiguration, überschreiben jedoch keine ungespeicherten Änderungen. Eine Änderung des Adapters oder der Sprachstruktur macht bestehende Dokumente ungültig; sie müssen neu geladen werden. Innerhalb einer Operation gilt ein konsistenter Konfigurationsstand. Änderungen durch andere Prozesse während einer Operation müssen erkannt werden oder durch die externe Anwendung ausgeschlossen sein. Ein dauerhaft laufender Page Builder muss deshalb nach einer Konfigurationsänderung nicht neu konstruiert werden.
+Jede öffentliche Operation prüft die Konfigurationsdateien erneut. Ein geladenes `Document` hält Header und Inhalt als bearbeitbaren Snapshot. Methoden prüfen die aktuelle Konfiguration, überschreiben jedoch keine ungespeicherten Änderungen. Eine Änderung des effektiv ausgewählten Adapters oder der Sprachstruktur macht bestehende Dokumente ungültig; sie müssen neu geladen werden. Innerhalb einer Operation gilt ein konsistenter Konfigurationsstand. Die externe Anwendung koordiniert parallele Dateibearbeitung. Eine eigene Erkennung konkurrierender Revisionsstände wird für den ersten Ausbau nicht zugesagt. Ein dauerhaft laufender Page Builder muss deshalb nach einer Konfigurationsänderung nicht neu konstruiert werden. [geändert]
 
 Beispiel für `SiteConfig`, hier als JSON dargestellt:
 
@@ -186,29 +196,31 @@ $new->isPersisted();              // true
 
 `createPage()` erzeugt im neuen Adapter ein ungespeichertes Stammdokument mit den Anlage-Defaults, etwa published=false. Der Zielpfad ist adapterspezifisch und wird nicht vom Aufrufer festgelegt. Bestehende Seitengruppen, Entwürfe oder Dateien werden nicht überschrieben. Eine vorhandene reine Kategorie ohne Seitengruppe darf hingegen mit createPage unter derselben ID ein Stammdokument erhalten; es wird direkt als index.md angelegt, vorhandene Kinder und Metadaten bleiben erhalten. Im Legacy-Adapter ist Neuanlage nicht unterstützt.
 
-`isPersisted()` beschreibt den bestätigten Speicherzustand der Document-Instanz; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. `hasChanges()` vergleicht Header und Body mit dem geladenen beziehungsweise zuletzt gespeicherten Stand; jeder neue Entwurf gilt als ungespeicherte Änderung. `adapterState` ist ein freies, internes Array ohne vorgeschriebene Schlüssel oder Revisionsklasse. Nur der Adapter setzt und interpretiert dessen Inhalt; beispielsweise kann er darin seinen Speicherstand halten. Für den Dokumenttransport verwendet er JSON-fähige Werte ohne Ressourcen, Zugangsdaten oder ein von Schiller vorgeschriebenes Feldschema. Es gehört weder zum YAML-Header noch zu Jekyll-Defaults. Beim Erzeugen einer neuen Seite oder Übersetzung initialisiert der Adapter einen neuen Zustand, statt den Zustand des Originals zu kopieren. Ein erfolgreiches Speichern aktualisiert diesen Stand; unverändertes `save()` schreibt keine Bytes. Externe Änderungen werden bei Operationen geprüft, nicht durch laufendes Polling von `isPersisted()` erkannt. [geändert]
+`isPersisted()` beschreibt den bestätigten Speicherzustand der Document-Instanz; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. `hasChanges()` vergleicht Header und Body mit dem geladenen beziehungsweise zuletzt gespeicherten Stand; jeder neue Entwurf gilt als ungespeicherte Änderung. `adapterState` ist ein freies, internes Array ohne vorgeschriebene Schlüssel oder Revisionsklasse. Nur der Adapter setzt und interpretiert dessen Inhalt; beispielsweise kann er darin seinen Speicherstand halten. Für den Dokumenttransport verwendet er JSON-fähige Werte ohne Ressourcen, Zugangsdaten oder ein von Schiller vorgeschriebenes Feldschema. Es gehört weder zum YAML-Header noch zu Jekyll-Defaults. Beim Erzeugen einer neuen Seite oder Übersetzung initialisiert der Adapter einen neuen Zustand, statt den Zustand des Originals zu kopieren. Ein erfolgreiches Speichern aktualisiert diesen Stand; unverändertes `save()` schreibt keine Bytes. Der adapterState darf im ersten Ausbau leer bleiben. isPersisted ist kein Mechanismus zur Erkennung externer Änderungen. [geändert]
 
-Änderungen an einem bestehenden Dokument prüfen den geladenen Quellstand. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare.
+Änderungen an einem bestehenden Dokument werden ohne vorgeschriebenen Revisionsvergleich geschrieben. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare. [geändert]
 
 Innerhalb derselben SchillerDir-Instanz wird pro ID/Sprache dieselbe Document-Instanz verwendet. Eine automatische Umstellung auf Indexablage ändert nur die FileEntry, nicht die ID, Sprache oder Root-Beziehung. Schon ausgegebene Listings bleiben Snapshots und werden erneut abgefragt.
 
 ### § 5.1 Editor-Speicherung und Konflikte
 
-`save()` speichert genau dieses Dokument, gegebenenfalls einschließlich der notwendigen Elternpromotion nach § 11.2. Der Adapter liest den erwarteten Speicherstand aus seinem `adapterState`, prüft ihn gegen den aktuellen Bestand und aktualisiert ihn nach erfolgreichem Schreiben. Die Anwendung gibt keinen Revisionsparameter an und wertet keine Zustandsfelder aus. Ein neuer Entwurf wird ausschließlich neu angelegt; ein gespeichertes Document mit fehlendem/ungültigem Zustand wird nicht als Neuanlage oder unbedingtes Überschreiben behandelt. Abweichungen führen vor Schreiben zu ConflictException. [geändert]
+`save()` speichert genau dieses Dokument, gegebenenfalls einschließlich der notwendigen Elternpromotion nach § 11.2. Die mitgelieferten Adapter müssen im ersten Ausbau keine Revisionen vergleichen. Versionsverwaltung und Zusammenführung übernimmt der externe Git-/Anwendungsablauf; Schiller verspricht dabei keine eigene Erkennung veralteter Editorstände. Die Anwendung übergibt weiterhin keine Revisionsparameter. Neuanlagen überschreiben keine vorhandenen Ziele; Rechte, ungültige Inhalte, Pfad-/URL-Kollisionen und lokale ungespeicherte Änderungen bei Strukturaktionen werden weiterhin geprüft. [geändert]
 
-Bei getrennten HTTP-Anfragen muss der ursprüngliche Dokumentstand erhalten bleiben. Vorgeschlagener öffentlicher Transport: `Document::toArray(): array` liefert einen JSON-fähigen Stand aus id, language, header, content und `state`. `state` transportiert unverändert den internen Bearbeitungskontext einschließlich adapterState, Adapterbindung und Ausgangsstand für hasChanges; seine Felder sind keine von der Anwendung zu verwaltenden Revisionsparameter. `SchillerDir::restoreDocument(array $data): Document` bindet diesen Stand an einen neuen SchillerDir. Ein frisches getPage im POST darf den ursprünglichen Zustand nicht ersetzen. [geändert]
+ConflictException bleibt als Exception-Typ für spätere Revisionsprüfung vorgesehen. Eine künftige Adapterimplementierung kann ihren freien adapterState dafür verwenden; Revisionstoken, bedingtes Schreiben und deren HTTP-Konfliktbehandlung sind keine Voraussetzung für den ersten Ausbau. Strukturelle Mehrdeutigkeiten und Zielkollisionen werden bereits jetzt über ValidationException beziehungsweise AlreadyExistsException gemeldet. [neu]
 
-restoreDocument nimmt ausschließlich diesen definierten Transport entgegen, keine beliebigen PHP-Objekte oder Klassennamen. Es prüft Identität, Adapter-/Site-Bindung, Struktur und aktuelle Leserechte; Rollen, Storage-Verbindungen und FileEntry-Pfade werden nicht aus Clientdaten übernommen. Der Adapter muss Herkunft und Bindung seines zurückgegebenen Zustands spätestens vor der Mutation prüfen. Fehlender, manipulierter, veralteter oder zu einem anderen Document gehörender Zustand darf Konfliktprüfungen und Rechte nicht umgehen. Ein bereits unter derselben Identität verwaltetes Document wird nicht still überschrieben; importiert wird in eine frische Bearbeitungseinheit. [neu]
+Bei getrennten HTTP-Anfragen muss der ursprüngliche Dokumentstand erhalten bleiben. Vorgeschlagener öffentlicher Transport: `Document::toArray(): array` liefert einen JSON-fähigen Stand aus id, language, header, content und `state`. `state` transportiert unverändert den internen Bearbeitungskontext einschließlich adapterState, Adapterbindung und Ausgangsstand für hasChanges; seine Felder sind keine von der Anwendung zu verwaltenden Revisionsparameter. `SchillerDir::restoreDocument(array $data): Document` bindet diesen Stand an einen neuen SchillerDir. Ein frisches getPage im POST darf den ursprünglichen Zustand nicht ersetzen.
 
-Die UI erhält den vollständigen Dokumentstand und verändert nur Header/Inhalt. Nicht sichtbare Headerkeys und der opake state bleiben erhalten; bewusstes Entfernen eines Headerkeys ist eine Löschanweisung. Ein partielles Formular wird in der Anwendung auf diesen erhaltenen Stand angewandt, nicht als kompletter Header interpretiert. getEffectiveHeader und allgemeine Requestfelder werden nicht zurückgeschrieben. [Beispiel 18](../../examples/18-editor-save.php) zeigt die beiden HTTP-Aktionen ohne externe Revisionsverwaltung. Der Transport ist Teil des Entwurfs, noch keine implementierte Hydration. [geändert]
+restoreDocument nimmt ausschließlich diesen definierten Transport entgegen, keine beliebigen PHP-Objekte oder Klassennamen. Es prüft Identität, Adapter-/Site-Bindung, Struktur und aktuelle Leserechte; Rollen, Storage-Verbindungen und FileEntry-Pfade werden nicht aus Clientdaten übernommen. Auch ohne Revisionsprüfung bleiben Identität und Rechte serverseitig verbindlich; Clientdaten dürfen keine fremden Documents oder Zugriffsrechte erschließen. Ein leerer adapterState ist im ersten Ausbau gültig. Bei später aktivierter Revisionsprüfung muss der Adapter auch die Bindung seiner Token sicherstellen. Ein bereits unter derselben Identität verwaltetes Document wird nicht still überschrieben; importiert wird in eine frische Bearbeitungseinheit. [geändert]
 
-`SchillerDir::saveDocuments(array $documents): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Es verwendet denselben Adapteraufruf wie save: `write([$document])` beziehungsweise `write($documents)`. Doppelte Identitäten, fremde SchillerDir-Instanzen und leere Listen werden abgewiesen. Alle Zustände, Rechte, Feldwerte, Quellen und endgültigen Routen werden gemeinsam vorab validiert. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. Die Batch-/Wiederherstellungsregeln aus § 8 gelten; eine Schleife aus unabhängigen Einzelschreibvorgängen erfüllt diesen Vertrag nicht. [geändert]
+Die UI erhält den vollständigen Dokumentstand und verändert nur Header/Inhalt. Nicht sichtbare Headerkeys und der opake state bleiben erhalten; bewusstes Entfernen eines Headerkeys ist eine Löschanweisung. Ein partielles Formular wird in der Anwendung auf diesen erhaltenen Stand angewandt, nicht als kompletter Header interpretiert. getEffectiveHeader und allgemeine Requestfelder werden nicht zurückgeschrieben. [Beispiel 18](../../examples/18-editor-save.php) zeigt die beiden HTTP-Aktionen ohne externe Revisionsverwaltung. Der Transport ist Teil des Entwurfs, noch keine implementierte Hydration.
+
+`SchillerDir::saveDocuments(array $documents): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Es verwendet denselben Adapteraufruf wie save: `write([$document])` beziehungsweise `write($documents)`. Doppelte Identitäten, fremde SchillerDir-Instanzen und leere Listen werden abgewiesen. Alle Rechte, Feldwerte, Quell-/Zielzuordnungen und endgültigen Routen werden gemeinsam vorab validiert; ein Revisionsvergleich gehört erst zur späteren Erweiterung. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. Die Batch-/Wiederherstellungsregeln aus § 8 gelten; eine Schleife aus unabhängigen Einzelschreibvorgängen erfüllt diesen Vertrag nicht. [geändert]
 
 ### § 5.2 Objektzustand und erneute Abfragen
 
 Pro SchillerDir und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException.
 
-Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert das Speichern des Entwurfs als Konflikt, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original.
+Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert die Neuanlage mit AlreadyExistsException, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original. [geändert]
 
 SchillerDir ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer SchillerDir lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen.
 
@@ -301,9 +313,9 @@ Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Va
 
 Ohne Sprachargument oder mit `null` liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2).
 
-Die Methoden getTranslation und getTranslations gehören zu Document/SchillerDir, nicht zum Adapter-Interface. Schiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab. [neu]
+Die Methoden getTranslation und getTranslations gehören zu Document/SchillerDir, nicht zum Adapter-Interface. Schiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab.
 
-Für das Listing liefert buildTree die vorhandenen lesbaren Varianten mit ID/Sprache/Quelle und Kategorienmetadaten. Schiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und wirft bei Mehrdeutigkeit einen Konflikt. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations. [neu]
+Für das Listing liefert buildTree die vorhandenen lesbaren Varianten mit ID/Sprache/Quelle und Kategorienmetadaten. Schiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und meldet mehrdeutige Quellzuordnungen über ValidationException. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations. [geändert]
 
 ### § 6.3 Eine Übersetzungsdatei anlegen
 
@@ -567,7 +579,7 @@ final class SchillerDir
         PhoreDirectory|SiteStorage $root,
         ?AccessContext $access = null,
         ?AccessPolicy $policy = null,
-        ?AdapterRegistry $adapters = null,
+        ?Adapter $adapter = null,
     );
     public function config(): SiteConfig;
     public function files(string $path = '', bool $recursive = false): FileListing;
@@ -648,11 +660,11 @@ final class TranslationInfo
 
 `getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` liefert das Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab.
 
-`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden readonly-Eigenschaften und können mit Phore Schema validiert werden. Das Schiller-Grundgerüst verlangt PHP >=8.3, während der alte Page Builder PHP 8.1 nutzt; eine Einbindung benötigt daher eine explizite Laufzeit-/Paketentscheidung. Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet. Der kontrollierte Transport über toArray/restoreDocument ersetzt keine Rechte- oder Speicherprüfung; beliebige Requestobjekte werden nicht als Documents hydratisiert. [geändert]
+`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden readonly-Eigenschaften und können mit Phore Schema validiert werden. Das Schiller-Grundgerüst verlangt PHP >=8.3, während der alte Page Builder PHP 8.1 nutzt; eine Einbindung benötigt daher eine explizite Laufzeit-/Paketentscheidung. Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet. Der kontrollierte Transport über toArray/restoreDocument ersetzt keine Rechte- oder Speicherprüfung; beliebige Requestobjekte werden nicht als Documents hydratisiert.
 
 ## § 11 Filesystem und austauschbare Formatadapter
 
-SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load/create, gemeinsames write, Quellpfade, vorhandenen Baum, URL-Zuordnung und strukturelle Dateioperationen. Übersetzungsauswahl, verfügbare Sprachen und Originalkopien orchestriert Schiller gemeinsam. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen. [geändert]
+SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load/create, gemeinsames write, Quellpfade, vorhandenen Baum, URL-Zuordnung und strukturelle Dateioperationen. Übersetzungsauswahl, verfügbare Sprachen und Originalkopien orchestriert Schiller gemeinsam. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen.
 
 PhoreDirectory und PhoreFile stellen Enumeration, Text, YAML und Front Matter bereit: genWalk(), get_contents(), get_yaml(), get_front_matter(), put_front_matter(). Die Header-Arrays werden direkt übernommen; kein zweiter YAML-Parser. Schiller prüft alle geplanten Quell-/Zielzugriffe, auch die vom Adapter intern berechneten. Wiederverwendbare Abläufe dürfen intern in einer AbstractAdapter-Basis liegen.
 
@@ -666,11 +678,11 @@ schema_version: 1
 adapter: {id: micx-legacy, version: 1}
 ```
 
-Adapter-Versionen sind registrierte Schiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt das zur Plugin-Konfiguration passende registrierte Jekyll-Profil. Legacy wird explizit gewählt.
+Adapter-Versionen sind registrierte Schiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt JekyllPolyglotAdapter. Legacy wird über den Konstruktor oder schiller.yaml ausdrücklich gewählt. Eine explizite Instanz hat Vorrang vor der YAML-Auswahl; die effektiv ausgewählte Klasse muss zur Website passen, sonst ConfigurationException. [geändert]
 
 ### § 11.1 Konkreter Adapterentwurf: gleiche IDs, andere Dateien
 
-Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [LegacyAdapter](../../examples/14-legacy-adapter.php)/[PolyglotAdapter](../../examples/15-polyglot-adapter.php) enthalten dokumentierte Methodenstümpfe. Sie werfen absichtlich LogicException. Der gemeinsame Kontext enthält Konfiguration, kontrollierten Storage, Rechteprüfung und Document-Verwaltung; die Klassen sind keine fertige Implementierung.
+Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [JekyllLegacyAdapter](../../examples/14-legacy-adapter.php)/[JekyllPolyglotAdapter](../../examples/15-polyglot-adapter.php) enthalten dokumentierte Methodenstümpfe. Sie werfen absichtlich LogicException. Der gemeinsame Kontext enthält Konfiguration, kontrollierten Storage, Rechteprüfung und Document-Verwaltung; die Klassen sind keine fertige Implementierung.
 
 | Seiten-ID | Legacy de | Polyglot de | Polyglot en |
 |---|---|---|---|
@@ -682,9 +694,9 @@ Die Legacy-ID wird aus dem tatsächlichen Bestand und dem PID-/Sprachsuffix abge
 
 Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließlich eigener Header-Metadaten. Es legt keine Seiten, Sprachdateien oder Ordner an und führt kein Rename/Delete aus. PID/lang bleiben beim Schreiben vorhanden und müssen zur Quelldatei passen. Polyglot leitet Sprache ausschließlich aus den gespiegelten Pfaden ab und verwaltet alle Neuanlagen und Umstrukturierungen intern.
 
-Das Adapter-Interface enthält genau einen Schreibauftrag `write(array $documents): void`. Es gibt weder writeMany noch Revisionsargumente. Jeder Adapter entscheidet selbst über seinen freien adapterState und prüft alle aufgeführten Documents gegen den aktuellen Speicherstand. Die gemeinsame Schiller-Schicht verwaltet Instanzen, Root-Beziehungen, Übersetzungsauswahl und Originalkopien; der Adapter stellt load/create mit expliziter Sprache, getSourcePath und den vorhandenen Baum bereit. [geändert]
+Das Adapter-Interface enthält genau einen Schreibauftrag `write(array $documents): void`. Es gibt weder writeMany noch Revisionsargumente. Jeder Adapter entscheidet selbst über seinen freien adapterState. Die mitgelieferten Adapter benötigen im ersten Ausbau keinen Revisionsstand und keinen Versionsvergleich. Die gemeinsame Schiller-Schicht verwaltet Instanzen, Root-Beziehungen, Übersetzungsauswahl und Originalkopien; der Adapter stellt load/create mit expliziter Sprache, getSourcePath und den vorhandenen Baum bereit. [geändert]
 
-Der kontrollierte Storage muss Lesen, Existenz-/Inventarprüfung, Root-Grenzen, Rechte und bedingtes gemeinsames Schreiben ermöglichen. PhoreDirectory ist der Standardzugang; SiteStorage bleibt der vorgeschlagene Connector-Vertrag und benötigt bei der Implementierung noch konkrete Methodensignaturen und Fehlergarantien. Es wird hier kein bereits vorhandener Remote-Connector behauptet. Adapter-Stümpfe binden den Storage sichtbar im Konstruktor, überspringen aber keine dieser Prüfungen. [neu]
+Der kontrollierte Storage muss Lesen, Existenz-/Inventarprüfung, Root-Grenzen, Rechte und gemeinsames Schreiben mit der beschriebenen Wiederherstellung ermöglichen. Bedingtes Schreiben anhand einer Revision bleibt eine spätere Fähigkeit. PhoreDirectory ist der Standardzugang; SiteStorage bleibt der vorgeschlagene Connector-Vertrag und benötigt bei der Implementierung noch konkrete Methodensignaturen und Fehlergarantien. Es wird hier kein bereits vorhandener Remote-Connector behauptet. Adapter werden ohne Argumente erzeugt und durch SchillerDir über bind(SiteStorage) initialisiert; erst danach dürfen ihre Methoden arbeiten. Die Konstruktor-Auswahl setzt keine Rechteprüfung außer Kraft. [geändert]
 
 ### § 11.2 Neue Unterseite: Blatt wird Kategorie mit Index
 
@@ -712,14 +724,18 @@ Das gleiche Prinzip gilt beim Verschieben einer bestehenden Seite oder Kategorie
 
 ## § 12 Fehler, Grenzen und spätere Abnahme
 
-Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner lesbarer Dateien erscheinen als `Diagnostic` mit Code, relativem Pfad und Meldung im Listing; andere gültige Seiten bleiben sichtbar. Nicht lesbare Dateien erzeugen keine sichtbaren Diagnosen. Direkte Operationen werfen typisierte Exceptions: `ConfigurationException`, `NotFoundException`, `AccessDeniedException`, `FieldTypeException`, `ValidationException`, `AlreadyExistsException`, `ConflictException`, `UnsavedChangesException`, `UnsupportedOperationException`, `StorageException` oder `UrlNotResolvableException`.
+Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner lesbarer Dateien erscheinen als `Diagnostic` mit Code, relativem Pfad und Meldung im Listing; andere gültige Seiten bleiben sichtbar. Nicht lesbare Dateien erzeugen keine sichtbaren Diagnosen. ConflictException ist als Erweiterungspunkt für spätere Revisionskonflikte vorgesehen und im ersten Ausbau nicht als verpflichtendes Verhalten zugesagt. Direkte Operationen verwenden je nach Fall typisierte Exceptions: `ConfigurationException`, `NotFoundException`, `AccessDeniedException`, `FieldTypeException`, `ValidationException`, `AlreadyExistsException`, `ConflictException`, `UnsavedChangesException`, `UnsupportedOperationException`, `StorageException` oder `UrlNotResolvableException`.
 
 Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 
+- Ohne Adapterauswahl JekyllPolyglotAdapter; YAML wählt Legacy; explizite Instanz überschreibt YAML. Beide Klassen sind mitgeliefert und argumentlos erzeugbar.
+- SchillerDir bindet jede Adapterinstanz einmalig an kontrollierten Storage; doppelte Bindung oder Operation vor Bindung wird abgewiesen.
+- Lesen/Schreiben beider Adapter funktioniert im ersten Ausbau mit leerem adapterState ohne Revisionsvergleich; ConflictException bleibt als Erweiterungstyp erhalten.
+
 - Gemeinsame Übersetzungslogik mit beiden Adaptern; create bekommt explizite Sprache und frischen eigenen Zustand.
-- Fehlender/manipulierter/fremder Transportzustand darf nie Konfliktprüfungen umgehen; Kopien übernehmen keinen Speicherzustand des Originals.
+- Fremde/manipulierte Dokumentidentitäten dürfen keine Rechte umgehen; leerer adapterState ist gültig. Kopien übernehmen keinen technischen Zustand des Originals.
 - Derselbe Translation-Entwurf mit und ohne createIfMissing; getPage liefert dieselbe Instanz, Listings bleiben exists=false.
-- Dokumenttransport aus GET/POST erhält den adapterState unverändert; der Adapter erkennt inzwischen geänderte Quellen ohne Revisionsparameter.
+- Dokumenttransport aus GET/POST erhält Header/Inhalt und optionalen Adapterzustand. Revisionsvergleich und ConflictException sind ein eigener späterer Testblock, kein Abnahmegate des ersten Ausbaus.
 - Gemeinsamer Permalink-Wechsel: Endzustand statt einzelner Zwischenschritte validieren, Teilfehler vollständig zurücknehmen.
 - Eine reine Kategorie mit createPage um ihre Indexseite ergänzen; keine Überschreibung oder Kinderverluste.
 - Headerdefinitionen vor Neuanlage, Legacy-Formtypen und Sprachnamen ohne zusätzlichen Formatzugriffs-Layer.

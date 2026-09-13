@@ -16,7 +16,7 @@ $english->save();
 echo $english->getUrl(); // /en/leistungen/diagnostik.html
 ```
 
-SchillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage und seine Konfliktprüfung. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
+SchillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage; eine eigene Revisionsprüfung ist erst für später vorgesehen. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
 
 ## Darstellungsform und gemeinsamer Kontext
 
@@ -26,7 +26,8 @@ Einmaliger Namenskontext für die Anwendungsausschnitte:
 
 ```php
 use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\ConflictException;
+use Leuffen\Schiller\Adapter\JekyllLegacyAdapter;
+use Leuffen\Schiller\Adapter\JekyllPolyglotAdapter;
 use Leuffen\Schiller\SchillerDir;
 use Leuffen\Schiller\UrlNotResolvableException;
 ```
@@ -147,7 +148,11 @@ Die Basisfixture enthält keine französische Übersetzung und keine leistungen/
 
 ## Zuständigkeiten und Grenzen
 
-Document.save und SchillerDir.saveDocuments führen beide zum selben Adapterauftrag write(list<Document>). Der Adapter liest und aktualisiert seinen freien adapterState selbst. Es gibt keine Revisionsparameter und kein Schema für adapterinterne Schlüssel. Das kontrollierte toArray/restoreDocument transportiert den Bearbeitungsstand im Webeditor; Headeränderungen brauchen weiterhin keine Patch-Objekte.
+Mitgeliefert werden JekyllPolyglotAdapter und JekyllLegacyAdapter. SchillerDir wählt zuerst den expliziten adapter-Konstruktorparameter, sonst die YAML-Auswahl und sonst JekyllPolyglotAdapter. Die Instanzen werden ohne Argumente erzeugt und intern einmalig über bind(SiteStorage) angebunden; Beispiel 01 zeigt die Auswahl.
+
+Revisionskonflikte werden im ersten Ausbau nicht durch Schiller behandelt. Versionsverwaltung und Zusammenführung liegen beim externen Git-/Anwendungsablauf. ConflictException bleibt als Typ für eine spätere Erweiterung vorgesehen; fehlende Revisionsunterstützung blockiert die normalen Adapter nicht. Rechte, Neuanlage-Kollisionen, Validierung und die Wiederherstellung bei fehlgeschlagenen Gruppenoperationen bleiben erforderlich.
+
+Document.save und SchillerDir.saveDocuments führen beide zum selben Adapterauftrag write(list<Document>). Der Adapter kann seinen freien adapterState selbst verwenden; die beiden mitgelieferten Adapter dürfen ihn zunächst leer lassen. Es gibt keine Revisionsparameter und kein Schema für adapterinterne Schlüssel. Das kontrollierte toArray/restoreDocument transportiert den Bearbeitungsstand im Webeditor; Headeränderungen brauchen weiterhin keine Patch-Objekte.
 
 Document.getTranslation/getTranslations bleiben öffentliche Komfortmethoden. Schiller verwaltet Instanzen, konfigurierten Sprachumfang und Originalkopien. Adapter liefern vorhandene Quellen, laden/bereiten eine explizite Sprache vor und bestimmen auch fehlende Quellpfade. Das [Interface](Adapter.php) enthält deshalb keine zusätzlichen Übersetzungsmethoden.
 

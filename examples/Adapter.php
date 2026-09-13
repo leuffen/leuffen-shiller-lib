@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Examples;
+namespace Leuffen\Schiller\Adapter;
 
 use Leuffen\Schiller\Capabilities;
 use Leuffen\Schiller\Document;
@@ -19,7 +19,7 @@ use Leuffen\Schiller\SiteStorage;
 interface Adapter
 {
     /** Bindet kontrollierten Storage; keine direkte Umgehung der Rechteprüfung. */
-    public function __construct(SiteStorage $storage);
+    public function bind(SiteStorage $storage): void;
 
     /** Liest Root-Konfiguration und normalisiert Adapter, Sprachen und Anzeigenamen. */
     public function loadConfig(): SiteConfig;
@@ -27,13 +27,13 @@ interface Adapter
     /** Berechnet den Root-relativen bestehenden Quellpfad oder den eindeutigen Anlagekandidaten; schreibt nichts. Kein Existenzbeweis. */
     public function getSourcePath(string $id, string $language): string;
 
-    /** Lädt genau diese gespeicherte Variante und setzt adapterState; fehlend/gesperrt: NotFoundException. Objektidentität verwaltet Schiller. */
+    /** Lädt genau diese gespeicherte Variante; adapterState darf zunächst leer sein; fehlend/gesperrt: NotFoundException. Objektidentität verwaltet Schiller. */
     public function load(string $id, string $language): Document;
 
     /** Bereitet eine neue Variante vor (file=null), setzt frischen adapterState, prüft Anlagerechte; kein Schreiben. @param array<string, mixed> $header */
     public function create(string $id, string $language, array $header = [], string $content = ''): Document;
 
-    /** Speichert die explizite Liste als gemeinsamen Endzustand; liest/aktualisiert eigenen adapterState und plant nötige Promotionen. @param list<Document> $documents */
+    /** Speichert die explizite Liste als gemeinsamen Endzustand; plant nötige Promotionen; Revisionsprüfung/ConflictException erst als spätere Erweiterung. @param list<Document> $documents */
     public function write(array $documents): void;
 
     /** Liefert Kategorien und vorhandene lesbare Varianten mit ID/Sprache/Datei. Schiller ergänzt fehlende Sprachen über getSourcePath. */
@@ -54,7 +54,7 @@ interface Adapter
     /** Liefert erlaubte Quellaktionen; rename=true garantiert kein noch unbekanntes Ziel. */
     public function capabilities(string $id, ?string $language = null): Capabilities;
 
-    /** Verschiebt Teilbaum und Varianten sofort; gleicht betroffene Speicherstände ab, erhält Header und Body. */
+    /** Verschiebt Teilbaum und Varianten sofort; prüft Quellen/Ziele und Rechte, erhält Header und Body. Kein verpflichtender Revisionsvergleich. */
     public function rename(string $id, string $newId): void;
 
     /** Löscht Blattgruppe am Original oder einzelne Sprachdatei; / schützen, Nachfahren/Begleitdateien nicht rekursiv löschen. */

@@ -1,14 +1,20 @@
 <?php
 
-// Alternative zum Einstieg: vorhandenes Quellverzeichnis nur lesen.
+// Standard: mitgelieferter JekyllPolyglotAdapter, sofern schiller.yaml keinen anderen auswählt.
 $root = phore_dir('/srv/site/docs');
-$site = new SchillerDir($root); // reader; liest _config.yml und schiller.yaml selbst
+$site = new SchillerDir($root);
 $config = $site->config();
 
-// Ersetzt die vorige Initialisierung für einen serverseitig authentifizierten Editor.
-$site = new SchillerDir($root, access: new AccessContext(role: 'user'));
+// Alternative für alten Bestand: ersetzt die vorige Initialisierung und die YAML-Adapterauswahl.
+$legacyRoot = phore_dir('/srv/legacy-site/docs'); // Vorhandene PID-/Sprachdateien.
+$legacy = new SchillerDir($legacyRoot, adapter: new JekyllLegacyAdapter());
 
-// Ein eigener Connector implementiert SiteStorage und wird an derselben Stelle übergeben:
-// $site = new SchillerDir($storage, access: new AccessContext(role: 'user'));
+// Explizite Auswahl mit Bearbeitungsrechten; Rollen kommen aus der authentifizierten Anwendung.
+$site = new SchillerDir(
+    $root,
+    adapter: new JekyllPolyglotAdapter(),
+    access: new AccessContext(role: 'user'),
+);
+// Kein Storage-Argument am Adapter: SchillerDir ruft intern einmalig bind(SiteStorage) auf.
+// Ein eigener Connector ersetzt $root durch eine SiteStorage-Implementierung.
 // SiteStorage ist noch ein Vertragsentwurf (§ 11), kein mitgelieferter Remote-Connector.
-// Vorhandene PhoreDirectory wird intern adaptiert; Git/Checkout erledigt die Anwendung.

@@ -16,5 +16,5 @@ $page->getUrl();                       // '/medizin/diagnostik/'
 $page->getTranslation('en')->getUrl(); // '/en/medizin/diagnostik/'
 $page->getTranslations()['fr']->exists; // false
 // Fehlende Sprachen werden nicht angelegt; verborgene/beschränkte Varianten verhindern
-// eine unvollständige Gruppenumstellung. Jeder Adapter prüft seinen Zustand pro Document.
+// eine unvollständige Gruppenumstellung. Revisionsprüfung ist keine Voraussetzung dieses Ablaufs.
 // Rückkehr zu natürlichen URLs: permalink an allen Varianten unset und gemeinsam speichern.

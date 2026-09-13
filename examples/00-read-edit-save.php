@@ -10,4 +10,4 @@ $english = $page->getTranslation('en');
 $english->header['title'] = 'Our diagnostics';
 $english->save();
 echo $english->getUrl(); // /en/leistungen/diagnostik.html
-// Nur die englische Datei wurde gespeichert; der Adapter prüft ihren geladenen Stand.
+// Nur die englische Datei wurde gespeichert; im ersten Ausbau erfolgt kein Revisionsvergleich durch Schiller.

@@ -28,7 +28,7 @@ Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch 
 | getUrl(absolute) | Nein | Vorgeschlagene URL dieses Documents einschließlich lokaler Änderungen |
 | getDocumentByUrl(url) | Nein | Gespeicherte Route zum tatsächlichen Document oder UrlNotResolvableException; bekannter Fallback kann Root liefern |
 
-Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bearbeitungen mit. Alle Schreibaufrufe prüfen Rechte, aktuellen Stand und Konflikte erneut. Fehlende Leserechte dürfen keine Existenz verraten. Ein Funktionsname mit get liefert insbesondere niemals heimlich eine neue Datei; createIfMissing bereitet nur ein Objekt vor.
+Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bearbeitungen mit. Alle Schreibaufrufe prüfen Rechte und die fachlichen Quell-/Zielbedingungen erneut; eine Revisionsprüfung ist zunächst nicht zugesagt. Fehlende Leserechte dürfen keine Existenz verraten. Ein Funktionsname mit get liefert insbesondere niemals heimlich eine neue Datei; createIfMissing bereitet nur ein Objekt vor.
 
 ## Abgleich der Originalfunktionen
 
@@ -61,7 +61,7 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 | Übersetzung vorbereiten, erneut ohne Option laden | Dasselbe bearbeitete Objekt; noch keine Datei | Identitätsverwaltung berücksichtigt Entwürfe; exists bleibt false |
 | Dialog abbrechen und später öffnen | Keine Speicherung | Neue Bearbeitungseinheit lädt Bestand; kein Reload durch getPage derselben Instanz suggerieren |
 | Headerfeld im Formular ausgelassen | Bisherigen Wert erhalten | Nur explizite Zuweisung/unset anwenden; eigene verschachtelte Daten mitprüfen |
-| Zwei Browser bearbeiten dieselbe Seite | Zweiter veralteter Save meldet Konflikt | Adapter prüft seinen mittransportierten Zustand gegen den aktuellen Bestand; kein Ersetzen durch frisches Laden |
+| Zwei Browser bearbeiten dieselbe Seite | Im ersten Ausbau keine eigene Erkennung veralteter Editorstände | Externer Git-/Anwendungsablauf; spätere Revisionsprüfung kann ConflictException verwenden |
 | Erste Unterseite erzeugen | Neues Kind; Elternseiten werden zu Index | Sämtliche vorhandenen Elternsprachen und Vorfahren vorab planen, nie fehlende Übersetzungen erzeugen |
 | Zwei Kinder gemeinsam speichern | Ein gemeinsamer Vorgang | Gemeinsame Promotion deduplizieren, Endzustand prüfen |
 | Kategorie mit unsichtbarem Kind verschieben/löschen | Keine versteckte Teilmutation | Vollständige Inventarisierung unabhängig vom bereinigten UI-Baum; Root-Delete abweisen |
@@ -75,9 +75,9 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 
 ## Umsetzungskriterien
 
-Die spätere Implementierung braucht Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit veraltetem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
+Die spätere Implementierung braucht Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit leerem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
 
-Revisionsvergleich und Dateiänderung müssen gegen Konkurrenz abgesichert sein. Ein Phore-Lesezugriff plus späteres ungeschütztes Schreiben genügt dafür nicht. SiteStorage muss die erforderliche bedingte Mutation/Batchfähigkeit bereitstellen oder eine durch die Anwendung garantierte Serialisierung nutzen; andernfalls wird die betroffene Mutation vorab als nicht unterstützt abgewiesen. Das ist kein vorgeschlagenes Benutzer-Sperrsystem.
+Revisionsvergleich und bedingtes Schreiben sind ein späterer Ausbau; die mitgelieferten Adapter werden wegen fehlender Revisionsunterstützung nicht abgewiesen. Der externe Git-/Anwendungsablauf koordiniert Versionsverwaltung und parallele Bearbeitung. Schiller garantiert zunächst keine Erkennung veralteter Editorstände. Die getrennt beschriebenen Quell-/Zielprüfungen und Wiederherstellung bei Gruppenoperationen bleiben bestehen.
 
 Der ursprüngliche Page-Builder-Container verwendet PHP 8.1, das aktuelle Schiller-Repository-Grundgerüst verlangt in composer.json PHP >=8.3. Eine Integration in die alte Laufzeit erfordert daher eine bewusste Laufzeit-/Paketentscheidung; kompatible Signaturskizzen allein lösen diese Differenz nicht. Composer-Anbindung und produktive Klassen sind noch nicht umgesetzt.
 
@@ -96,4 +96,6 @@ getTranslation und getTranslations bleiben am Document. Schiller setzt sie mit g
 
 Im Adapter gibt es genau write(array $documents), auch für den Ein-Dokument-Fall. Der freie adapterState jedes Documents ist ausschließlich Adapterangelegenheit und wird nicht im Seitenheader gespeichert. Gemeinsam zu speichernde Dokumente werden vorab als ein Endzustand validiert; ein Einzelschreib-Loop ist kein Ersatz.
 
-Der neue HTTP-Entwurf toArray/restoreDocument transportiert den vollständigen Bearbeitungsstand samt opakem Zustand. Er benötigt bei der Implementierung eine geprüfte Site-/Adapter-/Identitätsbindung und darf weder Clientrollen übernehmen noch bei fehlendem Zustand unbedingtes Schreiben erlauben. Die UI bearbeitet nur header/content und transportiert den übrigen Zustand unverändert. Beispiel 18 macht diese Einbindung sichtbar; eine installierte Transportimplementierung wird noch nicht behauptet.
+Der neue HTTP-Entwurf toArray/restoreDocument transportiert den vollständigen Bearbeitungsstand samt opakem Zustand. Er benötigt bei der Implementierung eine geprüfte Site-/Adapter-/Identitätsbindung und darf keine Clientrollen übernehmen. Ein leerer adapterState ist im ersten Ausbau zulässig; Identität und Rechte werden unabhängig davon geprüft. Die UI bearbeitet nur header/content und transportiert den übrigen Zustand unverändert. Beispiel 18 macht diese Einbindung sichtbar; eine installierte Transportimplementierung wird noch nicht behauptet.
+
+JekyllPolyglotAdapter und JekyllLegacyAdapter werden mitgeliefert. Der SchillerDir-Konstruktor akzeptiert eine optionale Adapterinstanz; diese hat Vorrang vor schiller.yaml. Ohne beides gilt JekyllPolyglotAdapter. Die Anwendung konstruiert Adapter ohne Storage-Argument, SchillerDir bindet den kontrollierten Dateizugriff einmalig intern. ConflictException ist als spätere Erweiterung vorgesehen, kein aktuelles Abnahmegate für Legacy oder Polyglot.
