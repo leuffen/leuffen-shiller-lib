@@ -54,7 +54,7 @@ final class JekyllLegacyAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::write');
     }
 
-    /** Liest _section.yml-Kategorien und vorhandene Sprachdateien. Keine fehlenden Varianten erzeugen; das ergänzt Schiller. */
+    /** Liefert PageTree nach TreeNode-Konvention v1: _section.yml-Bezeichnung als label, Zusatzwerte in data.metadata, Quelle in data.file (Kategorie ohne Seite: null), Bestand in data.translations. children vollständig; fehlende Sprachen ergänzt Schiller. */
     public function buildTree(string $id = '/'): PageTree
     {
         throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::buildTree');

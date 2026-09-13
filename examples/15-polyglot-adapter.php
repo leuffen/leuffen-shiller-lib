@@ -54,7 +54,7 @@ final class JekyllPolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::write');
     }
 
-    /** Ordner mit optionalem Index als ein Knoten; vorhandene Varianten mit Quelle/Status erfassen. Fehlende Sprachen ergänzt Schiller. */
+    /** Liefert PageTree nach TreeNode-Konvention v1: Ordner/Index als ein id/label/children/data-Knoten. Quelle in data.file (reiner Ordner: null), vorhandene Varianten in data.translations. children vollständig; fehlende Sprachen ergänzt Schiller. */
     public function buildTree(string $id = '/'): PageTree
     {
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::buildTree');

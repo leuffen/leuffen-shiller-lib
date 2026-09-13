@@ -36,7 +36,7 @@ interface Adapter
     /** Speichert die explizite Liste als gemeinsamen Endzustand; plant nötige Promotionen; Revisionsprüfung/ConflictException erst als spätere Erweiterung. @param list<Document> $documents */
     public function write(array $documents): void;
 
-    /** Liefert Kategorien und vorhandene lesbare Varianten mit ID/Sprache/Datei. Schiller ergänzt fehlende Sprachen über getSourcePath. */
+    /** Liefert PageTree mit id/label/children/data. data enthält file, metadata, vorhandene translations und Kinderstatus; Schiller ergänzt fehlende Sprachen über getSourcePath. */
     public function buildTree(string $id = '/'): PageTree;
 
     /** Liefert aktuellen Header plus Jekyll-Defaults ohne Rückschreiben. @return array<string, mixed> */

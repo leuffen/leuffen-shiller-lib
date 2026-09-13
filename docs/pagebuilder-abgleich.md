@@ -8,6 +8,8 @@ Die Seitenabläufe sind mit dem überarbeiteten Vertrag darstellbar. Ein unverä
 
 Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch nicht entworfen. Die YAML-Daten- und Fragmenteditoren, freie Kopien aus beliebigen Quellsprachen sowie die Preview-/VCS-/Benachrichtigungsabläufe sind entweder bewusst ausgeschlossen oder Aufgabe der Anwendung. Legacy darf gemäß Produktentscheidung ausschließlich bestehende Seiten und Übersetzungen bearbeiten. Seine bisherige Kopierfunktion zur Neuanlage entfällt.
 
+Die [TreeNode-Konvention v1](tree-node.md) ist der gemeinsame JSON-Vertrag für Seiten- und Dateiansicht, angelehnt an MUI Rich Tree View. PageTree::toArray liefert root/diagnostics, FileListing::toArray entries/diagnostics. Die UI übergibt [payload.root] beziehungsweise payload.entries an einen passenden Tree-Renderer; Schiller-spezifische Spalten lesen data.translations und data.metadata. Auswahl, Expansion und Seitenöffnung sind getrennte UI-Aktionen. Für eine reine Kategorie darf nicht der ganze Knoten disabled werden, da sonst auch Aufklappen ausfallen kann. Konvention und Beispiel sind noch Entwurf, keine getestete MUI-Integration.
+
 ## Was ein API-Nutzer am Aufruf erkennen muss
 
 | Absicht / Aufruf | Sofortige Dateiänderung | Ergebnis und Reichweite |
@@ -34,7 +36,7 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 
 | Originalablauf | Direkter Vertrag für Neo | Adapteraufgabe | Nötige Änderung / Grenze |
 |---|---|---|---|
-| Sections auflisten, Beschreibung und Fehler zeigen | pages()->root, children, metadata, diagnostics | Legacy liest _section.yml; Polyglot bildet Ordner/Index ab | UI rendert TreeNode statt sections[]. Eine reine Kategorie öffnet nur Kinder |
+| Sections auflisten, Beschreibung und Fehler zeigen | pages()->root, label, children, data.metadata, diagnostics | Legacy liest _section.yml; Polyglot bildet Ordner/Index ab | UI rendert id/label/children/data statt sections[]. data.file=null öffnet keinen Seiteneditor; Aufklappen bleibt unabhängig |
 | pid/lang als Editoradresse | getPage(id, language) | PID/Suffix intern zu ID/Sprache zuordnen, Identitätsheader erhalten | Neue Route/DTO mit separater ID/Sprache; ftype nicht mehr vom Browser vorgeben |
 | Fehlende Seite: found=false | NotFoundException; fehlende Translation: null | Autorisierte Fehlfälle einheitlich behandeln | HTTP-Schicht bildet in ihre Fehlerantwort ab; kein implizites create |
 | Header und Markdown/HTML laden | header, content, file, getEffectiveHeader | Bestehendes Format verlustarm lesen | Bearbeitbare Werte von geerbten Defaults und technischen Attributen trennen |

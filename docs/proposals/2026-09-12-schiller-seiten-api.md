@@ -13,6 +13,7 @@
 | 2026-09-13 | dermatthes | §§ 2, 5–6, 10–12: opaker Adapterzustand, ein Schreibauftrag, gemeinsame Übersetzungslogik und Examples nach neuer Lesereihenfolge |
 | 2026-09-13 | dermatthes | §§ 3, 5, 10–12: mitgelieferte Jekyll-Adapter, Konstruktor-Auswahl und Revisionskonflikte als spätere Erweiterung |
 | 2026-09-13 | dermatthes | §§ 6.2, 10: konfigurierte Standardsprache ausdrücklich gleichbedeutend zu null beim Abruf des Stammdokuments |
+| 2026-09-13 | dermatthes | §§ 4, 6.2, 10–12: TreeNode-Konvention v1 mit id/label/children/data, typisiertem Nutzinhalt und JSON-Übergabe |
 
 ## § 1 Ziel und Umfang
 
@@ -100,18 +101,20 @@ Beispiel für `SiteConfig`, hier als JSON dargestellt:
 
 ## § 4 Dateibaum und Seitenbaum
 
+Beide Ansichten verwenden die [TreeNode-Konvention v1](../tree-node.md): `id: string`, `label: string`, `children: list<TreeNode>` und `data: SchillerTreeData`. Das ist ein projektübergreifend wiederverwendbarer Datenvertrag, angelehnt an die Standardfelder von [MUI Rich Tree View](https://mui.com/x/react-tree-view/rich-tree-view/items/), kein allgemeiner JSON- oder W3C-Standard. WAI-ARIA standardisiert gesondert die zugängliche Darstellung und Bedienung. Die Referenz beschreibt Typen, Feldzuordnung, Teilbäume und direkte Frontend-Übergabe. [neu]
+
 ### § 4.1 Dateien: echte Quellpfade
 
-`files('leistungen', recursive: false)` bleibt die optionale physische Inspektion mit Root-relativen Dateipfaden. Ein `FileListing` enthält `entries: list<TreeNode>` und Diagnosen. In dieser Ansicht ist `node.path` der physische Pfad und `node.id` null; Dateien haben eine `FileEntry`-Referenz, Ordner haben `file: null`. Die eigentliche Seitenbedienung benutzt ausschließlich `pages()`, `getPage()` und endungslose IDs.
+`files('leistungen', recursive: false)` bleibt die optionale physische Inspektion mit Root-relativen Dateipfaden. Ein `FileListing` enthält `entries: list<TreeNode>` und Diagnosen. Jeder Knoten hat eine eindeutige `id`, gebildet aus `file:` plus kanonischem physischem Pfad, beispielsweise `file:leistungen/diagnostik.md`; das Root hätte `file:`. `label` ist der letzte Pfadbestandteil (am Root `/`), `data.path` der physische Pfad. Dateien haben `data.file: FileEntry`, Ordner `data.file: null`. Diese IDs sind keine Seiten-IDs und dürfen nicht an getPage/rename übergeben werden. Die eigentliche Seitenbedienung benutzt ausschließlich `pages()`, `getPage()` und endungslose IDs. [geändert]
 
 ```php
 $listing = $site->files('leistungen', recursive: true);
 foreach ($listing->entries as $node) {
-    echo $node->path; // nur im physischen Listing
+    echo $node->data->path; // nur im physischen Listing
 }
 ```
 
-Dateipfade sind Root-relativ, ohne führenden Slash; `''` bezeichnet das physische Root. `FileKind` kennt directory, page, asset, data, template und other. Kein Zugriff liefert einen rohen Filesystem-Handle. Nicht expandierte Ordner haben bei `recursive: false` leere `children`, aber `isLeaf()` prüft trotzdem lesbare Kinder.
+Dateipfade sind Root-relativ, ohne führenden Slash; `''` bezeichnet das physische Root. `data.kind` verwendet `FileKind`: directory, page, asset, data, template und other. Kein Zugriff liefert einen rohen Filesystem-Handle. Nicht geladene Ordnerkinder haben bei `recursive: false` leere `children`, aber `data.childrenLoaded=false` und bei lesbaren Kindern `data.hasChildren=true`. `isLeaf()` entspricht `!data.hasChildren`, nicht pauschal leeren children. `files(data.path)` lädt die nächste Ebene. Für eine vollständige Darstellung ohne Nachladelogik dient `recursive: true`. [geändert]
 
 ### § 4.2 Seiten: endungslose IDs und optionale Datei
 
@@ -125,36 +128,92 @@ $child = $site->getPage('/leistungen/allgemeinmedizin');
 $rootPage = $site->getPage('/');
 ```
 
-Im Seitenbaum hat jeder `TreeNode` eine `id`, `path: null`, `file: ?FileEntry`, `children: list<TreeNode>`, `translations: array<string,TranslationInfo>` und optionale `metadata: array<string,YamlValue>`. Kategorienmetadaten, etwa eine alte Section-Beschreibung, bleiben unabhängig von einer Seitendatei erhalten. Eine Kategorie ohne Seite hat `file: null` und leere translations. Sie öffnet keinen Editor; Kinder sind aufklappbar. `isLeaf()` beschreibt allein, ob lesbare Kinder existieren.
+Im Seitenbaum enthält `data` die Schiller-Angaben: `path: null`, `kind`, `file: ?FileEntry`, `translations: array<string,TranslationInfo>`, `metadata: array<string,YamlValue>`, `hasChildren` und `childrenLoaded`. `label` ist der Anzeigename; seine Ableitung aus lesbaren Titeln beziehungsweise Kategoriebezeichnung und ID ist in der Konvention festgelegt. Kategorienmetadaten, etwa eine alte Section-Beschreibung, bleiben unabhängig von einer Seitendatei erhalten. Eine reine Kategorie hat `data.file: null`, `data.kind=directory` und leere translations. Sie öffnet keinen Seiteneditor; vorhandene Kinder bleiben aufklappbar. Ein Knoten mit eigener Seite hat `data.kind=page`, auch wenn er Kinder enthält. `pages()` liefert alle lesbaren Nachfahren, daher gilt hier `data.childrenLoaded=true` und `isLeaf()` entspricht leeren children. [geändert]
 
-`getDocument()` lädt die zugeordnete Seite oder liefert bei einem Knoten ohne Seite null. Eine nachträglich verschwundene/gesperrte Datei erzeugt NotFoundException. `FileEntry::path` bleibt ausschließlich die tatsächliche Dateireferenz für Diagnose und Dateizugriff. Indexdateien sind im Seitenbaum niemals zusätzliche Kinder. Listings laden keine vollständigen Bodies.
+`getDocument()` lädt im Seitenbaum die über `data.file` zugeordnete Seite oder liefert bei einem Knoten ohne Seite null; im physischen Listing liefert es immer null. Eine nachträglich verschwundene/gesperrte Seitendatei erzeugt NotFoundException. `FileEntry::path` bleibt ausschließlich die tatsächliche Dateireferenz für Diagnose und Dateizugriff. Indexdateien sind im Seitenbaum niemals zusätzliche Kinder. Listings laden keine vollständigen Bodies. `Document::file` bleibt unverändert; nur TreeNode verschiebt seine Fachangaben nach data. [geändert]
 
-Beispiel nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite existiert, für die Unterseite zunächst nur de:
+Beispiel der Ausgabe von `PageTree::toArray()` nach dem Anlegen einer Unterseite; fr fehlt, die englische Elternseite existiert, für die Unterseite zunächst nur de. `label` verwendet hier die Seitentitel: [geändert]
 
 ```json
 {
   "root": {
     "id": "/leistungen",
-    "path": null,
-    "file": {"path": "leistungen/index.md", "kind": "page"},
-    "metadata": {},
-    "translations": {
-      "de": {"language": "de", "path": "leistungen/index.md", "exists": true, "isRootDocument": true, "published": true},
-      "en": {"language": "en", "path": "en/leistungen/index.md", "exists": true, "isRootDocument": false, "published": true},
-      "fr": {"language": "fr", "path": "fr/leistungen/index.md", "exists": false, "isRootDocument": false, "published": null}
-    },
-    "children": [{
-      "id": "/leistungen/allgemeinmedizin",
+    "label": "Leistungen",
+    "children": [
+      {
+        "id": "/leistungen/allgemeinmedizin",
+        "label": "Allgemeinmedizin",
+        "children": [],
+        "data": {
+          "kind": "page",
+          "path": null,
+          "file": {
+            "path": "leistungen/allgemeinmedizin.md",
+            "kind": "page"
+          },
+          "metadata": {},
+          "translations": {
+            "de": {
+              "language": "de",
+              "path": "leistungen/allgemeinmedizin.md",
+              "exists": true,
+              "isRootDocument": true,
+              "published": false
+            },
+            "en": {
+              "language": "en",
+              "path": "en/leistungen/allgemeinmedizin.md",
+              "exists": false,
+              "isRootDocument": false,
+              "published": null
+            },
+            "fr": {
+              "language": "fr",
+              "path": "fr/leistungen/allgemeinmedizin.md",
+              "exists": false,
+              "isRootDocument": false,
+              "published": null
+            }
+          },
+          "hasChildren": false,
+          "childrenLoaded": true
+        }
+      }
+    ],
+    "data": {
+      "kind": "page",
       "path": null,
-      "file": {"path": "leistungen/allgemeinmedizin.md", "kind": "page"},
+      "file": {
+        "path": "leistungen/index.md",
+        "kind": "page"
+      },
       "metadata": {},
       "translations": {
-        "de": {"language": "de", "path": "leistungen/allgemeinmedizin.md", "exists": true, "isRootDocument": true, "published": false},
-        "en": {"language": "en", "path": "en/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false, "published": null},
-        "fr": {"language": "fr", "path": "fr/leistungen/allgemeinmedizin.md", "exists": false, "isRootDocument": false, "published": null}
+        "de": {
+          "language": "de",
+          "path": "leistungen/index.md",
+          "exists": true,
+          "isRootDocument": true,
+          "published": true
+        },
+        "en": {
+          "language": "en",
+          "path": "en/leistungen/index.md",
+          "exists": true,
+          "isRootDocument": false,
+          "published": true
+        },
+        "fr": {
+          "language": "fr",
+          "path": "fr/leistungen/index.md",
+          "exists": false,
+          "isRootDocument": false,
+          "published": null
+        }
       },
-      "children": []
-    }]
+      "hasChildren": true,
+      "childrenLoaded": true
+    }
   },
   "diagnostics": []
 }
@@ -310,13 +369,13 @@ assert($english->getTranslation('de') === $page);
 }
 ```
 
-Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ohne bekannten Entwurf ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument, `getTranslation(null)` und der Aufruf mit der konfigurierten Standardsprache liefern stets dasselbe Stammdokument oder werfen `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist. [geändert]
+Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ohne bekannten Entwurf ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument, `getTranslation(null)` und der Aufruf mit der konfigurierten Standardsprache liefern stets dasselbe Stammdokument oder werfen `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist.
 
-Ohne Sprachargument, mit `null` oder mit der konfigurierten Standardsprache liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Bei `default_lang: de` sind also `getTranslation()`, `getTranslation(null)` und `getTranslation('de')` gleichbedeutend; die Regel gilt entsprechend für jede andere konfigurierte Standardsprache. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2). [geändert]
+Ohne Sprachargument, mit `null` oder mit der konfigurierten Standardsprache liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Bei `default_lang: de` sind also `getTranslation()`, `getTranslation(null)` und `getTranslation('de')` gleichbedeutend; die Regel gilt entsprechend für jede andere konfigurierte Standardsprache. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2).
 
 Die Methoden getTranslation und getTranslations gehören zu Document/SchillerDir, nicht zum Adapter-Interface. Schiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab.
 
-Für das Listing liefert buildTree die vorhandenen lesbaren Varianten mit ID/Sprache/Quelle und Kategorienmetadaten. Schiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und meldet mehrdeutige Quellzuordnungen über ValidationException. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations.
+Für das Listing liefert buildTree einen PageTree aus id/label/children/data-Knoten. Vorhandene lesbare Varianten liegen in `data.translations`, die bevorzugte Quelle in `data.file`, Kategorienmetadaten in `data.metadata`. Schiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und meldet mehrdeutige Quellzuordnungen über ValidationException. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations. [geändert]
 
 ### § 6.3 Eine Übersetzungsdatei anlegen
 
@@ -633,18 +692,48 @@ final class FileEntry
 }
 
 /**
- * @property-read ?string $id Seitenbaum; null im physischen Listing.
+ * @property-read string $id Eindeutig im Baum: Seiten-ID oder file:<Pfad>.
+ * @property-read string $label Anzeigename als Text.
+ * @property-read list<TreeNode> $children
+ * @property-read SchillerTreeData $data
+ */
+final class TreeNode
+{
+    public function isLeaf(): bool; // !data.hasChildren
+    public function getDocument(): ?Document; // nur Seitenbaum, sonst null
+    /** Rekursive JSON-fähige Projektion: ausschließlich id, label, children, data. */
+    public function toArray(): array;
+}
+
+/**
  * @property-read ?string $path Nur physisches Listing; null im Seitenbaum.
  * @property-read FileKind $kind
  * @property-read ?FileEntry $file
  * @property-read array<string, YamlValue> $metadata
  * @property-read array<string, TranslationInfo> $translations
- * @property-read list<TreeNode> $children
+ * @property-read bool $hasChildren Mindestens ein lesbares direktes Kind.
+ * @property-read bool $childrenLoaded Alle lesbaren direkten Kinder sind enthalten.
  */
-final class TreeNode
+final class SchillerTreeData {}
+
+/**
+ * @property-read TreeNode $root
+ * @property-read list<Diagnostic> $diagnostics
+ */
+final class PageTree
 {
-    public function isLeaf(): bool;
-    public function getDocument(): ?Document;
+    /** Liefert {root: TreeNode-Projektion, diagnostics: list<Diagnostic>}. */
+    public function toArray(): array;
+}
+
+/**
+ * @property-read list<TreeNode> $entries
+ * @property-read list<Diagnostic> $diagnostics
+ */
+final class FileListing
+{
+    /** Liefert {entries: list<TreeNode-Projektion>, diagnostics: list<Diagnostic>}. */
+    public function toArray(): array;
 }
 
 final class TranslationInfo
@@ -659,7 +748,9 @@ final class TranslationInfo
 }
 ```
 
-`getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` und `getTranslation($site->config()->defaultLanguage)` liefern dasselbe Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab. [geändert]
+`getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` und `getTranslation($site->config()->defaultLanguage)` liefern dasselbe Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab.
+
+TreeNode ist ein Lesesnapshot. Seine `toArray()`-Projektion sowie PageTree/FileListing::toArray enthalten keine Methoden, Bodies, Documents, Storage-Referenzen oder adapterState. String-Maps wie metadata und translations werden als JSON-Objekte ausgegeben, auch leer; children und entries bleiben JSON-Arrays. UI-Auswahl, Fokus und aufgeklappte IDs verwaltet das Frontend separat. Die [Konvention](../tree-node.md) enthält den generischen TypeScript-Typ und das konkrete Schiller-Profil. [neu]
 
 `getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden readonly-Eigenschaften und können mit Phore Schema validiert werden. Das Schiller-Grundgerüst verlangt PHP >=8.3, während der alte Page Builder PHP 8.1 nutzt; eine Einbindung benötigt daher eine explizite Laufzeit-/Paketentscheidung. Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet. Der kontrollierte Transport über toArray/restoreDocument ersetzt keine Rechte- oder Speicherprüfung; beliebige Requestobjekte werden nicht als Documents hydratisiert.
 
@@ -692,6 +783,8 @@ Das [Adapter-Interface](../../examples/Adapter.php) und die Beispiele [JekyllLeg
 | `/leistungen/diagnostik` | `leistungen/diagnostik.de.md` | `leistungen/diagnostik.md` | `en/leistungen/diagnostik.md` |
 
 Die Legacy-ID wird aus dem tatsächlichen Bestand und dem PID-/Sprachsuffix abgeleitet; eine vorhandene index-Seite fällt auf die Kategorie-ID zusammen. Mehrdeutige Zuordnungen werden diagnostiziert, nicht geraten. `_section.yml` kann reine Kategorien samt optionalen Metadaten erzeugen. Das Root darf eine Kategorie ohne eigene Seite sein; eine beliebige home-Datei wird nicht still zur Root-Seite erklärt.
+
+Beide buildTree-Implementierungen liefern denselben TreeNode-Vertrag. Legacy normalisiert _section.yml-Bezeichnungen nach label und Zusatzangaben nach data.metadata; Polyglot bildet Blatt-/Indexseiten und reine Ordner entsprechend ab. Quellen stehen in data.file, vorhandene Varianten in data.translations; vollständige Sprachverfügbarkeit ergänzt Schiller. Es wird keine frontendabhängige Baumstruktur im Adapter erzeugt. [neu]
 
 Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließlich eigener Header-Metadaten. Es legt keine Seiten, Sprachdateien oder Ordner an und führt kein Rename/Delete aus. PID/lang bleiben beim Schreiben vorhanden und müssen zur Quelldatei passen. Polyglot leitet Sprache ausschließlich aus den gespiegelten Pfaden ab und verwaltet alle Neuanlagen und Umstrukturierungen intern.
 
@@ -744,8 +837,8 @@ Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 - No-op, neue Entwürfe, Abbruch, externe Änderung und URL-Fallback mit tatsächlicher Zielsprache.
 
 - Root-`index.md`, normale Unterseiten und gespiegelte Sprachdateien ohne ID-/Sprachheader oder Permalink.
-- Einheitliche TreeNode-Knoten: Kategorie mit/ohne Indexseite, Blatt mit/ohne Dokument, keine doppelte Indexdatei; sämtliche lesbaren Sprachen samt exists auch im Seitenbaum.
-- Nicht expandierte physische Ordner und verborgene Kinder: isLeaf() bleibt korrekt, ohne versteckte Struktur offenzulegen.
+- TreeNode-Konvention v1 in beiden Adaptern und im Dateilisting: eindeutige string-IDs, Text-label, geordnete children und typisierte data; Kategorie mit/ohne Indexseite, keine doppelte Indexdatei; alle lesbaren Sprachen samt exists unter data.translations. JSON-Projektion ohne Document-/Storage-Zustand, leere Maps als Objekte. [geändert]
+- Nicht geladene physische Ordner: childrenLoaded/hasChildren unterscheiden Blatt und Nachladebedarf; isLeaf() berücksichtigt nur lesbare Kinder. Verborgene Namen dürfen auch über label und data nicht sichtbar werden. Direkte Standarddarstellung des vollständigen Baums und unabhängiges Aufklappen/Seitenöffnen prüfen. [geändert]
 - Direktes Ändern, Entfernen und Leeren von Header/Body; keine Speicherung geerbter Defaults.
 - Anlage schreibt erst bei `save()`; parallele Zielanlage überschreibt keine Datei.
 - Übersetzungslisten einschließlich fehlender Sprachen; keine Existenz aus Fallbacks ableiten.

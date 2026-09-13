@@ -129,7 +129,7 @@ Die Basisfixture enthält keine französische Übersetzung und keine leistungen/
 | [01-initialize.php](01-initialize.php) | Wie öffne ich das Root und wechsle Zugriffskontext oder Connector? |
 | [02-read-config.php](02-read-config.php) | Welche Site-Konfiguration und Sprachen wurden erkannt? |
 | [03-list-files.php](03-list-files.php) | Welche tatsächlichen Dateien gibt es? |
-| [04-list-pages.php](04-list-pages.php) | Wie unterscheide ich Kategorien, Seiten und Sprachzustände im Baum? |
+| [04-list-pages.php](04-list-pages.php) | Wie lese ich Kategorien/Seiten/Sprachen und übergebe den Baum als JSON ans Frontend? |
 | [05-read-page-parts.php](05-read-page-parts.php) | Welche Werte sind gespeichert und welche nur geerbt? |
 | [06-read-fields-and-permissions.php](06-read-fields-and-permissions.php) | Wie baue ich ein Formular auf und erkenne erlaubte Aktionen? |
 | [07-read-translations.php](07-read-translations.php) | Welche Übersetzungen existieren und wie komme ich zum Original? |
@@ -145,6 +145,10 @@ Die Basisfixture enthält keine französische Übersetzung und keine leistungen/
 | [17-move-page-tree.php](17-move-page-tree.php) | Was geschieht beim Verschieben eines Teilbaums unter ein Blatt? |
 | [18-editor-save.php](18-editor-save.php) | Wie überlebt der Dokumentstand getrennte HTTP-Anfragen? |
 | [19-save-language-group.php](19-save-language-group.php) | Wie ändere ich den Permalink einer Sprachgruppe gemeinsam? |
+
+## Gemeinsames Baumformat
+
+Datei- und Seitenlisting verwenden die [TreeNode-Konvention v1](../docs/tree-node.md): id, label, children und typisierte data. Sie orientiert sich an den Standardfeldern von MUI Rich Tree View; sie ist kein universeller JSON-Standard. WAI-ARIA beschreibt separat die zugängliche Bedienung. TreeNode-Datei/Übersetzungen/Metadaten stehen unter data.file/data.translations/data.metadata, Document.file bleibt unverändert. Beispiel 04 zeigt die JSON-Ausgabe, die Referenz das direkte Rendering ohne rekursiven Umbau. Auch andere Projekte können den generischen Typ mit eigenen data verwenden.
 
 ## Zuständigkeiten und Grenzen
 
