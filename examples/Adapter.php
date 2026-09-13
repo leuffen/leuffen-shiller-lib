@@ -11,60 +11,52 @@ use Leuffen\Schiller\PageTree;
 use Leuffen\Schiller\SiteConfig;
 use Leuffen\Schiller\SiteStorage;
 
-// ENTWURF: Dateiformat und Ablage werden vollständig hinter Schiller abstrahiert.
-// Schiller bindet Adapter an kontrollierten Storage und gemeinsame Document-Verwaltung.
-// Keine zusätzliche Übersetzungsschicht im Page Builder. Keine fertige Implementierung.
+/**
+ * Internes Format-Interface: Schiller normalisiert ID/Sprache und verwaltet Documents.
+ * Übersetzungen auswählen/listen/klonen ist gemeinsame Schiller-Logik.
+ * Der Adapter entscheidet allein über Ablage, eigenen adapterState und zulässige Mutationen.
+ */
 interface Adapter
 {
+    /** Bindet kontrollierten Storage; keine direkte Umgehung der Rechteprüfung. */
     public function __construct(SiteStorage $storage);
 
-    /** Liest Root-Konfiguration und liefert den normalisierten Adapter-/Sprachvertrag. */
+    /** Liest Root-Konfiguration und normalisiert Adapter, Sprachen und Anzeigenamen. */
     public function loadConfig(): SiteConfig;
 
-    /** Liefert bekannten Entwurf oder lädt eine endungslose ID/Sprache; liefert Document (file=null bei Entwurf) oder wirft NotFoundException. */
-    public function load(string $id, ?string $language = null): Document;
+    /** Berechnet den Root-relativen bestehenden Quellpfad oder den eindeutigen Anlagekandidaten; schreibt nichts. Kein Existenzbeweis. */
+    public function getSourcePath(string $id, string $language): string;
 
-    /** Erzeugt einen ungespeicherten Root-Entwurf (file=null); schreibt nichts. @param array<string, mixed> $header */
-    public function create(string $id, array $header = [], string $content = ''): Document;
+    /** Lädt genau diese gespeicherte Variante und setzt adapterState; fehlend/gesperrt: NotFoundException. Objektidentität verwaltet Schiller. */
+    public function load(string $id, string $language): Document;
 
-    /** Speichert Header/Body samt nötiger Elternpromotion; Revision vergleichen, alle Quellen/Ziele prüfen. Nutzt den writeMany-Ablauf. */
-    public function write(Document $document, ?string $expectedRevision = null): void;
+    /** Bereitet eine neue Variante vor (file=null), setzt frischen adapterState, prüft Anlagerechte; kein Schreiben. @param array<string, mixed> $header */
+    public function create(string $id, string $language, array $header = [], string $content = ''): Document;
 
-    /**
-     * Speichert explizit aufgeführte Documents gemeinsam; validiert den Endzustand.
-     * Vergleicht Revisionen, bewahrt unbekannte Headerwerte, schreibt keine anderen Varianten.
-     * @param list<Document> $documents
-     * @param list<?string> $expectedRevisions Leer: geladene Revisionen; sonst gleiche Reihenfolge/Länge.
-     */
-    public function writeMany(array $documents, array $expectedRevisions = []): void;
+    /** Speichert die explizite Liste als gemeinsamen Endzustand; liest/aktualisiert eigenen adapterState und plant nötige Promotionen. @param list<Document> $documents */
+    public function write(array $documents): void;
 
-    /** Liefert logische TreeNodes mit ID, optionaler FileEntry/metadata und allen lesbaren Sprachvarianten. */
+    /** Liefert Kategorien und vorhandene lesbare Varianten mit ID/Sprache/Datei. Schiller ergänzt fehlende Sprachen über getSourcePath. */
     public function buildTree(string $id = '/'): PageTree;
 
-    /** Liefert Root bei null, bekannte gespeicherte/transiente Variante oder null; optional ungespeicherte Originalkopie. */
-    public function getTranslation(Document $document, ?string $language = null, bool $createIfMissing = false): ?Document;
-
-    /** Liefert array<string, TranslationInfo>, einschließlich fehlender lesbarer Sprachdateien mit exists=false. */
-    public function getTranslations(Document $document): array;
-
-    /** Liefert array<string, YamlValue> aus aktuellen Document-Werten und wirksamen Defaults. */
+    /** Liefert aktuellen Header plus Jekyll-Defaults ohne Rückschreiben. @return array<string, mixed> */
     public function getEffectiveHeader(Document $document): array;
 
-    /** Liefert Headerdefinitionen für die ID/Sprache, auch vor Anlage; keine Datei erzeugen, Zusatzmetadaten erlauben. */
+    /** Liefert Headerdefinitionen für bestehende/geplante Seite ohne Anlage; Zusatzmetadaten bleiben erlaubt. */
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet;
 
-    /** Berechnet die URL aus tatsächlicher Ablage, Sprache und Config, nicht allein aus der ID. */
+    /** Berechnet Route aus Ablage, aktuellem Header, Sprache und Config. */
     public function getUrl(Document $document, bool $absolute = false): string;
 
-    /** Liefert das konkrete Quelldokument oder UrlNotResolvableException mit bereinigter Diagnose. */
+    /** Liefert tatsächliche Quelle oder UrlNotResolvableException mit bereinigter Diagnose. */
     public function getDocumentByUrl(string $url): Document;
 
-    /** Liefert erlaubte Aktionen aus Adapter, Zustand, Projekt-/Hostrechten und Storage-Fähigkeiten. */
+    /** Liefert erlaubte Quellaktionen; rename=true garantiert kein noch unbekanntes Ziel. */
     public function capabilities(string $id, ?string $language = null): Capabilities;
 
-    /** Verschiebt Root-Seite/Teilbaum und alle Sprachvarianten; ändert IDs und FileEntries. */
+    /** Verschiebt Teilbaum und Varianten sofort; gleicht betroffene Speicherstände ab, erhält Header und Body. */
     public function rename(string $id, string $newId): void;
 
-    /** Root: nur Blattgruppe, niemals /. Übersetzung: nur diese Datei, auch an Kategorien; Kinder/Assets erhalten. */
+    /** Löscht Blattgruppe am Original oder einzelne Sprachdatei; / schützen, Nachfahren/Begleitdateien nicht rekursiv löschen. */
     public function delete(Document $document): void;
 }

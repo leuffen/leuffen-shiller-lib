@@ -10,6 +10,7 @@
 | 2026-09-12 | dermatthes | §§ 2, 5–11: Header-Definitionen, null als Root-Übersetzung, createIfMissing/isPersisted und Adapter-Interface mit Methodenstümpfen |
 | 2026-09-12 | dermatthes | §§ 2–12: endungslose Seiten-IDs, Adapter-gesteuertes Laden/Schreiben, Indexumstellung, Teilbaum-Verschieben, Metadatenerhaltung und Legacy-Bestandsbearbeitung |
 | 2026-09-12 | dermatthes | §§ 2–12: Review der Aktionswirkungen, Entwurfszustände, Editor-Konflikte, gemeinsames Speichern, Metadaten und Page-Builder-Abdeckung |
+| 2026-09-13 | dermatthes | §§ 2, 5–6, 10–12: opaker Adapterzustand, ein Schreibauftrag, gemeinsame Übersetzungslogik und Examples nach neuer Lesereihenfolge |
 
 ## § 1 Ziel und Umfang
 
@@ -27,7 +28,7 @@ Die folgenden Befunde stammen aus `micx-io/micx-pagebuilder`; dessen Quellcode d
 |---|---|---|
 | `PageListCtrl::__invoke()` | Sections mit `_section.yml`, Gruppierung nach `pid` und Sprache, Fehlerliste | `pages()` mit rekursivem Seitenbaum und `Diagnostic[]` |
 | `PageCtrl` / `FrontMatterFile::ReadPage()` | Markdown/HTML und YAML-Header lesen | `getPage(id)` |
-| `PageCtrl` / `FrontMatterFile::WritePage()` | Header und Inhalt speichern | Header/Body am `Document` ändern, `save()` |
+| `PageCtrl` / `FrontMatterFile::WritePage()` | Header und Inhalt speichern | Header/Body am Document ändern, save(); Speicherstand verwaltet der Adapter |
 | `PageCtrl::copyPage()` | Beliebige Quellsprache/PID kopieren; Permalink entfernen und sofort schreiben | Bewusst anderer Vertrag: neue Übersetzung nur aus dem Original vorbereiten und explizit speichern; Legacy legt keine an |
 | `www/pages/edit-page.html` | Titel, Beschreibung, Layout, published, order, ptags, eigene Formulare | Header-Array und `getHeaderDefinitions()` mit Darstellungsangaben; Formrenderer auf diese Definitionen umstellen |
 | `www/elements/page-list.html` | Seitengruppen, Sprachvarianten, Veröffentlichungsstatus | `PageTree`, `TranslationInfo`, Veröffentlichungsstatus |
@@ -37,7 +38,7 @@ Die folgenden Befunde stammen aus `micx-io/micx-pagebuilder`; dessen Quellcode d
 | `FileCtrl` und Daten-/Fragmenteditoren | Beliebige YAML-Daten bearbeiten | Später; bewusst keine allgemeine Schreib-Hintertür im ersten Ausbau |
 | `InfoCtrl`, `RepoCtrl`, Middleware | Preview-Host, Änderungsstatus, VCS und Notifications | Anwendung; optionaler URL-Kontext, kein VCS in Schiller |
 
-Der [vollständige Page-Builder-Abgleich](../pagebuilder-abgleich.md) nennt für jeden gefundenen Ablauf die Schiller-Aktion, deren Wirkung und die verbleibende Anwendungsarbeit. Der Entwurf ist kein unveränderter Drop-in für alte Controller- oder JSON-Verträge. Die Formatübersetzung liegt vollständig im Adapter; der neue Page Builder verwendet direkt Schillers API. Daten-/Fragmenteditoren bleiben ausdrücklich ein eigener Ausbau. [neu]
+Der [vollständige Page-Builder-Abgleich](../pagebuilder-abgleich.md) nennt für jeden gefundenen Ablauf die Schiller-Aktion, deren Wirkung und die verbleibende Anwendungsarbeit. Der Entwurf ist kein unveränderter Drop-in für alte Controller- oder JSON-Verträge. Die Formatübersetzung liegt vollständig im Adapter; der neue Page Builder verwendet direkt Schillers API. Daten-/Fragmenteditoren bleiben ausdrücklich ein eigener Ausbau.
 
 Das alte Listing verlangt Sections und sprachcodierte Dateinamen. Der neue Standardadapter darf diese Voraussetzungen nicht übernehmen. Der alte Editor unterstützt außerdem Mehrfachauswahl und eine numerische Sortierung; deshalb schlägt § 7 neben Boolean und Dropdown auch `integer` und `multiselect` vor, ohne bereits einen Dateneditor zu entwerfen.
 
@@ -82,7 +83,7 @@ Beispiel für `SiteConfig`, hier als JSON dargestellt:
 }
 ```
 
-`languageLabels: array<string,string>` ergänzt die Sprachcodes um Anzeigenamen. Im Polyglot-Profil kommen optionale Namen aus `schiller.yaml` unter `language_labels`; ohne Angabe dient der Code als Label. Legacy übernimmt vorhandene Namen aus `_data/languages.yml`. Beide Profile liefern dieselbe öffentliche Form. [neu]
+`languageLabels: array<string,string>` ergänzt die Sprachcodes um Anzeigenamen. Im Polyglot-Profil kommen optionale Namen aus `schiller.yaml` unter `language_labels`; ohne Angabe dient der Code als Label. Legacy übernimmt vorhandene Namen aus `_data/languages.yml`. Beide Profile liefern dieselbe öffentliche Form.
 
 `SiteConfig` ist eine geprüfte öffentliche Projektion, kein unbeschränkter Dump der Jekyll-Konfiguration oder aller Rollenregeln. Interne Konfigurationszugriffe geben dem Benutzer kein Recht, diese Dateien über `files()` oder andere Zugriffe auszulesen.
 
@@ -183,9 +184,9 @@ $new->file->path;                 // 'leistungen/vorsorge.md'
 $new->isPersisted();              // true
 ```
 
-`createPage()` erzeugt im neuen Adapter ein ungespeichertes Stammdokument mit den Anlage-Defaults, etwa published=false. Der Zielpfad ist adapterspezifisch und wird nicht vom Aufrufer festgelegt. Bestehende Seitengruppen, Entwürfe oder Dateien werden nicht überschrieben. Eine vorhandene reine Kategorie ohne Seitengruppe darf hingegen mit createPage unter derselben ID ein Stammdokument erhalten; es wird direkt als index.md angelegt, vorhandene Kinder und Metadaten bleiben erhalten. Im Legacy-Adapter ist Neuanlage nicht unterstützt. [geändert]
+`createPage()` erzeugt im neuen Adapter ein ungespeichertes Stammdokument mit den Anlage-Defaults, etwa published=false. Der Zielpfad ist adapterspezifisch und wird nicht vom Aufrufer festgelegt. Bestehende Seitengruppen, Entwürfe oder Dateien werden nicht überschrieben. Eine vorhandene reine Kategorie ohne Seitengruppe darf hingegen mit createPage unter derselben ID ein Stammdokument erhalten; es wird direkt als index.md angelegt, vorhandene Kinder und Metadaten bleiben erhalten. Im Legacy-Adapter ist Neuanlage nicht unterstützt.
 
-`isPersisted()` beschreibt den bestätigten Speicherzustand der Document-Instanz; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. `hasChanges()` vergleicht Header und Body mit dem geladenen beziehungsweise zuletzt gespeicherten Stand; jeder neue Entwurf gilt als ungespeicherte Änderung. `revision: ?string` enthält eine opake Version des bestätigten Quellstands, bei Entwürfen null. Ein erfolgreiches Speichern aktualisiert diesen Stand; unverändertes `save()` schreibt keine Bytes. Externe Änderungen werden bei Operationen geprüft, nicht durch laufendes Polling von `isPersisted()` erkannt. [geändert]
+`isPersisted()` beschreibt den bestätigten Speicherzustand der Document-Instanz; lokale ungespeicherte Änderungen an einem bestehenden Dokument ändern den Wert nicht. Ein Entwurf hat `file: null`, nach erfolgreichem Speichern eine FileEntry. `hasChanges()` vergleicht Header und Body mit dem geladenen beziehungsweise zuletzt gespeicherten Stand; jeder neue Entwurf gilt als ungespeicherte Änderung. `adapterState` ist ein freies, internes Array ohne vorgeschriebene Schlüssel oder Revisionsklasse. Nur der Adapter setzt und interpretiert dessen Inhalt; beispielsweise kann er darin seinen Speicherstand halten. Für den Dokumenttransport verwendet er JSON-fähige Werte ohne Ressourcen, Zugangsdaten oder ein von Schiller vorgeschriebenes Feldschema. Es gehört weder zum YAML-Header noch zu Jekyll-Defaults. Beim Erzeugen einer neuen Seite oder Übersetzung initialisiert der Adapter einen neuen Zustand, statt den Zustand des Originals zu kopieren. Ein erfolgreiches Speichern aktualisiert diesen Stand; unverändertes `save()` schreibt keine Bytes. Externe Änderungen werden bei Operationen geprüft, nicht durch laufendes Polling von `isPersisted()` erkannt. [geändert]
 
 Änderungen an einem bestehenden Dokument prüfen den geladenen Quellstand. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare.
 
@@ -193,19 +194,23 @@ Innerhalb derselben SchillerDir-Instanz wird pro ID/Sprache dieselbe Document-In
 
 ### § 5.1 Editor-Speicherung und Konflikte
 
-`save(?string $expectedRevision = null)` speichert genau dieses Dokument, gegebenenfalls einschließlich der notwendigen Elternpromotion nach § 11.2. Ohne Argument vergleicht es die beim Laden erfasste Revision; ein neuer Entwurf wird ausschließlich neu angelegt. Für einen HTTP-Editor muss die Anwendung die Revision des GET im Formular halten und beim POST ausdrücklich als `expectedRevision` übergeben. Ein frisches Laden im POST allein erkennt ein veraltetes Browserformular nicht. Die Revision gilt für ID, Sprache, Quellinhalt und schreibrelevante Konfiguration; sie ist weder Dateipfad noch Git-Commit. Abweichungen führen vor jedem Schreiben zu `ConflictException`. [neu]
+`save()` speichert genau dieses Dokument, gegebenenfalls einschließlich der notwendigen Elternpromotion nach § 11.2. Der Adapter liest den erwarteten Speicherstand aus seinem `adapterState`, prüft ihn gegen den aktuellen Bestand und aktualisiert ihn nach erfolgreichem Schreiben. Die Anwendung gibt keinen Revisionsparameter an und wertet keine Zustandsfelder aus. Ein neuer Entwurf wird ausschließlich neu angelegt; ein gespeichertes Document mit fehlendem/ungültigem Zustand wird nicht als Neuanlage oder unbedingtes Überschreiben behandelt. Abweichungen führen vor Schreiben zu ConflictException. [geändert]
 
-Die Anwendung übernimmt nur die tatsächlich bearbeiteten Schlüssel in den frisch geladenen Header. Fehlende Formularfelder sind keine Löschanweisung. Bekannte Felder werden typisiert; eigene Metadaten dürfen weiterhin direkt gesetzt werden. Explizites Entfernen erfolgt über `unset()`. Keinen partiellen Formular-Body als gesamten Header zuweisen und weder `getEffectiveHeader()` noch komplette Request-Objekte zurückschreiben. [Beispiel 18](../../examples/18-editor-save.php) zeigt GET/POST samt Konfliktbehandlung ohne Patch-Objekte. [neu]
+Bei getrennten HTTP-Anfragen muss der ursprüngliche Dokumentstand erhalten bleiben. Vorgeschlagener öffentlicher Transport: `Document::toArray(): array` liefert einen JSON-fähigen Stand aus id, language, header, content und `state`. `state` transportiert unverändert den internen Bearbeitungskontext einschließlich adapterState, Adapterbindung und Ausgangsstand für hasChanges; seine Felder sind keine von der Anwendung zu verwaltenden Revisionsparameter. `SchillerDir::restoreDocument(array $data): Document` bindet diesen Stand an einen neuen SchillerDir. Ein frisches getPage im POST darf den ursprünglichen Zustand nicht ersetzen. [geändert]
 
-`SchillerDir::saveDocuments(array $documents, array $expectedRevisions = []): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Beide Listen haben dieselbe Reihenfolge; eine nicht leere Revisionsliste muss genau so viele Einträge enthalten. Null ist nur bei neuen Documents zulässig; eine leere Liste verwendet die intern geladenen Revisionen. Doppelte Identitäten, fremde SchillerDir-Instanzen und leere Dokumentlisten werden abgewiesen. Alle Rechte, Feldwerte, Quellen und endgültigen Routen werden gemeinsam vorab validiert. Jeder Fehler verhindert den gesamten Schreibvorgang; die Batch-/Wiederherstellungsregeln aus § 8 gelten. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. [neu]
+restoreDocument nimmt ausschließlich diesen definierten Transport entgegen, keine beliebigen PHP-Objekte oder Klassennamen. Es prüft Identität, Adapter-/Site-Bindung, Struktur und aktuelle Leserechte; Rollen, Storage-Verbindungen und FileEntry-Pfade werden nicht aus Clientdaten übernommen. Der Adapter muss Herkunft und Bindung seines zurückgegebenen Zustands spätestens vor der Mutation prüfen. Fehlender, manipulierter, veralteter oder zu einem anderen Document gehörender Zustand darf Konfliktprüfungen und Rechte nicht umgehen. Ein bereits unter derselben Identität verwaltetes Document wird nicht still überschrieben; importiert wird in eine frische Bearbeitungseinheit. [neu]
+
+Die UI erhält den vollständigen Dokumentstand und verändert nur Header/Inhalt. Nicht sichtbare Headerkeys und der opake state bleiben erhalten; bewusstes Entfernen eines Headerkeys ist eine Löschanweisung. Ein partielles Formular wird in der Anwendung auf diesen erhaltenen Stand angewandt, nicht als kompletter Header interpretiert. getEffectiveHeader und allgemeine Requestfelder werden nicht zurückgeschrieben. [Beispiel 18](../../examples/18-editor-save.php) zeigt die beiden HTTP-Aktionen ohne externe Revisionsverwaltung. Der Transport ist Teil des Entwurfs, noch keine implementierte Hydration. [geändert]
+
+`SchillerDir::saveDocuments(array $documents): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Es verwendet denselben Adapteraufruf wie save: `write([$document])` beziehungsweise `write($documents)`. Doppelte Identitäten, fremde SchillerDir-Instanzen und leere Listen werden abgewiesen. Alle Zustände, Rechte, Feldwerte, Quellen und endgültigen Routen werden gemeinsam vorab validiert. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. Die Batch-/Wiederherstellungsregeln aus § 8 gelten; eine Schleife aus unabhängigen Einzelschreibvorgängen erfüllt diesen Vertrag nicht. [geändert]
 
 ### § 5.2 Objektzustand und erneute Abfragen
 
-Pro SchillerDir und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException. [neu]
+Pro SchillerDir und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException.
 
-Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert das Speichern des Entwurfs als Konflikt, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original. [neu]
+Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert das Speichern des Entwurfs als Konflikt, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original.
 
-SchillerDir ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer SchillerDir lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen. [neu]
+SchillerDir ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer SchillerDir lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen.
 
 ## § 6 Polyglot und Übersetzungen
 
@@ -272,7 +277,7 @@ Die Startseiten brauchen ebenfalls nur ihren Titel und Inhalt: `index.md` beispi
 
 ### § 6.2 Übersetzungen auflisten und lesen
 
-`getTranslations()` liefert je konfigurierter und lesbarer Sprache einen kleinen Eintrag, einschließlich Standardsprache. `exists` bezeichnet ausschließlich eine gespeicherte Quelldatei. `published: ?bool` liefert deren effektiven Veröffentlichungsstatus ohne Body-Laden; bei fehlender Datei ist der Wert null. exists und published sind unabhängig: eine unveröffentlichte Datei existiert weiterhin. Fehlende Varianten haben bereits ihren fest berechneten Zielpfad; weder Fallbacks noch ungespeicherte Entwürfe zählen als vorhanden. [geändert]
+`getTranslations()` liefert je konfigurierter und lesbarer Sprache einen kleinen Eintrag, einschließlich Standardsprache. `exists` bezeichnet ausschließlich eine gespeicherte Quelldatei. `published: ?bool` liefert deren effektiven Veröffentlichungsstatus ohne Body-Laden; bei fehlender Datei ist der Wert null. exists und published sind unabhängig: eine unveröffentlichte Datei existiert weiterhin. Fehlende Varianten haben bereits ihren fest berechneten Zielpfad; weder Fallbacks noch ungespeicherte Entwürfe zählen als vorhanden.
 
 ```php
 $page = $site->getPage('/leistungen/diagnostik');
@@ -292,9 +297,13 @@ assert($english->getTranslation('de') === $page);
 }
 ```
 
-Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ohne bekannten Entwurf ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument beziehungsweise `getTranslation(null)` liefert stets das Stammdokument oder wirft `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist. [geändert]
+Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Varianten und nicht lesbare Kandidaten werden vollständig ausgelassen, niemals als fehlend ausgegeben. Direktzugriff auf einen nicht lesbaren Pfad wirft `NotFoundException`; nur ein erlaubter, tatsächlich fehlender Übersetzungspfad ohne bekannten Entwurf ergibt `null`. Eine unbekannte Sprache ist ein Fehler. `getTranslation()` ohne Sprachargument beziehungsweise `getTranslation(null)` liefert stets das Stammdokument oder wirft `NotFoundException`, falls es fehlt beziehungsweise nicht lesbar ist.
 
-Ohne Sprachargument oder mit `null` liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2). [geändert]
+Ohne Sprachargument oder mit `null` liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2).
+
+Die Methoden getTranslation und getTranslations gehören zu Document/SchillerDir, nicht zum Adapter-Interface. Schiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab. [neu]
+
+Für das Listing liefert buildTree die vorhandenen lesbaren Varianten mit ID/Sprache/Quelle und Kategorienmetadaten. Schiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und wirft bei Mehrdeutigkeit einen Konflikt. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations. [neu]
 
 ### § 6.3 Eine Übersetzungsdatei anlegen
 
@@ -310,7 +319,7 @@ if (!$french->isPersisted()) {
 }
 ```
 
-Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender Übersetzung erzeugt `createIfMissing: true` eine ungespeicherte Kopie von Header und Inhalt des Stammdokuments mit `published: false`, auch wenn der Aufruf von einer anderen Übersetzung ausgeht. Geerbte Defaults werden nicht kopiert. Im neuen Adapter werden keine ID-/Sprachfelder erzeugt. Der Zielpfad ist nicht frei veränderbar. Wiederholte Abfragen desselben Entwurfs liefern innerhalb derselben Instanz dasselbe Objekt, auch ohne gesetztes createIfMissing. isPersisted bleibt bis zum Speichern false. [geändert]
+Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender Übersetzung erzeugt `createIfMissing: true` eine ungespeicherte Kopie von Header und Inhalt des Stammdokuments mit `published: false`, auch wenn der Aufruf von einer anderen Übersetzung ausgeht. Geerbte Defaults werden nicht kopiert. Im neuen Adapter werden keine ID-/Sprachfelder erzeugt. Der Zielpfad ist nicht frei veränderbar. Wiederholte Abfragen desselben Entwurfs liefern innerhalb derselben Instanz dasselbe Objekt, auch ohne gesetztes createIfMissing. isPersisted bleibt bis zum Speichern false.
 
 `null`, ein weggelassenes Sprachargument und die konfigurierte Standardsprache liefern immer das Stammdokument; es wird nicht durch Klonen einer Übersetzung angelegt; `createIfMissing` erzeugt in diesem Fall kein neues Original. Bei null beziehungsweise der Standardsprache hat `createIfMissing` keine Wirkung. Zum Klonen muss das Stammdokument gespeichert, lesbar und ohne ungespeicherte Änderungen sein. `getTranslation(..., createIfMissing: true)` und anschließend `save()` prüfen `createFile` und `createTranslation` am Ziel sowie createDirectory für erforderliche neue Elternordner. Eine zwischenzeitlich angelegte Datei wird nicht überschrieben. Für unverändert vorhandene Übersetzungen genügt zum Abruf Leserecht.
 
@@ -426,15 +435,15 @@ Beispielprojektion einer Felddefinition:
 }
 ```
 
-`getHeaderDefinitions()` ist auch als `SchillerDir::getHeaderDefinitions($id, $language = null)` verfügbar, damit ein Editor das Formular vor einer Neuanlage aufbauen kann. Die ID bezeichnet die geplante Seite, nicht den Elternordner. Schiller prüft Lesbarkeit des Kandidaten und berechnet dessen tatsächliche Zielablage; es erzeugt keine Datei und benötigt zum reinen Lesen der Definitionen kein Anlagerecht. Das Document delegiert mit seiner Identität. [neu]
+`getHeaderDefinitions()` ist auch als `SchillerDir::getHeaderDefinitions($id, $language = null)` verfügbar, damit ein Editor das Formular vor einer Neuanlage aufbauen kann. Die ID bezeichnet die geplante Seite, nicht den Elternordner. Schiller prüft Lesbarkeit des Kandidaten und berechnet dessen tatsächliche Zielablage; es erzeugt keine Datei und benötigt zum reinen Lesen der Definitionen kein Anlagerecht. Das Document delegiert mit seiner Identität.
 
-Felddefinitionen können optionale `presentation`-Angaben enthalten: `widget` (input, textarea, select, switch, checkboxes), `placeholder` und `checkLabel`. Beispiel: `description: {type: string, presentation: {widget: textarea}}` unter fields. `editable=false` ist serverseitig durchzusetzen, max_length bleibt eine Validierungsregel. Legacy bildet text/textarea/select/switch/multi und unterstützte Attribute aus `_section.yml` auf denselben Vertrag ab; Layout-Auswahl, Sortierung und ptags werden eingebaute Definitionen. Trennlinien (`hr`) sind Kategorienmetadaten für das Formular, keine Header-Schlüssel. Unbekannte Darstellungshinweise bleiben als Metadaten erhalten und erzeugen Diagnosen; der Editor rendert sie nicht als ungeprüftes HTML. [neu]
+Felddefinitionen können optionale `presentation`-Angaben enthalten: `widget` (input, textarea, select, switch, checkboxes), `placeholder` und `checkLabel`. Beispiel: `description: {type: string, presentation: {widget: textarea}}` unter fields. `editable=false` ist serverseitig durchzusetzen, max_length bleibt eine Validierungsregel. Legacy bildet text/textarea/select/switch/multi und unterstützte Attribute aus `_section.yml` auf denselben Vertrag ab; Layout-Auswahl, Sortierung und ptags werden eingebaute Definitionen. Trennlinien (`hr`) sind Kategorienmetadaten für das Formular, keine Header-Schlüssel. Unbekannte Darstellungshinweise bleiben als Metadaten erhalten und erzeugen Diagnosen; der Editor rendert sie nicht als ungeprüftes HTML.
 
 `FieldType` ist ein string-backed Enum (`string`, `boolean`, `integer`, `select`, `multiselect`). Dropdown-Optionen sind `FieldOption`-Objekte mit `value: string` und `label: string`; Mehrfachauswahl speichert `list<string>`. `hasDefault` unterscheidet fehlenden Default von explizitem `null`; `nullable` regelt, ob `null` erlaubt ist. Unbekannte Metafelder bleiben erhalten, dürfen manuell angelegt werden und werden beim Erzeugen einer Übersetzung kopiert. Felddefinitionen validieren bekannte Schlüssel; zusätzliche Metadaten benötigen keine vorherige Registrierung. Adaptereigene Standardfelder wie `description` und `permalink` werden als eingebaute Definitionen bereitgestellt; dateilokale `page_id`, `pid` und `lang` sind im Polyglot-Profil nicht zulässig. Geerbtes `lang` aus `_config.yml` darf in `getEffectiveHeader()` auftauchen, wird jedoch niemals in den gespeicherten Header zurückgeschrieben. Neue Pflichtfelder dürfen Bestandsseiten lesbar lassen, verhindern jedoch ein nicht valides Speichern mit präzisen Feldfehlern.
 
 ## § 8 Rechte und erlaubte Aktionen
 
-Die UI kann erlaubte Aktionen abfragen; jede Mutation prüft sie erneut. Ein `rename=true` bestätigt die Eignung der Quelle einschließlich ihres Teilbaums, nicht irgendein noch unbekanntes Ziel. Zielrechte, Konflikte und notwendige Promotionen werden erst bei rename geprüft. `write` bezieht sich auf gespeicherten Bestand; Entwürfe benötigen die Anlageaktionen. Capabilities sind keine dauerhafte Freigabe. [geändert]
+Die UI kann erlaubte Aktionen abfragen; jede Mutation prüft sie erneut. Ein `rename=true` bestätigt die Eignung der Quelle einschließlich ihres Teilbaums, nicht irgendein noch unbekanntes Ziel. Zielrechte, Konflikte und notwendige Promotionen werden erst bei rename geprüft. `write` bezieht sich auf gespeicherten Bestand; Entwürfe benötigen die Anlageaktionen. Capabilities sind keine dauerhafte Freigabe.
 
 ```php
 $actions = $site->capabilities('/leistungen/diagnostik'); // Capabilities
@@ -484,7 +493,7 @@ Nicht gespeicherte Entwürfe oder ungespeicherte Änderungen in betroffenen Doku
 
 Im Legacy-Profil bleibt nur das Schreiben bestehender Seitendateien erlaubt: write kann true sein; createFile, createDirectory, createTranslation, rename und delete bleiben false. Die Beschränkung gilt auch für Administratoren. Rename verschiebt auch Kategorien samt Nachfahren gemäß [Verschiebelogik](../verschieben.md); delete am Stammdokument mit Nachfahren bleibt bis zu einem gesonderten Löschvertrag abgewiesen. Die Beispiele 12/13 betreffen Blatt-Seitengruppen. Automatische Umstellung einer Elternseite nach § 11.2 ist eine interne Ablageoperation mit unveränderter ID.
 
-Das Löschen einer Übersetzung außerhalb der Standardsprache entfernt immer nur deren konkrete Datei, auch bei einer Kategorie mit Kindern. Deren Kinder bleiben erhalten, der Knoten kann zur reinen Kategorie werden. Das Löschen des Stammdokuments ist nur ohne Nachfahren in sämtlichen Sprachen erlaubt; `isLeaf()` des bereinigten UI-Baums reicht dafür nicht. Die Root-Seitengruppe `/` kann nicht gelöscht werden. Begleitdateien und Ordner werden durch Document::delete niemals rekursiv entfernt, auch bei einer Blattgruppe nicht. Fremde Metadaten bleiben bestehen. Kein automatischer Rückbau von index zu Blatt. [neu]
+Das Löschen einer Übersetzung außerhalb der Standardsprache entfernt immer nur deren konkrete Datei, auch bei einer Kategorie mit Kindern. Deren Kinder bleiben erhalten, der Knoten kann zur reinen Kategorie werden. Das Löschen des Stammdokuments ist nur ohne Nachfahren in sämtlichen Sprachen erlaubt; `isLeaf()` des bereinigten UI-Baums reicht dafür nicht. Die Root-Seitengruppe `/` kann nicht gelöscht werden. Begleitdateien und Ordner werden durch Document::delete niemals rekursiv entfernt, auch bei einer Blattgruppe nicht. Fremde Metadaten bleiben bestehen. Kein automatischer Rückbau von index zu Blatt.
 
 ## § 9 URLs gehören zum Dokument
 
@@ -541,9 +550,9 @@ Ein vom Adapter sicher erkannter Polyglot-Fallback wie `/fr/leistungen/diagnosti
 
 Ohne Permalink folgt die URL dem natürlichen Jekyll-Ausgabeweg. Ein explizites `permalink: /medizin/diagnostik/` ergibt für das Original `/medizin/diagnostik/` und für die englische Übersetzung `/en/medizin/diagnostik/`, jeweils zuzüglich `baseurl`. Innerhalb einer Sprachgruppe muss derselbe unlokalisierte Ausgabeweg entstehen; unterschiedliche übersetzte Slugs werden im festen Polyglot-Profil ohne IDs nicht unterstützt. Permalinks bestimmen keine Schiller-Gruppenidentität. Konflikte mit anderen Ausgaben werden vor dem Speichern abgelehnt. Nicht unterstützte Jekyll-Plugins, Platzhalter oder Build-Sonderfälle erzeugen Diagnosen statt erfundener URLs.
 
-Eine Änderung des gruppenweiten Permalinks wird durch direktes Setzen/Entfernen desselben Headerwerts an allen betroffenen vorhandenen Documents und `saveDocuments([...])` gespeichert. Die Validierung betrachtet deren gemeinsamen Endzustand; sequentielles save darf keinen vorübergehend widersprüchlichen Gruppenvertrag erzeugen. Nicht lesbare/schreibbare Varianten verhindern die Änderung der Gruppe. Fehlende Sprachen werden nicht angelegt. [Beispiel 19](../../examples/19-save-language-group.php) zeigt diesen Ausnahmefall ohne Patch-Objekte. [neu]
+Eine Änderung des gruppenweiten Permalinks wird durch direktes Setzen/Entfernen desselben Headerwerts an allen betroffenen vorhandenen Documents und `saveDocuments([...])` gespeichert. Die Validierung betrachtet deren gemeinsamen Endzustand; sequentielles save darf keinen vorübergehend widersprüchlichen Gruppenvertrag erzeugen. Nicht lesbare/schreibbare Varianten verhindern die Änderung der Gruppe. Fehlende Sprachen werden nicht angelegt. [Beispiel 19](../../examples/19-save-language-group.php) zeigt diesen Ausnahmefall ohne Patch-Objekte.
 
-`getUrl()` berechnet die vorgeschlagene Route aus dem aktuellen Document, also auch aus ungespeicherten Headeränderungen. Dagegen löst getDocumentByUrl ausschließlich gespeicherte, veröffentlichbare Routen auf und liefert deren verwaltetes Document, das lokal bereits verändert sein kann. Deshalb ist eine Rückwärtsauflösung der Vorschau-URL vor save nicht garantiert. Neue Entwürfe und published=false erzeugen keine öffentliche Route; die tatsächliche Vorschau und der Deploystand bleiben Sache des Page Builders. Bei einem Polyglot-Fallback zeigt die UI ausdrücklich die tatsächlich gelieferte Sprache; ein Speichern des deutschen Documents bearbeitet Deutsch, nicht die angefragte französische URL. [neu]
+`getUrl()` berechnet die vorgeschlagene Route aus dem aktuellen Document, also auch aus ungespeicherten Headeränderungen. Dagegen löst getDocumentByUrl ausschließlich gespeicherte, veröffentlichbare Routen auf und liefert deren verwaltetes Document, das lokal bereits verändert sein kann. Deshalb ist eine Rückwärtsauflösung der Vorschau-URL vor save nicht garantiert. Neue Entwürfe und published=false erzeugen keine öffentliche Route; die tatsächliche Vorschau und der Deploystand bleiben Sache des Page Builders. Bei einem Polyglot-Fallback zeigt die UI ausdrücklich die tatsächlich gelieferte Sprache; ein Speichern des deutschen Documents bearbeitet Deutsch, nicht die angefragte französische URL.
 
 Die URL wird aus der aktuellen Dateiablage berechnet, nicht aus der endungslosen ID erraten. Bei `/leistungen` ändert eine automatische Umstellung von `leistungen.md` auf `leistungen/index.md` die natürliche URL von `/leistungen.html` auf `/leistungen/`; die ID bleibt gleich. Ein expliziter Permalink bleibt erhalten und kann die URL stabil halten. Der Routenindex wird nach dem Schreiben erneuert. Alte natürliche URLs werden nicht automatisch als Redirect weitergeführt; Redirect-Erzeugung ist ein gesondertes Thema.
 
@@ -570,8 +579,10 @@ final class SchillerDir
     public function createPage(string $id, array $header = [], string $content = ''): Document;
     public function getDocumentByUrl(string $url): Document;
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet;
-    /** @param list<Document> $documents @param list<?string> $expectedRevisions */
-    public function saveDocuments(array $documents, array $expectedRevisions = []): void;
+    /** @param list<Document> $documents */
+    public function saveDocuments(array $documents): void;
+    /** Bindet einen mit Document::toArray erzeugten Bearbeitungsstand an diese Instanz. */
+    public function restoreDocument(array $data): Document;
 }
 
 /**
@@ -579,13 +590,16 @@ final class SchillerDir
  * @property-read string $language
  * @property-read bool $isRootDocument
  * @property-read ?FileEntry $file
- * @property-read ?string $revision
  */
 final class Document
 {
     /** @var array<string, YamlValue> */
     public array $header;
     public string $content;
+    /** @internal Freies Adapter-Array; keine definierten Schlüssel, kein YAML-Header. */
+    public array $adapterState = [];
+    /** JSON-fähiger Dokumentstand; nur header/content durch die UI bearbeiten. */
+    public function toArray(): array;
     /** @return array<string, YamlValue> */
     public function getEffectiveHeader(): array;
     public function getHeaderDefinitions(): FieldSet;
@@ -595,7 +609,7 @@ final class Document
     public function getUrl(bool $absolute = false): string;
     public function isPersisted(): bool;
     public function hasChanges(): bool;
-    public function save(?string $expectedRevision = null): void;
+    public function save(): void;
     public function rename(string $id): void;
     public function delete(): void;
 }
@@ -634,11 +648,11 @@ final class TranslationInfo
 
 `getPage('/leistungen', 'en')` kann eine vorhandene Übersetzung direkt laden, auch wenn das Stammdokument fehlt. Ohne Sprache wird die Standardsprache geladen. Derselbe Zugriff funktioniert in beiden Adaptern ohne Dateiendung. `getTranslation(null)` liefert das Stammdokument, am Original sich selbst. `createIfMissing: true` liefert bei fehlender, erlaubter neuer Polyglot-Variante ein ungespeichertes Document; Legacy lehnt Neuanlage ab.
 
-`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden PHP-8.1-kompatible readonly-Eigenschaften (das Referenzprojekt nutzt PHP 8.1) und können mit Phore Schema validiert werden; Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet, nicht aus unkontrollierten Requests hydratisiert. [geändert]
+`getHeaderDefinitions()` liefert FieldSet/FieldDefinition für bekannte Header-Einträge; zusätzliche manuelle Metadaten bleiben erlaubt. Headerwerte stehen direkt im Array. Die kleinen DTOs verwenden readonly-Eigenschaften und können mit Phore Schema validiert werden. Das Schiller-Grundgerüst verlangt PHP >=8.3, während der alte Page Builder PHP 8.1 nutzt; eine Einbindung benötigt daher eine explizite Laufzeit-/Paketentscheidung. Documents werden von Schiller mit Adapter-/Storage-Verbindung verwaltet. Der kontrollierte Transport über toArray/restoreDocument ersetzt keine Rechte- oder Speicherprüfung; beliebige Requestobjekte werden nicht als Documents hydratisiert. [geändert]
 
 ## § 11 Filesystem und austauschbare Formatadapter
 
-SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load, write, Tree-Building, Übersetzungen, URL-Zuordnung und strukturelle Dateioperationen. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen.
+SchillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load/create, gemeinsames write, Quellpfade, vorhandenen Baum, URL-Zuordnung und strukturelle Dateioperationen. Übersetzungsauswahl, verfügbare Sprachen und Originalkopien orchestriert Schiller gemeinsam. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Schiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen. [geändert]
 
 PhoreDirectory und PhoreFile stellen Enumeration, Text, YAML und Front Matter bereit: genWalk(), get_contents(), get_yaml(), get_front_matter(), put_front_matter(). Die Header-Arrays werden direkt übernommen; kein zweiter YAML-Parser. Schiller prüft alle geplanten Quell-/Zielzugriffe, auch die vom Adapter intern berechneten. Wiederverwendbare Abläufe dürfen intern in einer AbstractAdapter-Basis liegen.
 
@@ -668,7 +682,9 @@ Die Legacy-ID wird aus dem tatsächlichen Bestand und dem PID-/Sprachsuffix abge
 
 Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließlich eigener Header-Metadaten. Es legt keine Seiten, Sprachdateien oder Ordner an und führt kein Rename/Delete aus. PID/lang bleiben beim Schreiben vorhanden und müssen zur Quelldatei passen. Polyglot leitet Sprache ausschließlich aus den gespiegelten Pfaden ab und verwaltet alle Neuanlagen und Umstrukturierungen intern.
 
-`write(Document, expectedRevision)` und `writeMany(documents, expectedRevisions)` verwenden denselben internen Ablauf für Validierung, Revisionsvergleich, Planung und Commit; write ist der Ein-Dokument-Fall. Ebenso gibt es einen gemeinsamen kontrollierten Lese-/Baum-/Übersetzungszugriff. Der Adapter liefert die Formatzuordnung und den vollständigen Operationsplan; er erhält keinen unbeschränkten Filesystem-Ausweg. Interne Konfigurations- und Strukturinventarisierung darf benötigte Dateien prüfen, aber keine verborgenen Informationen in Rückgaben ausgeben. Die Beispiele sind Verträge für implementierende Klassen, keine Erlaubnis zur direkten unkontrollierten Benutzung im Editor. [neu]
+Das Adapter-Interface enthält genau einen Schreibauftrag `write(array $documents): void`. Es gibt weder writeMany noch Revisionsargumente. Jeder Adapter entscheidet selbst über seinen freien adapterState und prüft alle aufgeführten Documents gegen den aktuellen Speicherstand. Die gemeinsame Schiller-Schicht verwaltet Instanzen, Root-Beziehungen, Übersetzungsauswahl und Originalkopien; der Adapter stellt load/create mit expliziter Sprache, getSourcePath und den vorhandenen Baum bereit. [geändert]
+
+Der kontrollierte Storage muss Lesen, Existenz-/Inventarprüfung, Root-Grenzen, Rechte und bedingtes gemeinsames Schreiben ermöglichen. PhoreDirectory ist der Standardzugang; SiteStorage bleibt der vorgeschlagene Connector-Vertrag und benötigt bei der Implementierung noch konkrete Methodensignaturen und Fehlergarantien. Es wird hier kein bereits vorhandener Remote-Connector behauptet. Adapter-Stümpfe binden den Storage sichtbar im Konstruktor, überspringen aber keine dieser Prüfungen. [neu]
 
 ### § 11.2 Neue Unterseite: Blatt wird Kategorie mit Index
 
@@ -700,8 +716,10 @@ Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner le
 
 Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 
+- Gemeinsame Übersetzungslogik mit beiden Adaptern; create bekommt explizite Sprache und frischen eigenen Zustand.
+- Fehlender/manipulierter/fremder Transportzustand darf nie Konfliktprüfungen umgehen; Kopien übernehmen keinen Speicherzustand des Originals.
 - Derselbe Translation-Entwurf mit und ohne createIfMissing; getPage liefert dieselbe Instanz, Listings bleiben exists=false.
-- Browser-Revision aus GET gegen einen inzwischen geänderten Stand im POST; keine verlorenen Headerwerte oder stillen Überschreibungen.
+- Dokumenttransport aus GET/POST erhält den adapterState unverändert; der Adapter erkennt inzwischen geänderte Quellen ohne Revisionsparameter.
 - Gemeinsamer Permalink-Wechsel: Endzustand statt einzelner Zwischenschritte validieren, Teilfehler vollständig zurücknehmen.
 - Eine reine Kategorie mit createPage um ihre Indexseite ergänzen; keine Überschreibung oder Kinderverluste.
 - Headerdefinitionen vor Neuanlage, Legacy-Formtypen und Sprachnamen ohne zusätzlichen Formatzugriffs-Layer.

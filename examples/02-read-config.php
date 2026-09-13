@@ -1,28 +1,12 @@
 <?php
 
-declare(strict_types=1);
+// Verwendet den lesenden $site aus 01.
+$config = $site->config();
+$config->languages;       // ['de', 'en', 'fr']
+$config->defaultLanguage; // 'de'
+$config->languageLabels;  // ['de' => 'de', 'en' => 'en', 'fr' => 'fr']
+$config->url;             // 'https://example.org'
+$config->baseurl;         // ''
 
-// ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
-// Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
-
-use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\SiteConfig;
-use Phore\FileSystem\PhoreDirectory;
-
-return static function (PhoreDirectory $root): SiteConfig {
-    $site = new SchillerDir($root);
-    $config = $site->config();
-
-    // Erwartete Werte für die Fixture aus Proposal § 6/7:
-    // $config->languages       === ['de', 'en', 'fr']
-    // $config->languageLabels  === ['de' => 'de', 'en' => 'en', 'fr' => 'fr']
-    // Optional in schiller.yaml: language_labels: {de: Deutsch, en: English, fr: Français}
-    // Dann liefert languageLabels diese Namen; Legacy übernimmt seine Sprachdatei.
-    // $config->defaultLanguage === 'de'
-    // $config->url             === 'https://example.org'
-    // $config->baseurl         === ''
-    // $config->adapter->id     === 'jekyll-polyglot'
-    // $config->adapter->version === 1
-    // config() prüft bei einem späteren Aufruf den aktuellen Dateistand erneut.
-    return $config;
-};
+// Ergänzung in schiller.yaml: language_labels: {de: Deutsch, en: English, fr: Français}
+// Beim nächsten config()-Aufruf erscheinen diese Namen. Keine manuelle YAML-Abfrage.

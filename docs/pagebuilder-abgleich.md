@@ -1,6 +1,6 @@
 # Review: Schiller-API und Page Builder
 
-Stand: 2026-09-12. Dies ist eine Prüfung des Entwurfs, keine getestete Library-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
+Stand: 2026-09-13. Dies ist eine Prüfung des Entwurfs, keine getestete Library-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
 
 ## Ergebnis und Integrationsgrenze
 
@@ -18,10 +18,10 @@ Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch 
 | getTranslation('fr') | Nein | Vorhandene oder bereits vorbereitete Variante; andernfalls null |
 | getTranslation('fr', createIfMissing: true) | Nein | Bestehende Variante oder Kopie des gespeicherten, unveränderten Originals; neues published=false |
 | getTranslations() | Nein | Alle lesbaren konfigurierten Sprachen; exists zählt Dateien, published deren effektiven Status (fehlend: null) |
-| createPage(id, header, content) | Nein | Neuer Root-Entwurf, file/revision=null; bei belegter Seitengruppe/Entwurf Exception; reine Kategorie kann eine Indexseite erhalten |
+| createPage(id, header, content) | Nein | Neuer Root-Entwurf, file=null, eigener Anlagezustand; bei belegter Seitengruppe/Entwurf Exception; reine Kategorie kann eine Indexseite erhalten |
 | header/content zuweisen oder unset | Nein | Ausschließlich lokales Document bearbeiten |
-| save(expectedRevision) | Ja, außer No-op | Dieses Document speichern; bei neuem Kind notwendige Elternpromotion aller vorhandenen Sprachen |
-| saveDocuments(documents, expectedRevisions) | Ja, außer No-op | Explizite gemeinsame Speicherung dieser Documents; endgültige Gruppe gemeinsam prüfen |
+| save() | Ja, außer No-op | Dieses Document speichern; bei neuem Kind notwendige Elternpromotion aller vorhandenen Sprachen |
+| saveDocuments(documents) | Ja, außer No-op | Explizite gemeinsame Speicherung dieser Documents; endgültige Gruppe gemeinsam prüfen |
 | Root-Document.rename(newId) / site.rename(id, newId) | Ja, außer identischer ID | Gesamter Teilbaum, alle vorhandenen Sprachen/Begleitdateien; nötige Zielpromotion |
 | Übersetzungs-Document.delete() | Ja | Nur diese Datei; auch bei Kategorieindex, Kinder bleiben |
 | Root-Document.delete() | Ja | Nur Blattgruppe mit allen Varianten; keine Nachfahrenlöschung, / geschützt |
@@ -38,7 +38,7 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 | pid/lang als Editoradresse | getPage(id, language) | PID/Suffix intern zu ID/Sprache zuordnen, Identitätsheader erhalten | Neue Route/DTO mit separater ID/Sprache; ftype nicht mehr vom Browser vorgeben |
 | Fehlende Seite: found=false | NotFoundException; fehlende Translation: null | Autorisierte Fehlfälle einheitlich behandeln | HTTP-Schicht bildet in ihre Fehlerantwort ab; kein implizites create |
 | Header und Markdown/HTML laden | header, content, file, getEffectiveHeader | Bestehendes Format verlustarm lesen | Bearbeitbare Werte von geerbten Defaults und technischen Attributen trennen |
-| Gesamtes Editorformular speichern | Header-Schlüssel/Body gezielt setzen, save(expectedRevision) | Unbekannte Werte erhalten; Typen prüfen; unveränderte Teile bewahren | Revisionswert aus GET behalten; ausgelassene Felder nicht löschen; keine PID/lang-Manipulation |
+| Gesamtes Editorformular speichern | Header-Schlüssel/Body gezielt setzen, save() | Unbekannte Werte erhalten; Typen prüfen; unveränderte Teile bewahren | Vollständigen Dokumentstand aus GET erhalten; ausgelassene Felder nicht löschen; keine PID/lang-Manipulation |
 | published, order, ptags, Layout | Felddefinitionen + direkte Headerwerte | Bool/Integer/Mehrfachauswahl/Layoutauswahl vereinheitlichen | JSON typisiert senden; published beim Lesen aus effektiven Werten bestimmen, nicht pauschal false |
 | Section-Formulare text/textarea/select/switch/multi | getHeaderDefinitions(), presentation | Unterstützte Altdefinitionen auf denselben Vertrag abbilden | Renderer unterstützt Widgets, disabled/editable, maxlength; hr bleibt Layoutmetadatum |
 | Eigene YAML-Headerwerte | Direkt im header-Array | Beim Lesen/Schreiben und Translation-Klonen bewahren | Fehlende Definition bedeutet keine Löschung und kein Schreibverbot |
@@ -61,7 +61,7 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 | Übersetzung vorbereiten, erneut ohne Option laden | Dasselbe bearbeitete Objekt; noch keine Datei | Identitätsverwaltung berücksichtigt Entwürfe; exists bleibt false |
 | Dialog abbrechen und später öffnen | Keine Speicherung | Neue Bearbeitungseinheit lädt Bestand; kein Reload durch getPage derselben Instanz suggerieren |
 | Headerfeld im Formular ausgelassen | Bisherigen Wert erhalten | Nur explizite Zuweisung/unset anwenden; eigene verschachtelte Daten mitprüfen |
-| Zwei Browser bearbeiten dieselbe Seite | Zweiter veralteter Save meldet Konflikt | GET-Revision gegen tatsächlichen Speicherstand vergleichen; nicht nur frischen POST-Ladestand |
+| Zwei Browser bearbeiten dieselbe Seite | Zweiter veralteter Save meldet Konflikt | Adapter prüft seinen mittransportierten Zustand gegen den aktuellen Bestand; kein Ersetzen durch frisches Laden |
 | Erste Unterseite erzeugen | Neues Kind; Elternseiten werden zu Index | Sämtliche vorhandenen Elternsprachen und Vorfahren vorab planen, nie fehlende Übersetzungen erzeugen |
 | Zwei Kinder gemeinsam speichern | Ein gemeinsamer Vorgang | Gemeinsame Promotion deduplizieren, Endzustand prüfen |
 | Kategorie mit unsichtbarem Kind verschieben/löschen | Keine versteckte Teilmutation | Vollständige Inventarisierung unabhängig vom bereinigten UI-Baum; Root-Delete abweisen |
@@ -75,11 +75,11 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 
 ## Umsetzungskriterien
 
-Die spätere Implementierung braucht Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit veralteter Revision, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
+Die spätere Implementierung braucht Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit veraltetem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
 
 Revisionsvergleich und Dateiänderung müssen gegen Konkurrenz abgesichert sein. Ein Phore-Lesezugriff plus späteres ungeschütztes Schreiben genügt dafür nicht. SiteStorage muss die erforderliche bedingte Mutation/Batchfähigkeit bereitstellen oder eine durch die Anwendung garantierte Serialisierung nutzen; andernfalls wird die betroffene Mutation vorab als nicht unterstützt abgewiesen. Das ist kein vorgeschlagenes Benutzer-Sperrsystem.
 
-Der ursprüngliche Container verwendet PHP 8.1. Die Signaturskizzen bleiben deshalb bei readonly-Eigenschaften statt readonly-Klassen. Die tatsächliche Composer-/Laufzeitintegration ist bei der Implementierung zu verifizieren.
+Der ursprüngliche Page-Builder-Container verwendet PHP 8.1, das aktuelle Schiller-Repository-Grundgerüst verlangt in composer.json PHP >=8.3. Eine Integration in die alte Laufzeit erfordert daher eine bewusste Laufzeit-/Paketentscheidung; kompatible Signaturskizzen allein lösen diese Differenz nicht. Composer-Anbindung und produktive Klassen sind noch nicht umgesetzt.
 
 ## Geprüfte Referenzen
 
@@ -89,3 +89,11 @@ Der ursprüngliche Container verwendet PHP 8.1. Die Signaturskizzen bleiben desh
 - [Seitenliste](https://github.com/micx-io/micx-pagebuilder/blob/main/www/elements/page-list.html): alte Listing-Struktur und Sprachwahl.
 - [FileCtrl](https://github.com/micx-io/micx-pagebuilder/blob/main/src/Ctrl/FileCtrl.php), [Dateneditor](https://github.com/micx-io/micx-pagebuilder/blob/main/www/pages/edit-data.html), [Übersetzungsdaten](https://github.com/micx-io/micx-pagebuilder/blob/main/www/pages/translation.html): bewusst noch offene Datenfunktionen.
 - [Änderungsmeldung](https://github.com/micx-io/micx-pagebuilder/blob/main/src/Mw/SendRedisMessageMw.php), [Dockerfile](https://github.com/micx-io/micx-pagebuilder/blob/main/Dockerfile): externe Benachrichtigungen und PHP-Basis.
+
+## Vereinfachter Adaptervertrag und Dokumenttransport
+
+getTranslation und getTranslations bleiben am Document. Schiller setzt sie mit gemeinsamem Instanzbestand, expliziter Sprache für load/create, vorhandenem Baum und getSourcePath um. Insbesondere berechnet der Adapter weiterhin Legacy-Suffixe beziehungsweise gespiegelte Sprachpfade; dafür braucht der Page Builder keinen Übergangslayer.
+
+Im Adapter gibt es genau write(array $documents), auch für den Ein-Dokument-Fall. Der freie adapterState jedes Documents ist ausschließlich Adapterangelegenheit und wird nicht im Seitenheader gespeichert. Gemeinsam zu speichernde Dokumente werden vorab als ein Endzustand validiert; ein Einzelschreib-Loop ist kein Ersatz.
+
+Der neue HTTP-Entwurf toArray/restoreDocument transportiert den vollständigen Bearbeitungsstand samt opakem Zustand. Er benötigt bei der Implementierung eine geprüfte Site-/Adapter-/Identitätsbindung und darf weder Clientrollen übernehmen noch bei fehlendem Zustand unbedingtes Schreiben erlauben. Die UI bearbeitet nur header/content und transportiert den übrigen Zustand unverändert. Beispiel 18 macht diese Einbindung sichtbar; eine installierte Transportimplementierung wird noch nicht behauptet.

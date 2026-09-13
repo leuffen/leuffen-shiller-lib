@@ -1,21 +1,45 @@
-# PHP-Beispiele zum Schiller-Entwurf
+# Seiten lesen, bearbeiten und übersetzen
 
-Die [API](../docs/proposals/2026-09-12-schiller-seiten-api.md) ist noch nicht implementiert. Die Dateien zeigen Aufrufe und erwartete Rückgaben, keine erfolgreichen Integrationstests. Adapterklassen sind ausschließlich dokumentierte Methodenstümpfe.
+## Eine vorhandene Übersetzung bearbeiten
 
-Die Anwendung verwendet endungslose, sprachneutrale Seiten-IDs: `/`, `/leistungen`, `/leistungen/diagnostik`. `getPage('/leistungen')` funktioniert unabhängig davon, ob der Adapter eine Legacy-Datei, eine Blattdatei oder eine Indexdatei lädt. Physische Pfade stehen nur in optionalen FileEntry-Referenzen und im technischen Dateilisting.
+Schiller öffnet ein extern bereitgestelltes Website-Quellverzeichnis. Dieser typische Ablauf liest eine Seite, bearbeitet ihre vorhandene englische Übersetzung und liefert deren Ziel-URL:
 
 ```php
-require '/path/to/application/vendor/autoload.php';
-$example = require '/path/to/leuffen-shiller-lib/examples/07-read-translations.php';
-$translations = $example(phore_dir('/path/to/working-copy/docs'));
+$site = new SchillerDir(
+    phore_dir('/srv/site/docs'),
+    access: new AccessContext(role: 'user'),
+);
+$page = $site->getPage('/leistungen/diagnostik');
+$english = $page->getTranslation('en');
+$english->header['title'] = 'Our diagnostics';
+$english->save();
+echo $english->getUrl(); // /en/leistungen/diagnostik.html
 ```
 
-Die Beispiele 01–13 sowie 16–19 liefern jeweils eine Closure für PhoreDirectory. Beispiele 14/15 definieren Klassen mit dem gemeinsamen [Adapter-Interface](Adapter.php). Beispiel 18 nimmt zusätzlich ein optionales Formular-Array entgegen. Jeder funktionale Methodenstumpf wirft absichtlich LogicException. SiteStorage, DTOs und Composer-Anbindung bleiben Teil des Entwurfs; kein VCS oder Netzwerkzugriff.
+SchillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage und seine Konfliktprüfung. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
 
-## Konfiguration und Basisfixture
+## Darstellungsform und gemeinsamer Kontext
+
+Die [API](../docs/proposals/2026-09-12-schiller-seiten-api.md) ist ein Vorschlag, noch keine implementierte Library. Die PHP-Dateien sind lesbare Anwendungsausschnitte mit erwarteten Ergebnissen; sie werden nicht als nacheinander auszuführende Skripte oder Demo-Closures eingebunden. 14/15 sind ausdrücklich Interface-Implementierungsskizzen mit werfenden Methodenstümpfen für Framework-Entwickler.
+
+Einmaliger Namenskontext für die Anwendungsausschnitte:
+
+```php
+use Leuffen\Schiller\AccessContext;
+use Leuffen\Schiller\ConflictException;
+use Leuffen\Schiller\SchillerDir;
+use Leuffen\Schiller\UrlNotResolvableException;
+```
+
+Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Anbindung und SiteStorage sind noch Entwurfsbestandteile. Das vorhandene Repository-Grundgerüst verlangt PHP >=8.3 und hat noch nicht Schillers Namespace; die Beispiele behaupten keine bereits installierbare API.
+
+Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist das in 01 geöffnete PhoreDirectory, `$site` je nach Kennzeichnung dessen lesender oder schreibender SchillerDir. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
+
+## Gemeinsame Ausgangsdaten
+
+`docs/_config.yml`:
 
 ```yaml
-# docs/_config.yml
 url: https://example.org
 plugins: [jekyll-polyglot]
 languages: [de, en, fr]
@@ -30,48 +54,101 @@ defaults:
     values: {lang: fr}
 ```
 
+`docs/schiller.yaml` für diese Beispiel-Arbeitskopie:
+
 ```yaml
-# docs/schiller.yaml; Felder und Rechte im Proposal § 7
 schema_version: 1
 adapter: {id: jekyll-polyglot, version: 1}
+fields:
+  title: {type: string, label: Seitentitel, required: true}
+  short_title: {type: string, label: Kurztitel, max_length: 60}
+  published: {type: boolean, label: Veröffentlicht, default: false}
+  layout:
+    type: select
+    label: Layout
+    options:
+      - {value: default, label: Standard}
+      - {value: landing, label: Landingpage}
+presets:
+  standard: [title, short_title, published, layout]
+scopes:
+  - {path: "**", presets: [standard]}
+permissions:
+  default: deny
+  roles:
+    reader:
+      allow:
+        - {path: "**", actions: [read]}
+      deny:
+        - {path: "schiller.yaml", actions: [read]}
+        - {path: "_config.yml", actions: [read]}
+    user:
+      allow:
+        - {path: "**", actions: [read, write, createFile, createDirectory, createTranslation, rename, delete]}
+      deny:
+        - {path: "schiller.yaml", actions: [read, write]}
+        - {path: "_config.yml", actions: [read, write]}
+    admin:
+      allow:
+        - {path: "**", actions: [read, write, createFile, createDirectory, createTranslation, rename, delete]}
 ```
 
-Die Basisfixture enthält leistungen/diagnostik.md und en/leistungen/diagnostik.md mit Titel und published=true; fr fehlt. Keine IDs, Sprache oder Permalinks im einzelnen Header. Die Kategorie /leistungen hat in dieser Fixture keine eigene Seite. Die vollständigen Headerdefinitionen und Pfadrechte stehen in Proposal §§ 6–7. Die Minimalauswahl allein erteilt keine Schreibrechte.
+Diese gemeinsame Fixture erlaubt die gezeigten Bearbeitungen; die Adaptergrenzen und eine zusätzliche Host-Policy gelten weiterhin. Ohne AccessContext wird reader verwendet. Ohne explizite Schreibfreigabe macht ein Methodenname wie createPage keinen Zugriff schreibbar. Engere Bereiche und zusätzliche Feldtypen zeigt Proposal § 7.
 
-Jedes Schreibbeispiel betrachtet eine frische Arbeitskopie. Beispiele 16/17 haben ausdrücklich eigene Fixtures. Die Anwendung vergibt Rollen serverseitig; der Host und Storage müssen erforderliche Aktionen ebenfalls erlauben.
+`docs/leistungen/diagnostik.md`:
 
-| Datei | Aufgabe |
+```markdown
+---
+title: Diagnostik
+short_title: Diagnostik
+published: true
+---
+## Diagnostik
+
+Beispielinhalt.
+```
+
+`docs/en/leistungen/diagnostik.md`:
+
+```markdown
+---
+title: Diagnostics
+published: true
+---
+## Diagnostics
+```
+
+Die Basisfixture enthält keine französische Übersetzung und keine leistungen/index.md. Deshalb ist /leistungen zunächst eine reine Kategorie mit einer Unterseite. Kein einzelner Header enthält PID, lang oder einen Permalink. Die Startseite wäre index.md direkt im Root; Sprachvarianten spiegeln diesen Pfad unter en/ beziehungsweise fr/.
+
+## Lesereihe
+
+| Datei | Neue Leserfrage |
 |---|---|
-| [01-initialize.php](01-initialize.php) | Verzeichnis/Connector initialisieren |
-| [02-read-config.php](02-read-config.php) | Konfiguration lesen |
-| [03-list-files.php](03-list-files.php) | Physische Inspektion mit Dateipfaden |
-| [04-list-pages.php](04-list-pages.php) | Baum mit IDs, optionalen Dateien und allen Sprachzuständen |
-| [05-read-page-parts.php](05-read-page-parts.php) | Header/Body lesen |
-| [06-read-fields-and-permissions.php](06-read-fields-and-permissions.php) | Headerdefinitionen und Rechte |
-| [07-read-translations.php](07-read-translations.php) | Varianten und Root über getTranslation(null) |
-| [08-create-translation.php](08-create-translation.php) | Originalkopie vorbereiten und speichern |
-| [09-update-page-parts.php](09-update-page-parts.php) | Bekannte und eigene Metadaten bearbeiten |
-| [10-create-page.php](10-create-page.php) | Neue Seite anhand ihrer ID |
-| [11-resolve-urls.php](11-resolve-urls.php) | URL zum Document mit ID/Sprache |
-| [12-rename-page.php](12-rename-page.php) | Blattgruppe umbenennen/verschieben |
-| [13-delete-page.php](13-delete-page.php) | Blattgruppe oder einzelne Übersetzung löschen |
-| [14-legacy-adapter.php](14-legacy-adapter.php) | Vorhandene Legacy-Dateien laden und bearbeiten |
-| [15-polyglot-adapter.php](15-polyglot-adapter.php) | Neue Ablage, Schreiben und Teilbaumoperationen |
-| [16-create-child-page.php](16-create-child-page.php) | Blattseite wird beim ersten Kind zur Indexseite |
-| [17-move-page-tree.php](17-move-page-tree.php) | Teilbaum unter eine Blattseite verschieben |
-| [18-editor-save.php](18-editor-save.php) | GET/POST mit Formularrevision, gezielten Headeränderungen und Konflikt |
-| [19-save-language-group.php](19-save-language-group.php) | Permalink einer Sprachgruppe ausdrücklich gemeinsam speichern |
+| [00-read-edit-save.php](00-read-edit-save.php) | Wie sieht ein vollständiger typischer Bearbeitungsablauf aus? |
+| [01-initialize.php](01-initialize.php) | Wie öffne ich das Root und wechsle Zugriffskontext oder Connector? |
+| [02-read-config.php](02-read-config.php) | Welche Site-Konfiguration und Sprachen wurden erkannt? |
+| [03-list-files.php](03-list-files.php) | Welche tatsächlichen Dateien gibt es? |
+| [04-list-pages.php](04-list-pages.php) | Wie unterscheide ich Kategorien, Seiten und Sprachzustände im Baum? |
+| [05-read-page-parts.php](05-read-page-parts.php) | Welche Werte sind gespeichert und welche nur geerbt? |
+| [06-read-fields-and-permissions.php](06-read-fields-and-permissions.php) | Wie baue ich ein Formular auf und erkenne erlaubte Aktionen? |
+| [07-read-translations.php](07-read-translations.php) | Welche Übersetzungen existieren und wie komme ich zum Original? |
+| [08-create-translation.php](08-create-translation.php) | Wie bereite ich eine fehlende Übersetzung vor und speichere sie? |
+| [09-update-page-parts.php](09-update-page-parts.php) | Wie ändere oder entferne ich einzelne Headerwerte und den Body? |
+| [10-create-page.php](10-create-page.php) | Wie lege ich eine Seite oder eine Kategorieseite an? |
+| [11-resolve-urls.php](11-resolve-urls.php) | Wie komme ich vom Document zur URL und zurück, auch bei Fehlern? |
+| [12-rename-page.php](12-rename-page.php) | Wie verschiebe ich eine Seite einschließlich ihrer Sprachen? |
+| [13-delete-page.php](13-delete-page.php) | Wie lösche ich eine Sprachdatei oder eine Blattgruppe? |
+| [14-legacy-adapter.php](14-legacy-adapter.php) | Wie implementiert ein Adapter den bisherigen Bestand? |
+| [15-polyglot-adapter.php](15-polyglot-adapter.php) | Welche Ablageregeln setzt der neue Adapter um? |
+| [16-create-child-page.php](16-create-child-page.php) | Was geschieht beim ersten Kind einer Blattseite? |
+| [17-move-page-tree.php](17-move-page-tree.php) | Was geschieht beim Verschieben eines Teilbaums unter ein Blatt? |
+| [18-editor-save.php](18-editor-save.php) | Wie überlebt der Dokumentstand getrennte HTTP-Anfragen? |
+| [19-save-language-group.php](19-save-language-group.php) | Wie ändere ich den Permalink einer Sprachgruppe gemeinsam? |
 
-## Verhalten
+## Zuständigkeiten und Grenzen
 
-Document.id bleibt bei einer internen Umstellung auf Indexablage gleich. file ist bei Entwürfen null, nach dem Speichern eine FileEntry. isPersisted() beschreibt den bestätigten Speicherzustand, nicht ungespeicherte Änderungen. hasChanges() zeigt lokale Änderungen; revision schützt mit save(expectedRevision) vor veralteten Formularständen. Header ist ein Array; auch zusätzliche manuelle Werte bleiben erhalten und werden in neue Übersetzungen kopiert. getHeaderDefinitions() beschreibt bekannte Schlüssel und optionale Darstellungshinweise; am SchillerDir auch vor Neuanlage mit ID/Sprache abfragbar.
+Document.save und SchillerDir.saveDocuments führen beide zum selben Adapterauftrag write(list<Document>). Der Adapter liest und aktualisiert seinen freien adapterState selbst. Es gibt keine Revisionsparameter und kein Schema für adapterinterne Schlüssel. Das kontrollierte toArray/restoreDocument transportiert den Bearbeitungsstand im Webeditor; Headeränderungen brauchen weiterhin keine Patch-Objekte.
 
-getTranslation() oder null liefert das Stammdokument. createIfMissing:true liefert im Polyglot-Profil bei fehlender Sprache eine ungespeicherte Originalkopie mit published=false. Vorhandene Varianten bleiben unangetastet. Ein bereits vorbereiteter Entwurf wird auch ohne createIfMissing erneut zurückgegeben, bleibt im Listing aber exists=false. Die Listen zeigen alle lesbaren Sprachen mit exists, auch fehlende. Eine Kategorie ohne Seite hat file=null und kann ausschließlich ihre Kinder öffnen.
+Document.getTranslation/getTranslations bleiben öffentliche Komfortmethoden. Schiller verwaltet Instanzen, konfigurierten Sprachumfang und Originalkopien. Adapter liefern vorhandene Quellen, laden/bereiten eine explizite Sprache vor und bestimmen auch fehlende Quellpfade. Das [Interface](Adapter.php) enthält deshalb keine zusätzlichen Übersetzungsmethoden.
 
-Beim ersten Kind beziehungsweise beim Verschieben unter eine Blattseite stellt Polyglot deren bestehende Sprachdateien gemeinsam auf index.md/.html um. Rename einer Kategorie bewegt den gesamten Teilbaum einschließlich Begleitdateien und Übersetzungen. Neue Elternordner werden nach Rechteprüfung angelegt. Natürliche URLs können sich dabei ändern; IDs und explizite Permalinks werden nur nach ihrem jeweiligen Vertrag geändert. Ausführliche [Verschiebelogik und spätere Tests](../docs/verschieben.md).
-
-Legacy unterstützt nur das Bearbeiten vorhandener Seiten/Sprachdateien; keine Anlage, kein Rename/Delete, keine Indexumstellung. Der Adapter bildet IDs intern auf die vorhandenen pid.lang.md/html-Dateien ab. Die Formatabbildung liegt vollständig im Adapter. Die alte Controller-/UI-Struktur muss dennoch auf die Document-/TreeNode-Verträge umgestellt werden; der [Page-Builder-Abgleich](../docs/pagebuilder-abgleich.md) nennt jeden Ablauf und die noch ausgeschlossenen Dateneditoren.
-
-save() speichert ein Document, saveDocuments([...]) ausdrücklich mehrere als gemeinsamen Endzustand. rename/delete schreiben dagegen sofort und speichern keine lokalen Bearbeitungen mit. delete einer Übersetzung entfernt nur deren Datei, auch bei einem Kategorieindex; delete am Original ist nur ohne Nachfahren in sämtlichen Sprachen erlaubt. Die Root-Gruppe / ist geschützt. Baum und Editorrevisionen nach Strukturänderungen erneut laden.
-
-Eine reine Kategorie kann im Polyglot-Profil eine eigene Seite erhalten: createPage('/leistungen', header: ['title' => 'Leistungen'])->save() legt in der Basisfixture leistungen/index.md an; bestehende Kinder bleiben erhalten. Bereits vorhandene Seitengruppen werden nicht überschrieben. TranslationInfo.published zeigt den effektiven Veröffentlichungsstatus ohne Body-Laden; bei exists=false ist published=null.
+Legacy bearbeitet ausschließlich vorhandene Dateien. Polyglot unterstützt auch Anlage, Elternpromotion und Teilbaumoperationen; fehlende Übersetzungen werden bei Bewegungen nicht erzeugt. Die [Verschiebelogik](../docs/verschieben.md) beschreibt vollständige Reichweite und spätere Testfälle. Der [Page-Builder-Abgleich](../docs/pagebuilder-abgleich.md) trennt unterstützte Seitenabläufe von nötigen UI-Anpassungen und späteren Dateneditoren.

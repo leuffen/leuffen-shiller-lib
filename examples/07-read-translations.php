@@ -1,39 +1,13 @@
 <?php
 
-declare(strict_types=1);
+// Verwendet den lesenden $site aus 01.
+$page = $site->getPage('/leistungen/diagnostik');
+$translations = $page->getTranslations(); // array<string, TranslationInfo>
+// de: exists=true,  published=true, path='leistungen/diagnostik.md'
+// en: exists=true,  published=true, path='en/leistungen/diagnostik.md'
+// fr: exists=false, published=null, path='fr/leistungen/diagnostik.md'
 
-// ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
-// Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
-
-use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\TranslationInfo;
-use Phore\FileSystem\PhoreDirectory;
-
-/** @return Closure(PhoreDirectory): array<string, TranslationInfo> */
-return static function (PhoreDirectory $root): array {
-    $site = new SchillerDir($root);
-    $page = $site->getPage('/leistungen/diagnostik');
-    $translations = $page->getTranslations(); // array<string, TranslationInfo>
-
-    // de: language='de', path='leistungen/diagnostik.md', exists=true, isRootDocument=true, published=true
-    // en: language='en', path='en/leistungen/diagnostik.md', exists=true, isRootDocument=false, published=true
-    // fr: language='fr', path='fr/leistungen/diagnostik.md', exists=false, isRootDocument=false, published=null
-    foreach ($translations as $language => $info) {
-        if (!$info->exists) {
-            continue; // Kein Body geladen; auch ein Build-Fallback zählt nicht als Datei.
-        }
-        $document = $page->getTranslation($language); // ?Document
-        if ($document !== null) {
-            $title = $document->header['title'] ?? null;
-            // Für en: 'Diagnostics'.
-            assert($document->getTranslation() === $page);
-        }
-    }
-
-    assert($page->getTranslation() === $page);
-    assert($page->getTranslation(null) === $page);
-    assert($page->getTranslation('de') === $page);
-    assert($page->getTranslation('fr') === null);
-    // Verborgene Varianten/Kandidaten fehlen vollständig, keine scheinbar fehlende Datei.
-    return $translations;
-};
+$english = $page->getTranslation('en'); // gespeichertes Document
+$french = $page->getTranslation('fr');  // null
+$original = $english->getTranslation(); // identisch zu $page; null als Argument bedeutet dasselbe
+// Nicht lesbare Varianten fehlen ganz im Listing; nicht als exists=false tarnen.

@@ -13,89 +13,72 @@ use Leuffen\Schiller\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
-// ENTWURF: Stümpfe, keine produktive Implementierung. Alle Rückgaben sind beschrieben.
+// Implementierungsskizze für Framework-Entwickler; Verhalten steht jeweils am Methodenstumpf.
 final class LegacyAdapter implements Adapter
 {
     public function __construct(private SiteStorage $storage) {}
 
-    /** Normalisiert Legacy-Konfiguration, _section.yml und Sprachquelle; keine automatische Migration. */
+    /** Liest Root-Konfiguration und normalisiert Adapter, Sprachen und Anzeigenamen. */
     public function loadConfig(): SiteConfig
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::loadConfig');
     }
 
-    /** ID /leistungen/diagnostik + de => vorhandene leistungen/diagnostik.de.md oder .html. PID/lang prüfen, Endung intern auflösen. */
-    public function load(string $id, ?string $language = null): Document
+    /** Ordnet ID/Sprache vorhandenen pid.lang.md/html-Dateien zu; für fehlende Sprache nur eindeutig ableitbaren Kandidaten liefern, sonst UnsupportedOperationException. Keine Anlage. */
+    public function getSourcePath(string $id, string $language): string
+    {
+        throw new \LogicException('Entwurfsstub: LegacyAdapter::getSourcePath');
+    }
+
+    /** Liest vorhandene Variante samt PID/lang und eigenen Metadaten; setzt adapterState für den gelesenen Speicherstand. */
+    public function load(string $id, string $language): Document
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::load');
     }
 
-    /** Wirft UnsupportedOperationException: keine neuen Seiten oder Ordner im Legacy-Vertrag. */
-    public function create(string $id, array $header = [], string $content = ''): Document
+    /** Wirft UnsupportedOperationException für jede neue Seite/Sprachdatei, auch für Admin. */
+    public function create(string $id, string $language, array $header = [], string $content = ''): Document
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::create');
     }
 
-    /** Bearbeitet ausschließlich bestehende Datei; erhält unbekannte Metadaten und konsistente PID/lang. Fehlende Datei nicht neu anlegen. */
-    public function write(Document $document, ?string $expectedRevision = null): void
+    /** Prüft eigenen adapterState aller Documents, bearbeitet nur vorhandene Dateien als gemeinsamen Batch, erhält PID/lang und unbekannte Headerwerte. Niemals anlegen. @param list<Document> $documents */
+    public function write(array $documents): void
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::write');
     }
 
-    /**
-     * Speichert ausschließlich vorhandene Legacy-Documents gemeinsam; PID/lang und eigene Werte erhalten.
-     * Revisionen in Listenreihenfolge vergleichen; alle Rechte vorab prüfen; bei Fehler gesamten Batch zurücknehmen.
-     * @param list<Document> $documents
-     * @param list<?string> $expectedRevisions
-     */
-    public function writeMany(array $documents, array $expectedRevisions = []): void
-    {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::writeMany');
-    }
-
-    /** Entfernt Sprachsuffix und Endung aus IDs. _section.yml erzeugt auch Kategorien mit file=null und erhaltenen Metadaten. */
+    /** Liest _section.yml-Kategorien und vorhandene Sprachdateien. Keine fehlenden Varianten erzeugen; das ergänzt Schiller. */
     public function buildTree(string $id = '/'): PageTree
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::buildTree');
     }
 
-    /** null liefert Root. Vorhandene Sprachdatei normal liefern; fehlend: null oder bei createIfMissing UnsupportedOperationException. */
-    public function getTranslation(Document $document, ?string $language = null, bool $createIfMissing = false): ?Document
-    {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslation');
-    }
-
-    /** Alle lesbaren konfigurierten Sprachen mit exists, auch wenn im Legacy-Profil keine Neuanlage erlaubt ist. */
-    public function getTranslations(Document $document): array
-    {
-        throw new \LogicException('Entwurfsstub: LegacyAdapter::getTranslations');
-    }
-
-    /** Alte Jekyll-Defaults plus Dateiheader einschließlich PID/lang; Originalheader nicht verändern. */
+    /** Liefert aktuellen Header plus Jekyll-Defaults ohne Rückschreiben. @return array<string, mixed> */
     public function getEffectiveHeader(Document $document): array
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getEffectiveHeader');
     }
 
-    /** Bildet _section.yml-Formtypen, Layouts, Sortierung und ptags auf Definitionen/presentation ab; auch für eine geplante ID rein lesend. */
+    /** Normalisiert Legacy-Formen, Layouts, order und ptags samt Darstellungshinweisen; keine Datei anlegen. */
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getHeaderDefinitions');
     }
 
-    /** Nur belegbare Legacy-Ausgabewege oder Permalinks verwenden; unbekannte Build-Semantik ausdrücklich melden. */
+    /** Berechnet belegbare Legacy-Ausgabewege/Permalinks; unbekannte Build-Semantik ausdrücklich melden. */
     public function getUrl(Document $document, bool $absolute = false): string
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getUrl');
     }
 
-    /** Ordnet eine belegbare Legacy-Route ihrer ID und tatsächlichen Sprache zu; keine Polyglot-Route erfinden. */
+    /** Ordnet belegbare Legacy-Route der tatsächlichen ID/Sprache zu; keine Polyglot-Routen erfinden. */
     public function getDocumentByUrl(string $url): Document
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::getDocumentByUrl');
     }
 
-    /** read/write bei erlaubtem Bestand; createFile/createDirectory/createTranslation/rename/delete immer false, auch für Admin. */
+    /** read/write bei erlaubtem Bestand; sämtliche Anlage-/Strukturaktionen false, auch für Admin. */
     public function capabilities(string $id, ?string $language = null): Capabilities
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::capabilities');
@@ -107,7 +90,7 @@ final class LegacyAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: LegacyAdapter::rename');
     }
 
-    /** Wirft UnsupportedOperationException: nur vorhandene Legacy-Inhalte bearbeiten. */
+    /** Wirft UnsupportedOperationException: keine Legacy-Löschungen. */
     public function delete(Document $document): void
     {
         throw new \LogicException('Entwurfsstub: LegacyAdapter::delete');

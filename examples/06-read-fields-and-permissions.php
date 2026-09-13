@@ -1,35 +1,19 @@
 <?php
 
-declare(strict_types=1);
+// Verwendet den schreibenden $site aus 00; Definitionen: README / Proposal § 7.
+$page = $site->getPage('/leistungen/diagnostik');
+$fields = $page->getHeaderDefinitions();
+$fields->get('short_title')->maxLength; // 60
+$fields->get('published')->type->value; // 'boolean'
+$fields->get('layout')->options;       // default=Standard, landing=Landingpage
 
-// ENTWURFSBEISPIEL: Schiller-API noch nicht implementiert. Siehe examples/README.md.
-// Rückgaben sind erwartete Werte, keine gemessenen Ausgaben.
+// Vor dem Öffnen eines Neuanlageformulars: erzeugt noch kein Document.
+$newFields = $site->getHeaderDefinitions('/leistungen/vorsorge');
+$actions = $site->capabilities('/leistungen/vorsorge');
+$actions->createFile; // true in der Basisfixture
 
-use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\SchillerDir;
-use Phore\FileSystem\PhoreDirectory;
-
-return static function (PhoreDirectory $root): FieldSet {
-    $site = new SchillerDir($root, access: new AccessContext(role: 'user'));
-    $page = $site->getPage('/leistungen/diagnostik');
-    $fields = $page->getHeaderDefinitions();
-    $shortTitle = $fields->get('short_title'); // FieldDefinition
-    $published = $fields->get('published');   // FieldDefinition
-    $layout = $fields->get('layout');         // FieldDefinition
-
-    // shortTitle: key='short_title', type->value='string', maxLength=60
-    // published: type->value='boolean', hasDefault=true, default=false
-    // layout: type->value='select'; options: list<FieldOption>
-    // options enthalten {value:'default', label:'Standard'} und
-    // {value:'landing', label:'Landingpage'}.
-    // Formular für eine noch nicht vorhandene Seite: keine Datei/kein Entwurf entsteht.
-    $newPageFields = $site->getHeaderDefinitions('/leistungen/vorsorge', language: 'de');
-    // presentation kann z.B. widget='textarea' für description liefern.
-    $actions = $site->capabilities('/leistungen/diagnostik'); // Capabilities
-    // Für user und eine vorhandene Seite:
-    // read=true, write=true, createFile=false, createDirectory=false, createTranslation=false,
-    // createTemplate=false, rename=true, delete=true. save() prüft selbst erneut, auch ohne UI-Prüfung.
-    // rename=true bewertet die Quelle; erst rename(newId) prüft das konkrete Ziel.
-    return $fields;
-};
+$existingActions = $site->capabilities($page->id);
+$existingActions->write;  // true; save prüft erneut
+$existingActions->rename; // true bewertet die Quelle, kein noch unbekanntes Ziel
+// Der Formrenderer verwendet optional presentation.widget, z.B. textarea.
+// Unbekannte eigene Header-Schlüssel brauchen keine Definition.

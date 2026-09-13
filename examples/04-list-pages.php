@@ -1,43 +1,23 @@
 <?php
 
-declare(strict_types=1);
+// Verwendet den lesenden $site aus 01; Basisfixture mit Kategorie und einer Unterseite.
+$tree = $site->pages('/leistungen');
+$category = $tree->root;
+$category->id;            // '/leistungen'
+$category->file;          // null: Kategorie hat keine eigene Seite
+$category->getDocument(); // null: nur aufklappen, keinen Editor öffnen
+$category->isLeaf();      // false
 
-// ENTWURFSBEISPIEL: keine implementierte Schiller-Laufzeit.
-use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\TreeNode;
-use Phore\FileSystem\PhoreDirectory;
+$node = $category->children[0];
+$node->id;                // '/leistungen/diagnostik'
+$node->file->path;        // 'leistungen/diagnostik.md'
+$node->isLeaf();          // true; unabhängig davon, ob eine eigene Seite existiert
 
-return static function (PhoreDirectory $root): PageTree {
-    $site = new SchillerDir($root);
-    $tree = $site->pages('/leistungen');
-    // root.id='/leistungen', root.path=null, children: list<TreeNode>.
-    // Basisfixture: Kategorie ohne index.md => file=null, getDocument()=null.
-    // Mit Index: file.path='leistungen/index.md'; kein zusätzlicher Index-Knoten.
-    // Dieselbe ID wäre auch für eine alleinige leistungen.md gültig.
-    // file=null: nur aufklappen, kein Seitenlink/Editor; metadata bleibt verfügbar.
-
-    $visit = static function (TreeNode $node) use (&$visit): void {
-        $id = $node->id; // z.B. '/leistungen/diagnostik'; keine Endung oder Sprache.
-        $metadata = $node->metadata; // z.B. Legacy-Kategoriebeschreibung; sonst [].
-        foreach ($node->translations as $language => $info) {
-            // de/en vorhanden, fr fehlt: alle lesbaren Sprachen mit exists.
-            // info.path ist eine interne Quellreferenz, kein Navigationsschlüssel.
-            $exists = $info->exists;
-            $published = $info->published; // true/false bei Bestand, null bei fehlender Datei.
-            // Statusanzeige braucht keinen vollständigen Body.
-        }
-        $document = $node->getDocument();
-        if ($document !== null) {
-            $url = $document->getUrl(); // '/leistungen/diagnostik.html'
-            $english = $document->getTranslation('en');
-            // Navigation/Editor verwenden document.id und language.
-        }
-        $leaf = $node->isLeaf(); // Nur Kinderlosigkeit; unabhängig von eigener Seite.
-        foreach ($node->children as $child) {
-            $visit($child);
-        }
-    };
-    $visit($tree->root);
-    return $tree;
-};
+foreach ($node->translations as $language => $info) {
+    echo $language;
+    $info->exists;    // de=true, en=true, fr=false
+    $info->published; // de=true, en=true, fr=null; kein Body-Laden nötig
+}
+$document = $node->getDocument(); // Document: id='/leistungen/diagnostik', language='de'
+// Mit leistungen/index.md zeigt category.file auf diese Datei; Index ist kein zusätzliches Kind.
+// metadata enthält ggf. Legacy-Section-Beschreibung/Formularhinweise.
