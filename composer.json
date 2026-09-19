@@ -1,37 +1,13 @@
 {
-  "name": "phore/project",
+  "name": "leuffen/leuffen-shiller-lib",
   "type": "library",
-  "description": "",
+  "description": "Typed access layer for Jekyll/Schiller website sources",
   "license": "MIT",
-  "authors": [
-    {
-      "name": "Matthias Leuffen",
-      "email": "leuffen@continue.de"
-    }
-  ],
-  "autoload": {
-    "psr-4": {
-      "Phore\\FileSystem\\": "src/"
-    },
-    "files": [
-      "src/functions.php"
-    ]
-  },
-  "require": {
-    "php" : ">=8.3",
-    "ext-yaml": "*",
-    "ext-json": "*"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^13.2.2"
-  },
-  "suggest": {
-  },
-  "config": {
-    "preferred-install": "source",
-    "allow-plugins": {
-      "php-http/discovery": false
-    }
-  },
-  "minimum-stability": "dev"
+  "authors": [{"name":"Matthias Leuffen","email":"leuffen@continue.de"}],
+  "autoload": {"classmap":["src/"]},
+  "require": {"php":">=8.3","ext-yaml":"*","ext-json":"*"},
+  "require-dev": {"phpunit/phpunit":"^12.0"},
+  "config": {"preferred-install":"source","allow-plugins":{"php-http/discovery":false}},
+  "minimum-stability":"dev",
+  "scripts": {"test":"phpunit"}
 }
