@@ -1,12 +1,12 @@
 # Review: Schiller-API und Page Builder
 
-Stand: 2026-09-13. Dies ist eine Prüfung des Entwurfs, keine getestete Library-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
+Stand: 2026-09-25. Dies ist ein Abgleich des Vertrags und des ersten Library-Ausbaus, keine getestete Page-Builder-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
 
 ## Ergebnis und Integrationsgrenze
 
 Die Seitenabläufe sind mit dem überarbeiteten Vertrag darstellbar. Ein unveränderter Austausch der bisherigen PHP-Helfer reicht allerdings nicht: Die alte UI erwartet flache pid/lang/ftype-Daten und Sections, während Schiller Documents mit sprachneutraler ID und TreeNodes liefert. Page Builder Neo soll direkt diese API verwenden. Alle Unterschiede der Quellformate, Header und Dateien löst der ausgewählte Schiller-Adapter; kein zusätzlicher Format- oder Übergangslayer ist erforderlich.
 
-Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch nicht entworfen. Die YAML-Daten- und Fragmenteditoren, freie Kopien aus beliebigen Quellsprachen sowie die Preview-/VCS-/Benachrichtigungsabläufe sind entweder bewusst ausgeschlossen oder Aufgabe der Anwendung. Legacy darf gemäß Produktentscheidung ausschließlich bestehende Seiten und Übersetzungen bearbeiten. Seine bisherige Kopierfunktion zur Neuanlage entfällt.
+Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch nicht entworfen. Die YAML-Dateneditoren für Fragmentübersetzungen und Öffnungszeiten sind auf Nutzerwunsch für den ersten Page-Builder-Ausbau zurückgestellt. Freie Kopien aus beliebigen Quellsprachen sowie die Preview-/VCS-/Benachrichtigungsabläufe sind entweder bewusst ausgeschlossen oder Aufgabe der Anwendung. Legacy darf gemäß Produktentscheidung ausschließlich bestehende Seiten und Übersetzungen bearbeiten. Seine bisherige Kopierfunktion zur Neuanlage entfällt.
 
 Die [TreeNode-Konvention v1](tree-node.md) ist der gemeinsame JSON-Vertrag für Seiten- und Dateiansicht, angelehnt an MUI Rich Tree View. PageTree::toArray liefert root/diagnostics, FileListing::toArray entries/diagnostics. Die UI übergibt [payload.root] beziehungsweise payload.entries an einen passenden Tree-Renderer; Schiller-spezifische Spalten lesen data.translations und data.metadata. Auswahl, Expansion und Seitenöffnung sind getrennte UI-Aktionen. Für eine reine Kategorie darf nicht der ganze Knoten disabled werden, da sonst auch Aufklappen ausfallen kann. Konvention und Beispiel sind noch Entwurf, keine getestete MUI-Integration.
 
@@ -77,11 +77,11 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 
 ## Umsetzungskriterien
 
-Die spätere Implementierung braucht Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit leerem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
+Die Implementierung braucht weitere Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit leerem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
 
 Revisionsvergleich und bedingtes Schreiben sind ein späterer Ausbau; die mitgelieferten Adapter werden wegen fehlender Revisionsunterstützung nicht abgewiesen. Der externe Git-/Anwendungsablauf koordiniert Versionsverwaltung und parallele Bearbeitung. Schiller garantiert zunächst keine Erkennung veralteter Editorstände. Die getrennt beschriebenen Quell-/Zielprüfungen und Wiederherstellung bei Gruppenoperationen bleiben bestehen.
 
-Der ursprüngliche Page-Builder-Container verwendet PHP 8.1, das aktuelle Schiller-Repository-Grundgerüst verlangt in composer.json PHP >=8.3. Eine Integration in die alte Laufzeit erfordert daher eine bewusste Laufzeit-/Paketentscheidung; kompatible Signaturskizzen allein lösen diese Differenz nicht. Composer-Anbindung und produktive Klassen sind noch nicht umgesetzt.
+Der ursprüngliche Page-Builder-Container verwendet PHP 8.1; die inzwischen vorhandenen Schiller-Laufzeitklassen verlangen in composer.json PHP >=8.3. Der neue Builder benötigt deshalb eine PHP-8.3-Laufzeit. Die vorhandene Implementierung erfüllt noch nicht den gesamten in diesem Dokument beschriebenen Vertrag; insbesondere Feldrechte, URL-Kollisionen und der HTTP-Dokumenttransport benötigen weitere Prüfung.
 
 ## Geprüfte Referenzen
 

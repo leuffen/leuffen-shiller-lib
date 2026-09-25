@@ -13,6 +13,7 @@ use Leuffen\Schiller\FieldSet;
 use Leuffen\Schiller\FileEntry;
 use Leuffen\Schiller\FileKind;
 use Leuffen\Schiller\NotFoundException;
+use Leuffen\Schiller\MoveCapableStorage;
 use Leuffen\Schiller\PageTree;
 use Leuffen\Schiller\SchillerTreeData;
 use Leuffen\Schiller\SiteConfig;
@@ -21,6 +22,7 @@ use Leuffen\Schiller\TranslationInfo;
 use Leuffen\Schiller\TreeNode;
 use Leuffen\Schiller\UnsupportedOperationException;
 use Leuffen\Schiller\UrlNotResolvableException;
+use Leuffen\Schiller\ValidationException;
 
 abstract class AbstractJekyllAdapter implements Adapter
 {
@@ -506,6 +508,76 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
 
 final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 {
+    private function assertId(string $id): void
+    {
+        $parts = explode('/', trim($id, '/'));
+        $languages = $this->loadConfig()->languages;
+        foreach ($parts as $part) {
+            if ($part === '.' || $part === '..' || str_starts_with($part, '_') || str_starts_with($part, '.')) {
+                throw new ValidationException("Invalid page ID: $id");
+            }
+        }
+        if ($id !== '/' && end($parts) === 'index') {
+            throw new ValidationException("Index is a reserved page ID: $id");
+        }
+        if ($id !== '/' && in_array($parts[0], $languages, true)) {
+            throw new ValidationException("Page ID overlaps a language directory: $id");
+        }
+    }
+
+    /** @return list<string> */
+    private function parents(string $id): array
+    {
+        $parts = explode('/', trim($id, '/'));
+        array_pop($parts);
+        $parents = [];
+        while ($parts) {
+            $parents[] = '/' . implode('/', $parts);
+            array_pop($parts);
+        }
+
+        return array_reverse($parents);
+    }
+
+    /** @return array<string,string> */
+    private function promotions(array $ids): array
+    {
+        $moves = [];
+        foreach ($ids as $id) {
+            foreach ($this->parents($id) as $parent) {
+                foreach ($this->loadConfig()->languages as $language) {
+                    $source = $this->getSourcePath($parent, $language);
+                    if (!$this->s()->exists($source) || $this->s()->isDirectory($source)) {
+                        continue;
+                    }
+                    $extension = pathinfo($source, PATHINFO_EXTENSION);
+                    if (!in_array($extension, ['md', 'html'], true)) {
+                        throw new ConflictException("Unsupported page file: $source");
+                    }
+                    $target = $this->prefix($language) . trim($parent, '/') . '/index.' . $extension;
+                    if ($source === $target) {
+                        continue;
+                    }
+                    if ($this->s()->exists($target) || $this->s()->isDirectory($target)) {
+                        throw new ConflictException("Index target occupied: $target");
+                    }
+                    $moves[$source] = $target;
+                }
+            }
+        }
+
+        return $moves;
+    }
+
+    private function assertTreeWithoutLinks(string $path): void
+    {
+        foreach ($this->s()->list($path) as $entry) {
+            if ($entry['type'] === 'directory') {
+                $this->assertTreeWithoutLinks($path . '/' . $entry['name']);
+            }
+        }
+    }
+
     public function loadConfig(): SiteConfig
     {
         $schiller = $this->s()->exists('schiller.yaml')
@@ -581,6 +653,33 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         return $found[0] ?? $candidates[0];
     }
 
+    public function getUrl(Document $document, bool $absolute = false): string
+    {
+        $permalink = $document->header['permalink'] ?? null;
+        if (is_string($permalink) && $permalink !== '') {
+            return parent::getUrl($document, $absolute);
+        }
+
+        $source = $document->file?->path
+            ?? $this->getSourcePath($document->id, $document->language);
+        $isIndex = $document->id === '/'
+            || preg_match('#(^|/)index\.(md|html)$#', $source) === 1
+            || $this->s()->isDirectory(
+                $this->prefix($document->language) . trim($document->id, '/'),
+            );
+        $path = $document->id === '/'
+            ? '/'
+            : ($isIndex ? $document->id . '/' : $document->id . '.html');
+        $config = $this->loadConfig();
+        if ($document->language !== $config->defaultLanguage) {
+            $path = '/' . $document->language . ($path === '/' ? '/' : $path);
+        }
+
+        return $absolute && $config->url !== ''
+            ? rtrim($config->url, '/') . $path
+            : $path;
+    }
+
     public function load(string $id, string $language): Document
     {
         $path = $this->getSourcePath($id, $language);
@@ -610,6 +709,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         array $header = [],
         string $content = '',
     ): Document {
+        $this->assertId($id);
         if ($this->s()->exists($this->getSourcePath($id, $language))) {
             throw new ConflictException("Page exists: $id [$language]");
         }
@@ -630,17 +730,59 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
     public function write(array $documents): void
     {
+        $ids = [];
+        foreach ($documents as $document) {
+            $this->assertId($document->id);
+            $key = $document->id . '|' . $document->language;
+            if (isset($ids[$key])) {
+                throw new ConflictException("Duplicate document: $key");
+            }
+            $ids[$key] = true;
+        }
+        $moves = $this->promotions(array_map(
+            fn(Document $document): string => $document->id,
+            $documents,
+        ));
         $changes = [];
 
         foreach ($documents as $document) {
             $path = $this->getSourcePath($document->id, $document->language);
+            $hasNewChild = false;
+            foreach ($documents as $other) {
+                if ($other !== $document && str_starts_with($other->id, $document->id . '/')) {
+                    $hasNewChild = true;
+                    break;
+                }
+            }
+            if (isset($moves[$path])) {
+                $path = $moves[$path];
+            } elseif ($document->file === null && (
+                $hasNewChild || $this->s()->isDirectory(
+                    $this->prefix($document->language) . trim($document->id, '/'),
+                )
+            )) {
+                $path = $this->prefix($document->language)
+                    . trim($document->id, '/') . '/index.md';
+            }
+            if (!$document->isPersisted() && ($this->s()->exists($path) || isset($changes[$path]))) {
+                throw new ConflictException("Page target occupied: $path");
+            }
+            if ($document->isPersisted() && !$document->hasChanges()) {
+                continue;
+            }
             $header = $document->header;
             unset($header['pid'], $header['lang']);
 
             $changes[$path] = Codec::emitFrontMatter($header, $document->content);
         }
 
-        $this->s()->writeBatch($changes);
+        if (!$moves) {
+            $this->s()->writeBatch($changes);
+        } elseif ($this->s() instanceof MoveCapableStorage) {
+            $this->s()->moveBatch($moves, $changes);
+        } else {
+            throw new UnsupportedOperationException('Storage cannot move page trees');
+        }
     }
 
     public function buildTree(string $id = '/'): PageTree
@@ -712,31 +854,65 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
     public function rename(string $id, string $newId): void
     {
-        $config = $this->loadConfig();
-        $changes = [];
-
-        // Alle vorhandenen Sprachvarianten als einen gemeinsamen Batch verschieben.
-        foreach ($config->languages as $language) {
-            $source = $this->getSourcePath($id, $language);
-            if (!$this->s()->exists($source)) {
-                continue;
-            }
-
-            $content = $this->s()->read($source);
-            $target = $this->getSourcePath($newId, $language);
-            if ($this->s()->exists($target)) {
-                throw new ConflictException("Rename target exists: $target");
-            }
-
-            $changes[$target] = $content;
-            $changes[$source] = null;
+        $this->assertId($id);
+        $this->assertId($newId);
+        if ($id === '/' || $newId === '/') {
+            throw new ValidationException('Root cannot be renamed');
+        }
+        if ($id === $newId) {
+            return;
+        }
+        if (str_starts_with($newId, $id . '/')) {
+            throw new ValidationException('Cannot move a page into its own subtree');
         }
 
-        if (!$changes) {
+        $config = $this->loadConfig();
+        $moves = $this->promotions([$newId]);
+        $sourceMoves = [];
+
+        // Physische Unterbäume einschließlich Begleitdateien und leerer Ordner verschieben.
+        foreach ($config->languages as $language) {
+            $prefix = $this->prefix($language);
+            $sourceDirectory = $prefix . trim($id, '/');
+            $targetDirectory = $prefix . trim($newId, '/');
+            $existingTarget = $this->getSourcePath($newId, $language);
+            if ($this->s()->exists($existingTarget)) {
+                throw new ConflictException("Move target occupied: $existingTarget");
+            }
+            if ($this->s()->isDirectory($sourceDirectory)) {
+                $this->assertTreeWithoutLinks($sourceDirectory);
+                if ($this->s()->exists($targetDirectory) || $this->s()->isDirectory($targetDirectory)) {
+                    throw new ConflictException("Move target occupied: $targetDirectory");
+                }
+                $sourceMoves[$sourceDirectory] = $targetDirectory;
+            }
+
+            $source = $this->getSourcePath($id, $language);
+            if ($this->s()->exists($source)
+                && !$this->s()->isDirectory($source)
+                && !str_starts_with($source, $sourceDirectory . '/')) {
+                $extension = pathinfo($source, PATHINFO_EXTENSION);
+                if ($this->s()->isDirectory($sourceDirectory)
+                    && $this->s()->exists($sourceDirectory . '/index.' . $extension)) {
+                    throw new ConflictException("Duplicate page at: $sourceDirectory");
+                }
+                $target = $prefix . trim($newId, '/') . ($this->s()->isDirectory($sourceDirectory)
+                    ? '/index.' . $extension : '.' . $extension);
+                if ($this->s()->exists($target) || $this->s()->isDirectory($target)) {
+                    throw new ConflictException("Move target occupied: $target");
+                }
+                $sourceMoves[$source] = $target;
+            }
+        }
+
+        if (!$sourceMoves) {
             throw new NotFoundException("Page not found: $id");
         }
 
-        $this->s()->writeBatch($changes);
+        if (!($this->s() instanceof MoveCapableStorage)) {
+            throw new UnsupportedOperationException('Storage cannot move page trees');
+        }
+        $this->s()->moveBatch(array_merge($moves, $sourceMoves));
     }
 
     public function delete(Document $document): void
