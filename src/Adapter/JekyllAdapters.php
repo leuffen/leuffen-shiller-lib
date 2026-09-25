@@ -325,7 +325,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
 
         $found = array_values(array_filter(
             $candidates,
-            fn (string $path): bool => $this->s()->exists($path),
+            fn(string $path): bool => $this->s()->exists($path),
         ));
 
         if (count($found) > 1) {
@@ -571,7 +571,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
         $found = array_values(array_filter(
             $candidates,
-            fn (string $path): bool => $this->s()->exists($path),
+            fn(string $path): bool => $this->s()->exists($path),
         ));
 
         if (count($found) > 1) {
