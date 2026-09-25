@@ -78,7 +78,7 @@ final class NativeSiteStorage implements SiteStorage
             ];
         }
 
-        usort($entries, fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
+        usort($entries, fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
 
         return $entries;
     }
