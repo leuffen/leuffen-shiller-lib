@@ -6,15 +6,22 @@ use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 
 /**
- * Formatter-Konfiguration für den Entwurfs-PR.
+ * Formatter-Konfiguration für die Schiller-Library.
  *
- * Die Beispielreihe wird gegen den aktuellen PHP-FIG PER Coding Style geprüft.
- * Semantische Kommentar- und API-Dokumentationsregeln bleiben zusätzlich Teil
- * des Reviews, da sie nicht zuverlässig durch einen Formatter erzwungen werden.
+ * PHP-CS-Fixer prüft produktiven Code, Tests und die dokumentierten Beispiele
+ * gegen den aktuellen PHP-FIG PER Coding Style. Fachliche Kommentare und
+ * API-Dokumentation werden zusätzlich im Review geprüft.
  */
 $finder = Finder::create()
-    ->in(__DIR__ . '/examples')
-    ->name('*.php');
+    ->in([
+        __DIR__ . '/src',
+        __DIR__ . '/test',
+        __DIR__ . '/examples',
+    ])
+    ->name('*.php')
+    ->exclude([
+        'vendor',
+    ]);
 
 return (new Config())
     ->setRiskyAllowed(false)

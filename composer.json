@@ -1,7 +1,7 @@
 {
-  "name": "phore/project",
+  "name": "leuffen/leuffen-shiller-lib",
   "type": "library",
-  "description": "",
+  "description": "Typed access layer for Jekyll/Schiller website sources",
   "license": "MIT",
   "authors": [
     {
@@ -10,11 +10,8 @@
     }
   ],
   "autoload": {
-    "psr-4": {
-      "Phore\\FileSystem\\": "src/"
-    },
-    "files": [
-      "src/functions.php"
+    "classmap": [
+      "src/"
     ]
   },
   "require": {
@@ -24,9 +21,8 @@
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.0",
-    "phpunit/phpunit": "^13.2.2"
+    "phpunit/phpunit": "^12.0"
   },
-  "suggest": {},
   "config": {
     "preferred-install": "source",
     "allow-plugins": {
@@ -36,6 +32,7 @@
   "minimum-stability": "dev",
   "scripts": {
     "lint": "php-cs-fixer fix --dry-run --diff --verbose",
-    "fix": "php-cs-fixer fix --verbose"
+    "fix": "php-cs-fixer fix --verbose",
+    "test": "phpunit"
   }
 }
