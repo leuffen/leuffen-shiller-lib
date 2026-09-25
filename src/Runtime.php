@@ -124,7 +124,7 @@ final class FieldSet
     {
         return [
             'fields' => array_map(
-                fn (FieldDefinition $field): array => $field->toArray(),
+                fn(FieldDefinition $field): array => $field->toArray(),
                 $this->fields,
             ),
         ];
@@ -226,7 +226,7 @@ final class SchillerTreeData
             'file' => $this->file?->toArray(),
             'metadata' => (object) $this->metadata,
             'translations' => (object) array_map(
-                fn ($translation) => $translation instanceof TranslationInfo
+                fn($translation) => $translation instanceof TranslationInfo
                     ? $translation->toArray()
                     : $translation,
                 $this->translations,
@@ -264,7 +264,7 @@ final class TreeNode
             'id' => $this->id,
             'label' => $this->label,
             'children' => array_map(
-                fn (self $node): array => $node->toArray(),
+                fn(self $node): array => $node->toArray(),
                 $this->children,
             ),
             'data' => $this->data->toArray(),
@@ -284,7 +284,7 @@ final class PageTree
         return [
             'root' => $this->root->toArray(),
             'diagnostics' => array_map(
-                fn ($diagnostic) => $diagnostic instanceof Diagnostic
+                fn($diagnostic) => $diagnostic instanceof Diagnostic
                     ? $diagnostic->toArray()
                     : $diagnostic,
                 $this->diagnostics,
@@ -304,11 +304,11 @@ final class FileListing
     {
         return [
             'entries' => array_map(
-                fn (TreeNode $node): array => $node->toArray(),
+                fn(TreeNode $node): array => $node->toArray(),
                 $this->entries,
             ),
             'diagnostics' => array_map(
-                fn ($diagnostic) => $diagnostic instanceof Diagnostic
+                fn($diagnostic) => $diagnostic instanceof Diagnostic
                     ? $diagnostic->toArray()
                     : $diagnostic,
                 $this->diagnostics,
