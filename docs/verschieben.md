@@ -1,6 +1,13 @@
 # Verschieben und Indexablage im Polyglot-Adapter
 
-Implementierungsentwurf, noch keine ausführbare Funktion. Er ergänzt [Proposal §§ 8 und 11](proposals/2026-09-12-schiller-seiten-api.md), [Beispiel 16](../examples/16-create-child-page.php) und [Beispiel 17](../examples/17-move-page-tree.php). Die spätere Implementierung muss die unten aufgeführten Fälle ausgiebig testen.
+Der erste ausführbare Ausbau ergänzt [Proposal §§ 8 und 11](proposals/2026-09-12-schiller-seiten-api.md), [Beispiel 16](../examples/16-create-child-page.php) und [Beispiel 17](../examples/17-move-page-tree.php). Die folgende Matrix bleibt der vollständige Zielvertrag; nicht alle dort genannten Prüfungen sind bereits implementiert.
+
+## Implementierungsstand
+
+- Neue Polyglot-Kinder promoten vorhandene Blatt-Eltern aller konfigurierten Sprachen bei `save()` zu `index.md` beziehungsweise `index.html`. Fehlende Übersetzungen werden nicht erfunden; Header und Body der Eltern bleiben bytegleich. Mehrere Dokumente eines Auftrags teilen sich die Promotion; natürliche Index-URLs enden anschließend mit `/`.
+- `rename(sourceId, targetId)` verschiebt physische Unterbäume aller vorhandenen Sprachen einschließlich Begleitdateien und leerer Ordner. Bereits geladene, unveränderte Dokumente erhalten ihre neue ID und Datei. Zielbelegung, Root-, Sprachordner- und Traversal-Fälle werden vor der Mutation abgewiesen.
+- `NativeSiteStorage` führt Promotion und Schreiben beziehungsweise mehrere Moves mit Rückabwicklung aus. Ein eigener `SiteStorage` ohne `MoveCapableStorage` kann weiterhin normale Seiten schreiben, lehnt Strukturaktionen aber ab.
+- Noch offen gegenüber dem unten beschriebenen vollständigen Vertrag sind feingranulare Datei-/Feldrechte, Prüfung effektiver Jekyll-Defaults und Ausgabe-URL-Kollisionen, Revisionsprüfung paralleler Bearbeitung sowie weitere Abnahmefälle der Matrix. Diese Grenzen dürfen bei einer späteren produktiven Integration nicht als erledigt vorausgesetzt werden.
 
 ## Öffentliche Operation und Identität
 
@@ -68,7 +75,7 @@ Relative Links im Inhalt werden nicht automatisch umgeschrieben. Innerhalb eines
 
 ## Verpflichtende spätere Tests
 
-Diese Matrix ist eine Abnahmeanforderung für die spätere Implementierung, kein Bericht bereits gelaufener Tests.
+Diese Matrix ist eine Abnahmeanforderung für den vollständigen Vertrag, kein Bericht bereits gelaufener Tests.
 
 | Szenario | Erwartung |
 |---|---|

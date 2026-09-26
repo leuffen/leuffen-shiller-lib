@@ -162,6 +162,28 @@ interface SiteStorage
     public function writeBatch(array $changes): void;
 }
 
+interface MoveCapableStorage extends SiteStorage
+{
+    /**
+     * Verschiebt Dateien oder Verzeichnisse und schreibt Dokumente als einen rücknehmbaren Auftrag.
+     *
+     * Alle Pfade sind relativ zum Site-Root. Vorhandene Ziele werden nie überschrieben.
+     * Bei einem Fehler wird der vorherige Zustand wiederhergestellt oder ein unvollständiger
+     * Rollback ausdrücklich als StorageException gemeldet.
+     *
+     * Beispiel: $storage->moveBatch(['seite.md' => 'seite/index.md'], ['seite/kind.md' => $body]);
+     *
+     * @param array<string,string> $moves Quellpfad => Zielpfad.
+     * @param array<string,?string> $changes Zielpfad => Inhalt; null löscht.
+     *
+     * @throws StorageException Wenn I/O oder Rückabwicklung fehlschlagen.
+     * @throws ValidationException Bei ungültigem Pfad oder Symlink.
+     *
+     * @see SiteStorage::writeBatch()
+     */
+    public function moveBatch(array $moves, array $changes = []): void;
+}
+
 final class Codec
 {
     public static function yaml(string $content, string $path = ''): array
@@ -324,7 +346,7 @@ final class Document
     private string $originalContent;
 
     public function __construct(
-        public readonly string $id,
+        public string $id,
         public readonly string $language,
         public readonly bool $isRootDocument,
         public ?FileEntry $file,
@@ -636,6 +658,15 @@ final class SchillerDir
             if (!$document instanceof Document) {
                 throw new ValidationException('Document expected');
             }
+            foreach ($this->parentIds($document->id) as $parentId) {
+                foreach ($this->documents as $loaded) {
+                    if ($loaded->id === $parentId
+                        && !in_array($loaded, $documents, true)
+                        && (!$loaded->isPersisted() || $loaded->hasChanges())) {
+                        throw new ConflictException('Unsaved parent prevents page creation');
+                    }
+                }
+            }
         }
 
         // Erst den gemeinsamen Adapter-Batch schreiben, danach lokale Dokumente als persistiert markieren.
@@ -644,6 +675,12 @@ final class SchillerDir
         foreach ($documents as $document) {
             $path = $this->adapter->getSourcePath($document->id, $document->language);
             $document->markPersisted(new FileEntry($path, FileKind::page));
+        }
+        foreach ($this->documents as $document) {
+            if ($document->isPersisted()) {
+                $path = $this->adapter->getSourcePath($document->id, $document->language);
+                $document->file = new FileEntry($path, FileKind::page);
+            }
         }
     }
 
@@ -677,9 +714,45 @@ final class SchillerDir
             throw new AccessDeniedException('Write access required');
         }
 
-        $this->adapter->rename(Codec::id($id), Codec::id($newId));
+        $id = Codec::id($id);
+        $newId = Codec::id($newId);
+        foreach ($this->documents as $document) {
+            $affected = $document->id === $id
+                || str_starts_with($document->id, $id . '/')
+                || in_array($document->id, $this->parentIds($newId), true);
+            if ($affected && (!$document->isPersisted() || $document->hasChanges())) {
+                throw new ConflictException('Unsaved documents prevent a page move');
+            }
+        }
 
-        // Nach Strukturänderungen dürfen keine gecachten Documents auf alten IDs weiterleben.
-        $this->documents = [];
+        $this->adapter->rename($id, $newId);
+        if ($id === $newId) {
+            return;
+        }
+        $updated = [];
+        foreach ($this->documents as $document) {
+            if ($document->id === $id || str_starts_with($document->id, $id . '/')) {
+                $document->id = $newId . substr($document->id, strlen($id));
+            }
+            if ($document->isPersisted()) {
+                $path = $this->adapter->getSourcePath($document->id, $document->language);
+                $document->file = new FileEntry($path, FileKind::page);
+            }
+            $updated[$document->id . '|' . $document->language] = $document;
+        }
+        $this->documents = $updated;
+    }
+
+    /** @return list<string> */
+    private function parentIds(string $id): array
+    {
+        $parts = explode('/', trim($id, '/'));
+        array_pop($parts);
+        $ids = [];
+        while ($parts) {
+            $ids[] = '/' . implode('/', $parts);
+            array_pop($parts);
+        }
+        return $ids;
     }
 }
