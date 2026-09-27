@@ -20,7 +20,7 @@ if (!function_exists('startsWith')) {
 \Phore\Cli\CliDispatcher::addClass(\Leuffen\Schiller\Automation\Schiller::class);
 // Cli2 bindet Parameter an PHP-Namen; die öffentliche CLI verwendet Bindestriche.
 $arguments = array_map(
-    fn (string $arg): string => preg_replace('/^--template-dir(?==|$)/', '--templateDir', $arg) ?? $arg,
+    fn(string $arg): string => preg_replace('/^--template-dir(?==|$)/', '--templateDir', $arg) ?? $arg,
     array_slice($argv, 1),
 );
 

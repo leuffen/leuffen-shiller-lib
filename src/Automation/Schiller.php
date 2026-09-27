@@ -82,6 +82,6 @@ final class Schiller
 
     private function tags(string $tags): array
     {
-        return array_values(array_filter(array_map('trim', explode(',', $tags)), fn (string $tag): bool => $tag !== ''));
+        return array_values(array_filter(array_map('trim', explode(',', $tags)), fn(string $tag): bool => $tag !== ''));
     }
 }

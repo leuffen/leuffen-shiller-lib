@@ -98,7 +98,7 @@ final class SchillerAutomation
             }
             $fileTags = $config['tags'] ?? [];
             $fileTags = is_string($fileTags) ? [$fileTags] : $fileTags;
-            if (!is_array($fileTags) || array_filter($fileTags, fn ($tag): bool => !is_string($tag) || $tag === '')) {
+            if (!is_array($fileTags) || array_filter($fileTags, fn($tag): bool => !is_string($tag) || $tag === '')) {
                 throw new RuntimeException("Invalid schiller tags: $source");
             }
             if (!array_intersect($tags, $fileTags)) {
@@ -214,7 +214,7 @@ final class SchillerAutomation
                 $files[] = [$file->getPathname(), substr($file->getPathname(), strlen($directory) + 1)];
             }
         }
-        usort($files, fn (array $a, array $b): int => strcmp($a[1], $b[1]));
+        usort($files, fn(array $a, array $b): int => strcmp($a[1], $b[1]));
 
         return $files;
     }
