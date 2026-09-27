@@ -9,25 +9,11 @@ if (is_file(__DIR__ . '/../vendor/autoload.php')) {
     require __DIR__ . '/../../../autoload.php';
 }
 
-// phore/cli2 erwartet startsWith() aus phore/core, deklariert diese Abhängigkeit aber nicht.
-if (!function_exists('startsWith')) {
-    function startsWith(string $haystack, string $needle): bool
-    {
-        return str_starts_with($haystack, $needle);
-    }
-}
-
-\Phore\Cli\CliDispatcher::addClass(\Leuffen\Schiller\Automation\Schiller::class);
-// Cli2 bindet Parameter an PHP-Namen; die öffentliche CLI verwendet Bindestriche.
-$arguments = array_map(
-    fn(string $arg): string => preg_replace('/^--template-dir(?==|$)/', '--templateDir', $arg) ?? $arg,
-    array_slice($argv, 1),
-);
+$app = new \Phore\Cli\CliApplication();
+$app->addClass(\Leuffen\Schiller\Automation\SchillerCli::class);
 
 try {
-    // Der direkte Dispatcher-Aufruf erhält einen Fehlerstatus statt nur einer formatierten Meldung.
-    \Phore\Cli\CliDispatcher::getCommandSet()->setName('schiller');
-    \Phore\Cli\CliDispatcher::getCommandSet()->dispatch(array_merge(['schiller'], $arguments));
+    echo $app->run([$argv[0], 'schiller', ...array_slice($argv, 1)]);
 } catch (\Throwable $exception) {
     fwrite(STDERR, $exception->getMessage() . "\n");
     exit(1);

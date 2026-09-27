@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Leuffen\Schiller\Automation;
 
 use Phore\Cli\Annotation\CliParameter;
+use Phore\Cli\Annotation\CliScope;
 use RuntimeException;
 
 /** CLI adapter; the installation rules live in SchillerAutomation. */
-final class Schiller
+#[CliScope('schiller')]
+final class SchillerCli
 {
     /**
      * Kopiert _root und installiert optional ausgewählte Tags im Projekt.
@@ -23,7 +25,7 @@ final class Schiller
     public function init(
         #[CliParameter('tags', 'Kommagetrennte Vorlagentags')]
         string $tags = '',
-        #[CliParameter('templateDir', 'Pfad zum _tpl-Verzeichnis')]
+        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
         string $templateDir = '',
         #[CliParameter('root', 'Projektverzeichnis')]
         string $root = '.',
@@ -45,7 +47,7 @@ final class Schiller
     public function install(
         #[CliParameter('tags', 'Kommagetrennte Vorlagentags')]
         string $tags,
-        #[CliParameter('templateDir', 'Pfad zum _tpl-Verzeichnis')]
+        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
         string $templateDir = '',
         #[CliParameter('root', 'Projektverzeichnis')]
         string $root = '.',
