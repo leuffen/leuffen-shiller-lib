@@ -70,4 +70,18 @@ final class SchillerAutomationTest extends TestCase
             self::assertFileDoesNotExist($this->dir . '/site/docs/index.html');
         }
     }
+
+    public function testCliInitializesFromTemplateDirectory(): void
+    {
+        file_put_contents($this->dir . '/tpl/_root/docs/index.md', 'Start');
+        $command = escapeshellarg(PHP_BINARY)
+            . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+            . ' init --root ' . escapeshellarg($this->dir . '/site')
+            . ' --template-dir ' . escapeshellarg($this->dir . '/tpl');
+
+        exec($command . ' 2>&1', $output, $status);
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertSame('Start', file_get_contents($this->dir . '/site/docs/index.md'));
+    }
 }
