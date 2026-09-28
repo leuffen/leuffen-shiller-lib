@@ -2,6 +2,8 @@
 
 Die Library enthält den Seitenzugriff über `SchillerDir` und getrennt davon die
 Installation von Theme-Vorlagen über `Leuffen\Schiller\Automation\SchillerAutomation`.
+Projekt-, Document-Root- und Template-Konfiguration werden über
+`Leuffen\Schiller\Automation\SchillerAutomationFactory` aufgelöst.
 
 ## Website aus `_tpl` anlegen
 
@@ -12,19 +14,26 @@ installiert nur markierte Vorlagen. Bereits vorhandene Zieldateien werden
 überschrieben; zwei gleichzeitig ausgewählte Vorlagen für dasselbe Ziel sind
 ein Fehler. Vor dem Kopieren werden sämtliche Ziele und Referenzen geprüft.
 
+Für normale Nutzung erhält die Factory ein Startverzeichnis und übernimmt die
+gesamte Auflösung von Projektwurzel, Document Root, `.shiller.yml` und
+`template_dir`:
+
 ```php
 <?php
 
-use Leuffen\Schiller\Automation\SchillerAutomation;
+use Leuffen\Schiller\Automation\SchillerAutomationFactory;
 
-$automation = new SchillerAutomation(
-    projectRoot: '/srv/site',
-    templateDir: '/srv/site/node_modules/@leuffen/themejs2/_tpl',
+$automation = (new SchillerAutomationFactory('/srv/site'))->create(
     documentRoot: 'docs',
+    templateDir: './node_modules/@leuffen/themejs2/_tpl',
 );
 $written = $automation->init(['raven']);
 // $written enthält Pfade relativ zur Projektwurzel, z. B. docs/index.md.
 ```
+
+Wird `templateDir` weggelassen, liest die Factory `template_dir` aus
+`<document-root>/.shiller.yml`. Damit kann dieselbe Auflösung unabhängig vom
+CLI auch aus Anwendungen, Jobs oder Tests verwendet werden.
 
 Markdown-Dateien unter `_tpl` werden ausgewählt, wenn ihr YAML Front Matter
 einen `schiller`-Block enthält. Dieser Block bleibt in der installierten Datei
@@ -75,16 +84,19 @@ Projektwurzel, zum Beispiel `package.json`.
 Die Konfiguration liegt als `.shiller.yml` **im Document Root**. Pfade in
 `template_dir` werden relativ zu diesem Verzeichnis aufgelöst; beim
 mitgelieferten ThemeJS2 ist das `../node_modules/@leuffen/themejs2/_tpl`.
-So kann jede Website in einem eigenen Projektverzeichnis neben anderen
-Websites liegen.
+Ein expliziter relativer `templateDir`-Wert der Factory wird dagegen relativ
+zur Projektwurzel aufgelöst. So kann jede Website in einem eigenen
+Projektverzeichnis neben anderen Websites liegen.
 
 ## Kommando
 
-Composer stellt `bin/schiller` bereit. Ohne `--template-dir` wird
-`template_dir` aus `.shiller.yml` im Document Root gelesen. Ohne `--root`
-wird `docs` im aktuellen Projekt verwendet; `--root` bezeichnet direkt ein
-anderes Document-Root-Verzeichnis. Der erste Aufruf kann dieses Verzeichnis
-über `_root/docs/` anlegen.
+Composer stellt `bin/schiller` bereit. Das CLI ist nur ein Parameteradapter
+für `SchillerAutomationFactory` und verwendet das aktuelle Arbeitsverzeichnis
+als Startverzeichnis. Ohne `--template-dir` wird `template_dir` aus
+`.shiller.yml` im Document Root gelesen. Ohne `--root` wird `docs` im
+aktuellen Projekt verwendet; `--root` bezeichnet direkt ein anderes
+Document-Root-Verzeichnis. Der erste Aufruf kann dieses Verzeichnis über
+`_root/docs/` anlegen.
 
 ```sh
 schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven

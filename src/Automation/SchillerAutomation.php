@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Leuffen\Schiller\Automation;
 
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
 
 /** Installs a theme's _tpl directory into a website without involving SchillerDir. */
@@ -23,7 +20,7 @@ final class SchillerAutomation
      * @param string $templateDir Verzeichnis _tpl des Theme-Pakets.
      * @param string $documentRoot Document Root relativ zur Projektwurzel, standardmäßig docs.
      * @throws RuntimeException Bei fehlenden Verzeichnissen oder ungültigem Document Root.
-     * @see self::init()
+     * @see SchillerAutomationFactory Für die wiederverwendbare Auflösung von Projekt, Document Root und Konfiguration.
      * @example new SchillerAutomation('/srv/site', '/srv/site/node_modules/@leuffen/themejs2/_tpl', 'docs');
      */
     public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
@@ -46,7 +43,7 @@ final class SchillerAutomation
     {
         $plan = [];
         $root = $this->templateDir . '/_root';
-        if (!is_dir($root)) {
+        if (!phore_uri($root)->isDirectory()) {
             throw new RuntimeException("Template root missing: $root");
         }
 
@@ -193,23 +190,24 @@ final class SchillerAutomation
                 if (is_link($path)) {
                     throw new RuntimeException("Symlink in target path: $path");
                 }
-                if ($index < count($parts) - 1 && (is_file($path) || isset($plan[implode('/', array_slice($parts, 0, $index + 1))]))) {
+                if (
+                    $index < count($parts) - 1
+                    && (phore_uri($path)->isFile() || isset($plan[implode('/', array_slice($parts, 0, $index + 1))]))
+                ) {
                     throw new RuntimeException("File blocks target directory: $path");
                 }
             }
-            if (is_dir($path)) {
+            if (phore_uri($path)->isDirectory()) {
                 throw new RuntimeException("Target is a directory: $path");
             }
         }
 
         foreach ($plan as $relative => $content) {
             $path = $this->projectRoot . '/' . $relative;
-            $parent = dirname($path);
-            if (!is_dir($parent) && !mkdir($parent, 0777, true) && !is_dir($parent)) {
-                throw new RuntimeException("Cannot create directory: $parent");
-            }
-            if (file_put_contents($path, $content) === false) {
-                throw new RuntimeException("Cannot write file: $path");
+            try {
+                phore_file($path)->mkdir()->set_contents($content);
+            } catch (\Throwable $exception) {
+                throw new RuntimeException("Cannot write file: $path", 0, $exception);
             }
         }
 
@@ -218,18 +216,33 @@ final class SchillerAutomation
 
     private function walk(string $directory): array
     {
+        try {
+            $pending = [[phore_dir($directory)->assertDirectory()->assertReadable(), '']];
+        } catch (\Throwable $exception) {
+            throw new RuntimeException("Cannot read directory: $directory", 0, $exception);
+        }
+
         $files = [];
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-        );
-        foreach ($iterator as $file) {
-            if ($file->isLink()) {
-                throw new RuntimeException("Symlink in template: {$file->getPathname()}");
-            }
-            if ($file->isFile()) {
-                $files[] = [$file->getPathname(), substr($file->getPathname(), strlen($directory) + 1)];
+        while ($pending !== []) {
+            [$currentDirectory, $prefix] = array_pop($pending);
+
+            foreach ($currentDirectory->list() as $entry) {
+                $path = (string) $entry;
+                $relative = $prefix === '' ? $entry->getBasename() : $prefix . '/' . $entry->getBasename();
+
+                if (is_link($path)) {
+                    throw new RuntimeException("Symlink in template: $path");
+                }
+                if ($entry->isDirectory()) {
+                    $pending[] = [$entry->asDirectory(), $relative];
+                    continue;
+                }
+                if ($entry->isFile()) {
+                    $files[] = [$path, $relative];
+                }
             }
         }
+
         usort($files, fn(array $a, array $b): int => strcmp($a[1], $b[1]));
 
         return $files;
@@ -237,25 +250,31 @@ final class SchillerAutomation
 
     private function readFile(string $path): string
     {
-        if (!is_file($path) || !is_readable($path) || is_link($path)) {
-            throw new RuntimeException("Cannot read file: $path");
-        }
-        $content = file_get_contents($path);
-        if ($content === false) {
-            throw new RuntimeException("Cannot read file: $path");
+        if (is_link($path)) {
+            throw new RuntimeException("Cannot read symlink as file: $path");
         }
 
-        return $content;
+        try {
+            return phore_file($path)->assertFile()->assertReadable()->get_contents();
+        } catch (\Throwable $exception) {
+            throw new RuntimeException("Cannot read file: $path", 0, $exception);
+        }
     }
 
     private function directory(string $path): string
     {
-        $resolved = realpath($path);
-        if ($resolved === false || !is_dir($resolved) || !is_readable($resolved)) {
-            throw new RuntimeException("Cannot read directory: $path");
+        $absolute = (string) phore_uri('/')->withRelativePath((string) phore_uri($path)->abs());
+        if (is_link($absolute)) {
+            throw new RuntimeException("Cannot use symlink as directory: $path");
         }
 
-        return $resolved;
+        try {
+            phore_dir($absolute)->assertDirectory()->assertReadable();
+        } catch (\Throwable $exception) {
+            throw new RuntimeException("Cannot read directory: $path", 0, $exception);
+        }
+
+        return $absolute;
     }
 
     private function relativePath(mixed $path): string
