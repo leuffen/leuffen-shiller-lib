@@ -89,10 +89,9 @@ final class SchillerAutomationTest extends TestCase
     {
         $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
         mkdir($template . '/_root/docs', 0777, true);
-        mkdir($template . '/pages', 0777, true);
         file_put_contents($template . '/_root/.shiller.yml', "template_dir: ./node_modules/@leuffen/themejs2/_tpl\n");
         file_put_contents(
-            $template . '/pages/index.raven.md',
+            $template . '/index.raven.md',
             "---\nschiller:\n  tags: [raven]\n  target: docs/index.md\nlayout: website\n---\nRaven\n",
         );
 
