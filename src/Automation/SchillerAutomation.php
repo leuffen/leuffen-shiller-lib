@@ -14,11 +14,23 @@ final class SchillerAutomation
 {
     private readonly string $projectRoot;
     private readonly string $templateDir;
+    private readonly string $documentRoot;
 
-    public function __construct(string $projectRoot, string $templateDir)
+    /**
+     * Bindet Projektwurzel, Theme-Vorlage und den Document Root für Seitenziele.
+     *
+     * @param string $projectRoot Ziel für allgemeine Dateien aus _root.
+     * @param string $templateDir Verzeichnis _tpl des Theme-Pakets.
+     * @param string $documentRoot Document Root relativ zur Projektwurzel, standardmäßig docs.
+     * @throws RuntimeException Bei fehlenden Verzeichnissen oder ungültigem Document Root.
+     * @see self::init()
+     * @example new SchillerAutomation('/srv/site', '/srv/site/node_modules/@leuffen/themejs2/_tpl', 'docs');
+     */
+    public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
     {
         $this->projectRoot = $this->directory($projectRoot);
         $this->templateDir = $this->directory($templateDir);
+        $this->documentRoot = $this->relativePath($documentRoot);
     }
 
     /**
@@ -28,7 +40,7 @@ final class SchillerAutomation
      * @return list<string> Geschriebene Pfade relativ zur Projektwurzel.
      * @throws RuntimeException Bei ungültigen Quellen, Zielen, Referenzen, Kollisionen oder Schreibfehlern.
      * @see self::install()
-     * @example $automation = new SchillerAutomation('/srv/site', '/srv/site/node_modules/theme/_tpl'); $automation->init(['base']);
+     * @example $automation = new SchillerAutomation('/srv/site', '/srv/site/node_modules/theme/_tpl'); $automation->init(['raven']);
      */
     public function init(array $tags = []): array
     {
@@ -39,7 +51,11 @@ final class SchillerAutomation
         }
 
         foreach ($this->walk($root) as [$source, $relative]) {
-            $plan[$relative] = $this->readFile($source);
+            // Die Theme-Projektwurzel bleibt am Projekt, ihr docs-Baum folgt dem gewählten Document Root.
+            $destination = str_starts_with($relative, 'docs/')
+                ? $this->documentRoot . substr($relative, strlen('docs'))
+                : $relative;
+            $plan[$destination] = $this->readFile($source);
         }
 
         return $this->apply($this->selected($tags) + $plan);
@@ -106,7 +122,7 @@ final class SchillerAutomation
             }
 
             $target = $config['target'] ?? substr($relative, 0, $wrapped ? -strlen('.template') : null);
-            $target = $this->relativePath($target);
+            $target = $this->documentRoot . '/' . $this->relativePath($target);
             $instructions = $config['instructions'] ?? [];
             $instructions = is_string($instructions) ? [$instructions] : $instructions;
             if (!is_array($instructions)) {
