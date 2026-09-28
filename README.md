@@ -19,9 +19,9 @@ use Leuffen\Schiller\Automation\SchillerAutomation;
 
 $automation = new SchillerAutomation(
     projectRoot: '/srv/site',
-    templateDir: '/srv/site/node_modules/@leuffen/themejs1/_tpl',
+    templateDir: '/srv/site/node_modules/@leuffen/themejs2/_tpl',
 );
-$written = $automation->init(['base', 'theme:osman']);
+$written = $automation->init(['raven']);
 // $written enthält relative Zielpfade, z. B. docs/index.md.
 ```
 
@@ -70,9 +70,9 @@ Composer stellt `bin/schiller` bereit. Ohne `--template-dir` wird
 Projektverzeichnis als das aktuelle.
 
 ```sh
-schiller init --tags base,theme:osman
-schiller install --tags theme:osman
-schiller init --template-dir ./node_modules/@leuffen/themejs1/_tpl --root /srv/site
+schiller init --tags raven
+schiller install --tags raven
+schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --root /srv/site
 ```
 
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-schiller-seiten-api.md)

@@ -84,4 +84,32 @@ final class SchillerAutomationTest extends TestCase
         self::assertSame(0, $status, implode("\n", $output));
         self::assertSame('Start', file_get_contents($this->dir . '/site/docs/index.md'));
     }
+
+    public function testThemeJs2PackageConfigSupportsInitAndLaterInstall(): void
+    {
+        $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
+        mkdir($template . '/_root/docs', 0777, true);
+        mkdir($template . '/pages', 0777, true);
+        file_put_contents($template . '/_root/.shiller.yml', "template_dir: ./node_modules/@leuffen/themejs2/_tpl\n");
+        file_put_contents(
+            $template . '/pages/index.raven.md',
+            "---\nschiller:\n  tags: [raven]\n  target: docs/index.md\nlayout: website\n---\nRaven\n",
+        );
+
+        $baseCommand = escapeshellarg(PHP_BINARY)
+            . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller');
+        $root = ' --root ' . escapeshellarg($this->dir . '/site');
+        exec($baseCommand . ' init' . $root . ' --template-dir ' . escapeshellarg($template) . ' --tags raven 2>&1', $output, $status);
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertFileExists($this->dir . '/site/.shiller.yml');
+        self::assertStringContainsString('schiller:', (string) file_get_contents($this->dir . '/site/docs/index.md'));
+
+        file_put_contents($this->dir . '/site/docs/index.md', 'old');
+        $output = [];
+        exec($baseCommand . ' install' . $root . ' --tags raven 2>&1', $output, $status);
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertStringContainsString('Raven', (string) file_get_contents($this->dir . '/site/docs/index.md'));
+    }
 }
