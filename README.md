@@ -70,10 +70,12 @@ Composer stellt `bin/schiller` bereit. Ohne `--template-dir` wird
 Projektverzeichnis als das aktuelle.
 
 ```sh
-schiller init --tags raven
-schiller install --tags raven
-schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --root /srv/site
+schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven --root /srv/site
+schiller install --tags raven --root /srv/site
 ```
+
+Beim ersten Lauf wird der Paketpfad explizit übergeben. Danach enthält die kopierte
+`.shiller.yml` den `template_dir` für weitere Aufrufe.
 
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-schiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
