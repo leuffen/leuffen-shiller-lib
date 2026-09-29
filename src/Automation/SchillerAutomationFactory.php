@@ -81,7 +81,7 @@ final class SchillerAutomationFactory
         return new SchillerAutomation(
             (string) $projectRoot,
             (string) $templateUri,
-            $documentName
+            $documentName,
         );
     }
 }
