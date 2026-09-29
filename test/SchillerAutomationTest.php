@@ -220,8 +220,8 @@ final class SchillerAutomationTest extends TestCase
         $output = [];
         exec(
             $baseCommand
-                . ' revert ' . escapeshellarg('_data/general.yml')
-                . ' --root ' . escapeshellarg($this->dir . '/site/docs')
+                . ' revert --root ' . escapeshellarg($this->dir . '/site/docs')
+                . ' ' . escapeshellarg('_data/general.yml')
                 . ' 2>&1',
             $output,
             $status,
