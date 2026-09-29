@@ -73,6 +73,42 @@ umgeschrieben. Das Projekt muss deshalb den Template-Pfad weiterhin kennen;
 die `.shiller.yml` im Document Root verwendet dafür `template_dir`. Die KI-Bearbeitung
 dieser Anleitungen ist noch kein Teil der Automation.
 
+
+## Installierte Inhalte an neuen Kontext anpassen
+
+Nach `init` beziehungsweise `install` kann `schiller adapt` die installierten
+Website-Inhalte mit `phore/ai-harness` an den Projektkontext anpassen. Standardmäßig
+werden alle Markdown-Dateien und die YAML-Dateien unter `_data/` bearbeitet.
+Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
+werden `tags`, `ptags` und `schiller.tags` im Markdown-Front-Matter geprüft.
+
+```sh
+schiller adapt
+schiller adapt --select "index.md,_data/general.yml"
+schiller adapt --select "leistungen/**/*.md,tag:arzt" --mode sequential
+schiller adapt --context "context/zusatz.md" --skill "skills/praxis/SKILL.md"
+```
+
+`--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
+AI Harness; `sequential` führt dieselben Requests nacheinander aus. Die CLI loggt
+Fortschritt über `phore/log` nach STDERR und schreibt die bearbeiteten relativen
+Dateipfade nach STDOUT.
+
+Als Basis-Skill wird ohne `--skill`
+`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext kommt aus
+`context_file` in `.shiller.yml`; zusätzlich werden alle Dateien aus
+`.shiller.d/` aufgenommen, sofern dieses Verzeichnis existiert. `--context`
+kann weitere Dateien relativ zur Projektwurzel ergänzen.
+
+Markdown-Dateien können über `schiller.instructions` zusätzliche
+`tpl:/...`-Anweisungen aus dem Template erhalten. Für jede Zieldatei werden
+außerdem vorhandene Sidecars mit dem Namensschema `<zieldatei>.d.*` als
+Beschreibungsdaten angehängt, zum Beispiel `_data/general.yml.d.json`.
+Bei Markdown darf der Skill neben dem Body auch `title`, `order` und
+`description` anpassen. Bei `_data`-YAML bleiben Keys und Struktur grundsätzlich
+erhalten und werden anhand von Kontext und Sidecar-Beschreibung mit neuen Werten
+gefüllt.
+
 ## Document Root und mehrere Websites
 
 `schiller.target` ist **immer relativ zum Document Root**: `index.md` schreibt
