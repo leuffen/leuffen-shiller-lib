@@ -252,7 +252,7 @@ final class SchillerCli
     {
         return array_values(array_filter(
             array_map('trim', explode(',', $values)),
-            static fn (string $value): bool => $value !== '',
+            static fn(string $value): bool => $value !== '',
         ));
     }
 }

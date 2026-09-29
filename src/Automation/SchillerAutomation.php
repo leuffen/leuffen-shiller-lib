@@ -154,7 +154,7 @@ final class SchillerAutomation
 
             $tags = $config['tags'] ?? [];
             $tags = is_string($tags) ? [$tags] : $tags;
-            if (!is_array($tags) || array_filter($tags, static fn ($tag): bool => !is_string($tag) || $tag === '')) {
+            if (!is_array($tags) || array_filter($tags, static fn($tag): bool => !is_string($tag) || $tag === '')) {
                 throw new RuntimeException("Invalid schiller tags: $source");
             }
 
@@ -184,7 +184,7 @@ final class SchillerAutomation
         if ($currentTags !== []) {
             $matching = array_values(array_filter(
                 $variants,
-                static fn (array $variant): bool => array_intersect($currentTags, $variant['tags']) !== [],
+                static fn(array $variant): bool => array_intersect($currentTags, $variant['tags']) !== [],
             ));
             if (count($matching) === 1) {
                 return $matching[0]['content'];

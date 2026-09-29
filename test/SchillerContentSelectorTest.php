@@ -34,7 +34,7 @@ final class SchillerContentSelectorTest extends TestCase
     {
         $files = (new SchillerContentSelector($this->dir . '/site/docs'))->select();
         $paths = array_map(
-            fn ($file): string => str_replace('\\', '/', (string) $file->getRelPath(phore_dir($this->dir . '/site/docs'))),
+            fn($file): string => str_replace('\\', '/', (string) $file->getRelPath(phore_dir($this->dir . '/site/docs'))),
             $files,
         );
 

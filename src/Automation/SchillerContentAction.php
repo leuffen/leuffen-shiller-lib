@@ -99,7 +99,7 @@ final class SchillerContentAction
      * @throws Throwable Bei AI-, Dateisystem- oder Validierungsfehlern.
      * @see SchillerContentSelector::select()
      * @see AiRequestSpooler
-     * @example $files = $action->adapt(['**/*.md', '_data/**/*.yml'], concurrent: true); assert(is_array($files));
+     * @example $files = $action->adapt(['index.md', '_data/general.yml'], concurrent: true); assert(is_array($files));
      */
     public function adapt(string|array|null $selectors = null, bool $concurrent = true): array
     {

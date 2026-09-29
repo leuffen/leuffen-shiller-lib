@@ -37,15 +37,15 @@ final class SchillerContentSelector
     /**
      * Waehlt Markdown und _data-YAML anhand von Dateinamen, Globs oder Tags aus.
      *
-     * Ohne Selector werden alle Markdown-Dateien sowie _data/**/*.yml und
-     * _data/**/*.yaml ausgewaehlt. tag:<name> prueft tags, ptags und
+     * Ohne Selector werden alle Markdown-Dateien sowie rekursive .yml- und
+     * .yaml-Dateien unter _data/ ausgewaehlt. tag:<name> prueft tags, ptags und
      * schiller.tags im YAML Front Matter von Markdown-Dateien.
      *
      * @param string|list<string>|null $selectors Selector oder Liste; null/leer nutzt den Default.
      * @return list<PhoreFile> Sortierte, lesbare Zieldateien.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @see SchillerContentAction::adapt()
-     * @example $files = $selector->select(['leistungen/**.md', 'tag:arzt', '_data/general.yml']); assert(is_array($files));
+     * @example $files = $selector->select(['leistungen/*.md', 'tag:arzt', '_data/general.yml']); assert(is_array($files));
      */
     public function select(string|array|null $selectors = null): array
     {
@@ -53,8 +53,8 @@ final class SchillerContentSelector
             $selectors = [$selectors];
         }
         $selectors = array_values(array_filter(
-            array_map(static fn (mixed $selector): string => is_string($selector) ? trim($selector) : '', $selectors ?? []),
-            static fn (string $selector): bool => $selector !== '',
+            array_map(static fn(mixed $selector): string => is_string($selector) ? trim($selector) : '', $selectors ?? []),
+            static fn(string $selector): bool => $selector !== '',
         ));
         if ($selectors === []) {
             $selectors = ['**/*.md', '_data/**/*.yml', '_data/**/*.yaml'];
