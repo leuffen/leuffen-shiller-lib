@@ -1,0 +1,20 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+if (is_file(__DIR__ . '/../vendor/autoload.php')) {
+    require __DIR__ . '/../vendor/autoload.php';
+} else {
+    require __DIR__ . '/../../../autoload.php';
+}
+
+$app = new \Phore\Cli\CliApplication();
+$app->addClass(\Leuffen\Schiller\Automation\SchillerCli::class);
+
+try {
+    echo $app->run([$argv[0], 'schiller', ...array_slice($argv, 1)]);
+} catch (\Throwable $exception) {
+    fwrite(STDERR, $exception->getMessage() . "\n");
+    exit(1);
+}
