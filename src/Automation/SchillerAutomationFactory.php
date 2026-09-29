@@ -4,121 +4,84 @@ declare(strict_types=1);
 
 namespace Leuffen\Schiller\Automation;
 
+use Phore\FileSystem\Exception\FilesystemException;
+use Phore\FileSystem\PhoreDirectory;
 use RuntimeException;
 
 /**
- * Erstellt eine SchillerAutomation aus einem Startverzeichnis und löst Projekt-, Document-Root- und Template-Pfade auf.
+ * Erstellt die Template-Automation aus einem Startverzeichnis.
  */
 final class SchillerAutomationFactory
 {
-    private readonly string $startDirectory;
+    private readonly PhoreDirectory $startDirectory;
 
     /**
-     * Bindet das Startverzeichnis, relativ zu dem Document Roots und explizite Projektpfade ausgewertet werden.
+     * Bindet das Startverzeichnis als Aufloesungsbasis.
      *
-     * Das Startverzeichnis selbst wird nur als Auflösungsbasis verwendet. Die eigentliche Website-Konfiguration
-     * liegt weiterhin im gewählten Document Root als .shiller.yml.
-     *
-     * @param string $startDirectory Vorhandenes und lesbares Startverzeichnis, typischerweise die Projektwurzel.
-     * @throws RuntimeException Wenn das Startverzeichnis fehlt, nicht lesbar oder ein Symlink ist.
+     * @param string $startDirectory Vorhandenes und lesbares Startverzeichnis.
+     * @throws FilesystemException Bei ungueltigen oder nicht lesbaren Verzeichnissen.
      * @see self::create()
-     * @example $factory = new SchillerAutomationFactory('/srv/site');
+     * @example $factory = new SchillerAutomationFactory('/srv/site'); assert($factory instanceof SchillerAutomationFactory);
      */
     public function __construct(string $startDirectory)
     {
-        $absolute = (string) phore_uri('/')->withRelativePath((string) phore_uri($startDirectory)->abs());
-        if (is_link($absolute)) {
-            throw new RuntimeException("Start directory must not be a symlink: $startDirectory");
-        }
-
-        try {
-            phore_dir($absolute)->assertDirectory()->assertReadable();
-        } catch (\Throwable $exception) {
-            throw new RuntimeException("Cannot read start directory: $startDirectory", 0, $exception);
-        }
-
-        $this->startDirectory = $absolute;
+        $path = (string) phore_uri($startDirectory)->abs();
+        $this->startDirectory = phore_dir($path, ['rootDir' => $path])
+            ->assertDirectory()
+            ->assertReadable();
     }
 
     /**
-     * Erzeugt die Automation und übernimmt die komplette Pfad- und Konfigurationsauflösung.
+     * Loest Document Root, Projektwurzel, Konfiguration und Template-Pfad auf.
      *
-     * Ein relativer Document Root wird gegen das Startverzeichnis aufgelöst; ein absoluter Document Root wird direkt
-     * verwendet. Existiert der Document Root beim init noch nicht, muss sein Elternverzeichnis existieren. Ohne
-     * expliziten Template-Pfad wird template_dir aus <document-root>/.shiller.yml gelesen und relativ zum Document
-     * Root aufgelöst. Ein expliziter relativer Template-Pfad wird dagegen relativ zur Projektwurzel interpretiert.
+     * Relative Pfade werden ueber die gebundenen Phore-Objekte abgeleitet.
+     * Ohne expliziten Template-Pfad wird template_dir aus .shiller.yml gelesen.
      *
-     * @param string $documentRoot Document Root relativ zum Startverzeichnis oder als absoluter Pfad.
-     * @param string $templateDir Optionaler _tpl-Pfad; leer lädt template_dir aus .shiller.yml.
-     * @return SchillerAutomation Fertig konfigurierte Automation für init() oder install().
-     * @throws RuntimeException Bei ungültigen Pfaden, fehlender Konfiguration oder nicht lesbaren Verzeichnissen.
+     * @param string $documentRoot Relativer oder absoluter Document Root.
+     * @param string $templateDir Optionaler Template-Pfad.
+     * @return SchillerAutomation Konfigurierte Automation.
+     * @throws FilesystemException Bei Dateisystemfehlern.
+     * @throws RuntimeException Wenn template_dir fehlt oder ungueltig ist.
      * @see SchillerAutomation
-     * @example $automation = (new SchillerAutomationFactory('/srv/site'))->create('docs', './node_modules/@leuffen/themejs2/_tpl');
+     * @example $automation = (new SchillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof SchillerAutomation);
      */
     public function create(string $documentRoot = 'docs', string $templateDir = ''): SchillerAutomation
     {
-        $documentPath = $this->resolvePath($documentRoot, $this->startDirectory);
-        if (is_link($documentPath)) {
-            throw new RuntimeException("Document root must not be a symlink: $documentPath");
-        }
+        $documentUri = str_starts_with($documentRoot, '/')
+            ? phore_uri($documentRoot)->abs()
+            : $this->startDirectory->withRelativePath($documentRoot);
 
-        $documentUri = phore_uri($documentPath);
         if ($documentUri->exists()) {
-            if (!$documentUri->isDirectory()) {
-                throw new RuntimeException("Invalid document root: $documentPath");
-            }
-
-            try {
-                $documentUri->assertDirectory()->assertReadable();
-            } catch (\Throwable $exception) {
-                throw new RuntimeException("Cannot read document root: $documentPath", 0, $exception);
-            }
+            $documentUri->assertDirectory()->assertReadable();
         } else {
-            try {
-                $documentUri->withParentDir()->assertDirectory()->assertReadable();
-            } catch (\Throwable $exception) {
-                throw new RuntimeException("Document root parent missing: $documentPath", 0, $exception);
-            }
+            $documentUri->withParentDir()->assertDirectory()->assertReadable();
         }
 
-        $projectRoot = (string) $documentUri->withParentDir();
+        $projectRoot = $documentUri->withParentDir()->assertDirectory()->assertReadable();
         $documentName = $documentUri->getBasename();
-        if ($documentName === '' || $documentName === '.' || $documentName === '..') {
-            throw new RuntimeException("Invalid document root: $documentPath");
-        }
 
         if ($templateDir === '') {
-            $configFile = (string) $documentUri->join('.shiller.yml');
-
-            try {
-                $config = phore_file($configFile)->assertFile()->assertReadable()->get_yaml();
-            } catch (\Throwable $exception) {
-                throw new RuntimeException("Cannot read template configuration: $configFile", 0, $exception);
-            }
-
+            $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
+            $config = $configFile->get_yaml();
             $templateDir = is_array($config) ? ($config['template_dir'] ?? '') : '';
+
             if (!is_string($templateDir) || $templateDir === '') {
                 throw new RuntimeException("Missing template_dir in $configFile");
             }
 
-            $templateDir = $this->resolvePath($templateDir, $documentPath);
+            $templateUri = str_starts_with($templateDir, '/')
+                ? phore_uri($templateDir)->abs()
+                : $documentUri->withRelativePath($templateDir);
         } else {
-            $templateDir = $this->resolvePath($templateDir, $projectRoot);
+            $templateUri = str_starts_with($templateDir, '/')
+                ? phore_uri($templateDir)->abs()
+                : $projectRoot->withRelativePath($templateDir);
         }
 
-        return new SchillerAutomation($projectRoot, $templateDir, $documentName);
-    }
-
-    private function resolvePath(string $path, string $base): string
-    {
-        if ($path === '' || str_contains($path, "\0") || str_contains($path, '\\')) {
-            throw new RuntimeException("Invalid path: $path");
-        }
-
-        if (str_starts_with($path, '/')) {
-            return (string) phore_uri('/')->withRelativePath($path);
-        }
-
-        return (string) phore_uri($base)->withRelativePath($path);
+        return new SchillerAutomation(
+            (string) $projectRoot,
+            (string) $templateUri,
+            $documentName
+        );
     }
 }
