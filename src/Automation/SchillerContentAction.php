@@ -68,14 +68,20 @@ final class SchillerContentAction
         $this->templateDir = phore_dir($templatePath, ['rootDir' => $templatePath])
             ->assertDirectory()
             ->assertReadable();
-        $this->skillFile = phore_file($skillFile)->assertFile()->assertReadable();
+        $skillUri = phore_uri($skillFile)->abs();
+        $this->skillFile = phore_file((string) $skillUri, ['rootDir' => (string) $skillUri->withParentDir()])
+            ->assertFile()
+            ->assertReadable();
 
         $resolvedContext = [];
         foreach ($contextFiles as $contextFile) {
             if (!is_string($contextFile) || $contextFile === '') {
                 throw new RuntimeException('Context filenames must be non-empty strings.');
             }
-            $resolvedContext[] = phore_file($contextFile)->assertFile()->assertReadable();
+            $contextUri = phore_uri($contextFile)->abs();
+            $resolvedContext[] = phore_file((string) $contextUri, ['rootDir' => (string) $contextUri->withParentDir()])
+                ->assertFile()
+                ->assertReadable();
         }
         $this->contextFiles = $resolvedContext;
     }
