@@ -128,6 +128,124 @@ final class SchillerCli
     }
 
     /**
+     * Stellt eine oder mehrere Content-Dateien aus den installierten Originalvorlagen wieder her.
+     *
+     * @param list<string> $argv Dateinamen, Globs oder tag:<name>.
+     * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
+     * @param string $root Document Root.
+     * @throws RuntimeException Bei fehlender Dateiauswahl oder Restore-Fehlern.
+     * @see SchillerAutomation::revert()
+     * @example schiller revert index.md "_data/*.yml"
+     */
+    public function revert(
+        array $argv,
+        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
+        string $templateDir = '',
+        #[CliParameter('root', 'Document Root')]
+        string $root = 'docs',
+    ): void {
+        $selectors = $this->selectors($argv);
+        if ($selectors === []) {
+            throw new RuntimeException('revert requires at least one filename, glob or tag selector.');
+        }
+
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $written = (new SchillerAutomationFactory($startDirectory))
+            ->create($root, $templateDir)
+            ->revert($selectors);
+
+        if ($written !== []) {
+            echo implode("\n", $written) . "\n";
+        }
+    }
+
+    /**
+     * Fuehrt AI-Unteraktionen aus; aktuell ist adjust implementiert.
+     *
+     * Ohne weitere Optionen nutzt adjust den Standard-Document-Root, template_dir,
+     * context_file, .shiller.d, den mitgelieferten Basis-Skill und gpt-5-mini.
+     *
+     * @param list<string> $argv Erstes Argument adjust, danach Dateinamen, Globs oder tag:<name>.
+     * @param string $mode concurrent oder sequential.
+     * @param string $context Zusaetzliche Kontextdateien relativ zur Projektwurzel.
+     * @param string $skill Optionaler Basis-Skill.
+     * @param string $model AI-Modell fuer phore/ai-harness.
+     * @param string $templateDir Optionaler _tpl-Pfad.
+     * @param string $root Document Root.
+     * @throws RuntimeException Bei ungueltiger Unteraktion oder fehlender Dateiauswahl.
+     * @see SchillerContentAction::adapt()
+     * @example schiller ai adjust index.md "_data/*.yml"
+     */
+    public function ai(
+        array $argv,
+        #[CliParameter('mode', 'concurrent oder sequential')]
+        string $mode = 'concurrent',
+        #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
+        string $context = '',
+        #[CliParameter('skill', 'Optionaler Basis-Skill')]
+        string $skill = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = 'gpt-5-mini',
+        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
+        string $templateDir = '',
+        #[CliParameter('root', 'Document Root')]
+        string $root = 'docs',
+    ): void {
+        $subAction = array_shift($argv);
+        if ($subAction !== 'adjust') {
+            throw new RuntimeException('ai requires the sub-action adjust.');
+        }
+
+        $selectors = $this->selectors($argv);
+        if ($selectors === []) {
+            throw new RuntimeException('ai adjust requires at least one filename, glob or tag selector.');
+        }
+        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
+            throw new RuntimeException('mode must be concurrent or sequential.');
+        }
+
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $written = (new SchillerAutomationFactory($startDirectory))
+            ->createContentAction(
+                $root,
+                $templateDir,
+                $this->csv($context),
+                $skill,
+                new PhoreLogger(new PhoreConsoleLoggerDriver()),
+                $model,
+            )
+            ->adapt($selectors, $mode === 'concurrent');
+
+        if ($written !== []) {
+            echo implode("\n", $written) . "\n";
+        }
+    }
+
+    /**
+     * @param list<string> $argv
+     * @return list<string>
+     */
+    private function selectors(array $argv): array
+    {
+        $selectors = [];
+        foreach ($argv as $value) {
+            if (!is_string($value)) {
+                continue;
+            }
+            $selectors = [...$selectors, ...$this->csv($value)];
+        }
+        return $selectors;
+    }
+
+    /**
      * @return list<string>
      */
     private function csv(string $values): array

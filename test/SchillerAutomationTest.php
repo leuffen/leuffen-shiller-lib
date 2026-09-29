@@ -178,4 +178,57 @@ final class SchillerAutomationTest extends TestCase
             phore_file($this->dir . '/site/public/index.md')->get_contents(),
         );
     }
+    public function testRevertRestoresVariantAndDataOriginals(): void
+    {
+        phore_dir($this->dir . '/site/docs/_data')->mkdir();
+        phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
+        phore_file($this->dir . '/tpl/pages/index.raven.md')->set_contents(
+            "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nOriginal page\n",
+        );
+
+        $automation = new SchillerAutomation($this->dir . '/site', $this->dir . '/tpl');
+        $automation->init(['raven']);
+
+        phore_file($this->dir . '/site/docs/index.md')->set_contents('AI page');
+        phore_file($this->dir . '/site/docs/_data/general.yml')->set_contents('name: AI');
+
+        $restored = $automation->revert(['index.md', '_data/*.yml']);
+
+        self::assertContains('docs/index.md', $restored);
+        self::assertContains('docs/_data/general.yml', $restored);
+        self::assertStringContainsString('Original page', phore_file($this->dir . '/site/docs/index.md')->get_contents());
+        self::assertSame("name: Original\n", phore_file($this->dir . '/site/docs/_data/general.yml')->get_contents());
+    }
+
+    public function testCliRevertRestoresSelectedFile(): void
+    {
+        phore_file($this->dir . '/tpl/_root/docs/.shiller.yml')->set_contents("template_dir: ../../tpl\n");
+        phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
+
+        $baseCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller');
+        exec(
+            $baseCommand
+                . ' init --root ' . escapeshellarg($this->dir . '/site/docs')
+                . ' --template-dir ' . escapeshellarg($this->dir . '/tpl')
+                . ' 2>&1',
+            $output,
+            $status,
+        );
+        self::assertSame(0, $status, implode("\n", $output));
+
+        phore_file($this->dir . '/site/docs/_data/general.yml')->set_contents('name: AI');
+        $output = [];
+        exec(
+            $baseCommand
+                . ' revert ' . escapeshellarg('_data/general.yml')
+                . ' --root ' . escapeshellarg($this->dir . '/site/docs')
+                . ' 2>&1',
+            $output,
+            $status,
+        );
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertSame("name: Original\n", phore_file($this->dir . '/site/docs/_data/general.yml')->get_contents());
+    }
+
 }

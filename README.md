@@ -83,11 +83,21 @@ Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
 werden `tags`, `ptags` und `schiller.tags` im Markdown-Front-Matter geprüft.
 
 ```sh
-schiller adapt
-schiller adapt --select "index.md,_data/general.yml"
-schiller adapt --select "leistungen/**/*.md,tag:arzt" --mode sequential
-schiller adapt --context "context/zusatz.md" --skill "skills/praxis/SKILL.md"
+schiller ai adjust index.md
+schiller ai adjust index.md _data/general.yml
+schiller ai adjust "leistungen/**/*.md" "tag:arzt"
+schiller revert index.md "_data/*.yml"
+
+# Erweiterte Optionen stehen vor der AI-Unteraktion:
+schiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
 ```
+
+`schiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
+mehrere Dateinamen sowie Globs werden direkt als Argumente nach `adjust` angegeben;
+ohne weitere Optionen werden Document Root, `template_dir`, Projektkontext,
+Basis-Skill und Modell aus den Standardwerten beziehungsweise `.shiller.yml`
+verwendet. `schiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
+installierten Template-Dateien wieder her und benötigt keinen KI-Zugriff.
 
 `--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
 AI Harness; `sequential` führt dieselben Requests nacheinander aus. Die CLI loggt
