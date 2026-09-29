@@ -18,7 +18,7 @@
     "bin/schiller"
   ],
   "require": {
-    "php": ">=8.3",
+    "php": ">=8.5",
     "ext-yaml": "*",
     "ext-json": "*",
     "phore/cli2": "dev-main",
