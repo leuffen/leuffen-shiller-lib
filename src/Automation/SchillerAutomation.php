@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Leuffen\Schiller\Automation;
 
+use Phore\FileSystem\Exception\FilesystemException;
 use RuntimeException;
 
 /** Installs a theme's _tpl directory into a website without involving SchillerDir. */
@@ -19,14 +20,23 @@ final class SchillerAutomation
      * @param string $projectRoot Ziel für allgemeine Dateien aus _root.
      * @param string $templateDir Verzeichnis _tpl des Theme-Pakets.
      * @param string $documentRoot Document Root relativ zur Projektwurzel, standardmäßig docs.
-     * @throws RuntimeException Bei fehlenden Verzeichnissen oder ungültigem Document Root.
+     * @throws FilesystemException Bei fehlenden oder nicht lesbaren Verzeichnissen.
+     * @throws RuntimeException Bei Symlinks oder ungültigem Document Root.
      * @see SchillerAutomationFactory Für die wiederverwendbare Auflösung von Projekt, Document Root und Konfiguration.
      * @example new SchillerAutomation('/srv/site', '/srv/site/node_modules/@leuffen/themejs2/_tpl', 'docs');
      */
     public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
     {
-        $this->projectRoot = $this->directory($projectRoot);
-        $this->templateDir = $this->directory($templateDir);
+        // Bis Phore vererbte Link-Regeln anbietet, den bisherigen Schutz beibehalten.
+        $directories = [];
+        foreach ([$projectRoot, $templateDir] as $path) {
+            $directory = phore_uri('/')->withRelativePath((string) phore_uri($path)->abs());
+            if (is_link((string) $directory)) {
+                throw new RuntimeException("Cannot use symlink as directory: $path");
+            }
+            $directories[] = (string) $directory->assertDirectory()->assertReadable();
+        }
+        [$this->projectRoot, $this->templateDir] = $directories;
         $this->documentRoot = $this->relativePath($documentRoot);
     }
 
@@ -35,24 +45,22 @@ final class SchillerAutomation
      *
      * @param list<string> $tags Mindestens eines der Tags einer Vorlage muss gewählt sein.
      * @return list<string> Geschriebene Pfade relativ zur Projektwurzel.
-     * @throws RuntimeException Bei ungültigen Quellen, Zielen, Referenzen, Kollisionen oder Schreibfehlern.
+     * @throws FilesystemException Bei Datei- oder Verzeichnisfehlern; wird unverändert weitergegeben.
+     * @throws RuntimeException Bei ungültigen Metadaten, Referenzen, Symlinks oder Zielkollisionen.
      * @see self::install()
      * @example $automation = new SchillerAutomation('/srv/site', '/srv/site/node_modules/theme/_tpl'); $automation->init(['raven']);
      */
     public function init(array $tags = []): array
     {
         $plan = [];
-        $root = $this->templateDir . '/_root';
-        if (!phore_uri($root)->isDirectory()) {
-            throw new RuntimeException("Template root missing: $root");
-        }
+        $root = (string) phore_dir($this->templateDir . '/_root')->assertDirectory();
 
         foreach ($this->walk($root) as [$source, $relative]) {
             // Die Theme-Projektwurzel bleibt am Projekt, ihr docs-Baum folgt dem gewählten Document Root.
             $destination = str_starts_with($relative, 'docs/')
                 ? $this->documentRoot . substr($relative, strlen('docs'))
                 : $relative;
-            $plan[$destination] = $this->readFile($source);
+            $plan[$destination] = phore_file($source)->get_contents();
         }
 
         return $this->apply($this->selected($tags) + $plan);
@@ -63,7 +71,8 @@ final class SchillerAutomation
      *
      * @param list<string> $tags Auswahl; ein leeres Array installiert keine Vorlage.
      * @return list<string> Geschriebene Pfade relativ zur Projektwurzel.
-     * @throws RuntimeException Bei ungültigen Quellen, Zielen, Referenzen, Kollisionen oder Schreibfehlern.
+     * @throws FilesystemException Bei Datei- oder Verzeichnisfehlern; wird unverändert weitergegeben.
+     * @throws RuntimeException Bei ungültigen Metadaten, Referenzen, Symlinks oder Zielkollisionen.
      * @see self::init()
      * @example $automation->install(['theme:osman']);
      */
@@ -85,7 +94,7 @@ final class SchillerAutomation
                 continue;
             }
 
-            $content = $this->readFile($source);
+            $content = phore_file($source)->get_contents();
             $match = [];
             if (!preg_match('/\A---\R(.*?)\R---(?:\R|\z)/s', $content, $match)) {
                 if ($wrapped) {
@@ -173,7 +182,7 @@ final class SchillerAutomation
                 throw new RuntimeException("Symlink in instruction path: $current");
             }
         }
-        $this->readFile($this->templateDir . '/' . $path);
+        phore_file($this->templateDir . '/' . $path)->assertFile()->assertReadable();
 
         return 'tpl:/' . $path;
     }
@@ -204,11 +213,7 @@ final class SchillerAutomation
 
         foreach ($plan as $relative => $content) {
             $path = $this->projectRoot . '/' . $relative;
-            try {
-                phore_file($path)->mkdir()->set_contents($content);
-            } catch (\Throwable $exception) {
-                throw new RuntimeException("Cannot write file: $path", 0, $exception);
-            }
+            phore_file($path)->mkdir()->set_contents($content);
         }
 
         return array_keys($plan);
@@ -216,11 +221,7 @@ final class SchillerAutomation
 
     private function walk(string $directory): array
     {
-        try {
-            $pending = [[phore_dir($directory)->assertDirectory()->assertReadable(), '']];
-        } catch (\Throwable $exception) {
-            throw new RuntimeException("Cannot read directory: $directory", 0, $exception);
-        }
+        $pending = [[phore_dir($directory)->assertDirectory(), '']];
 
         $files = [];
         while ($pending !== []) {
@@ -246,35 +247,6 @@ final class SchillerAutomation
         usort($files, fn(array $a, array $b): int => strcmp($a[1], $b[1]));
 
         return $files;
-    }
-
-    private function readFile(string $path): string
-    {
-        if (is_link($path)) {
-            throw new RuntimeException("Cannot read symlink as file: $path");
-        }
-
-        try {
-            return phore_file($path)->assertFile()->assertReadable()->get_contents();
-        } catch (\Throwable $exception) {
-            throw new RuntimeException("Cannot read file: $path", 0, $exception);
-        }
-    }
-
-    private function directory(string $path): string
-    {
-        $absolute = (string) phore_uri('/')->withRelativePath((string) phore_uri($path)->abs());
-        if (is_link($absolute)) {
-            throw new RuntimeException("Cannot use symlink as directory: $path");
-        }
-
-        try {
-            phore_dir($absolute)->assertDirectory()->assertReadable();
-        } catch (\Throwable $exception) {
-            throw new RuntimeException("Cannot read directory: $path", 0, $exception);
-        }
-
-        return $absolute;
     }
 
     private function relativePath(mixed $path): string
