@@ -24,7 +24,7 @@
     "phore/cli2": "dev-main",
     "phore/filesystem": "*",
     "phore/ai-harness": "dev-main",
-    "phore/log": "dev-main"
+    "phore/log": "dev-master"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.0",
