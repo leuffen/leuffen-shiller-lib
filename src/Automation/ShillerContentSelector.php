@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
 
 /**
- * Waehlt editierbare Schiller-Inhalte innerhalb eines Document Roots aus.
+ * Waehlt editierbare Shiller-Inhalte innerhalb eines Document Roots aus.
  *
  * Unterstuetzt exakte relative Dateinamen, Globs und tag:<name>. Editierbar sind
  * Markdown-Dateien sowie YAML-Dateien unter _data/.
  */
-final class SchillerContentSelector
+final class ShillerContentSelector
 {
     private readonly PhoreDirectory $documentRoot;
 
@@ -24,7 +24,7 @@ final class SchillerContentSelector
      * @param string $documentRoot Vorhandener und lesbarer Document Root.
      * @throws FilesystemException Bei ungueltigem Dateisystemzugriff.
      * @see self::select()
-     * @example $selector = new SchillerContentSelector('/srv/site/docs'); assert($selector instanceof SchillerContentSelector);
+     * @example $selector = new ShillerContentSelector('/srv/site/docs'); assert($selector instanceof ShillerContentSelector);
      */
     public function __construct(string $documentRoot)
     {
@@ -44,7 +44,7 @@ final class SchillerContentSelector
      * @param string|list<string>|null $selectors Selector oder Liste; null/leer nutzt den Default.
      * @return list<PhoreFile> Sortierte, lesbare Zieldateien.
      * @throws FilesystemException Bei Dateisystemfehlern.
-     * @see SchillerContentAction::adapt()
+     * @see ShillerContentAction::adapt()
      * @example $files = $selector->select(['leistungen/*.md', 'tag:arzt', '_data/general.yml']); assert(is_array($files));
      */
     public function select(string|array|null $selectors = null): array

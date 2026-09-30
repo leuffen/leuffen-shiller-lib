@@ -1,9 +1,9 @@
 ---
 name: schiller-adapt-content
-description: Passt installierte Schiller-Websiteinhalte an den bereitgestellten Projektkontext an, ohne Layout- oder technische Struktur neu zu entwerfen.
+description: Passt installierte Shiller-Websiteinhalte an den bereitgestellten Projektkontext an, ohne Layout- oder technische Struktur neu zu entwerfen.
 ---
 
-# Schiller Content an Projektkontext anpassen
+# Shiller Content an Projektkontext anpassen
 
 Bearbeite genau die bereitgestellte Zieldatei. Verwende ausschließlich die als Kontext gelieferten Fakten und erfinde keine Namen, Titel, Leistungen, Adressen, Kontaktdaten, Qualifikationen oder sonstigen Praxisangaben.
 

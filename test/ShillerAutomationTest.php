@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Leuffen\Schiller\Automation\SchillerAutomation;
-use Leuffen\Schiller\Automation\SchillerAutomationFactory;
+use Leuffen\Shiller\Automation\ShillerAutomation;
+use Leuffen\Shiller\Automation\ShillerAutomationFactory;
 use PHPUnit\Framework\TestCase;
 
-final class SchillerAutomationTest extends TestCase
+final class ShillerAutomationTest extends TestCase
 {
     private string $dir;
 
@@ -32,7 +32,7 @@ final class SchillerAutomationTest extends TestCase
         phore_file($this->dir . '/tpl/pages/index.seem1.md')->set_contents("---\nschiller:\n  tags: [seem1]\n  target: index.md\n  instructions: [./local.md, 'tpl:/instructions/style.md']\nlayout: website\n---\nStart\n");
         phore_file($this->dir . '/tpl/pages/nav.html.template')->set_contents("---\nschiller:\n  tags: [seem1]\n  target: _includes/nav.html\n---\n<nav>Variante</nav>\n");
 
-        $written = (new SchillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['seem1']);
+        $written = (new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['seem1']);
 
         self::assertContains('docs/index.md', $written);
         self::assertSame(
@@ -58,7 +58,7 @@ final class SchillerAutomationTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         try {
-            (new SchillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['a', 'b']);
+            (new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['a', 'b']);
         } finally {
             self::assertFalse(phore_uri($this->dir . '/site/base.txt')->exists());
             self::assertFalse(phore_uri($this->dir . '/site/docs/index.html')->exists());
@@ -76,7 +76,7 @@ final class SchillerAutomationTest extends TestCase
             "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
 
-        $automation = (new SchillerAutomationFactory($this->dir . '/site'))->create();
+        $automation = (new ShillerAutomationFactory($this->dir . '/site'))->create();
         $written = $automation->install(['raven']);
 
         self::assertContains('docs/index.md', $written);
@@ -186,7 +186,7 @@ final class SchillerAutomationTest extends TestCase
             "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nOriginal page\n",
         );
 
-        $automation = new SchillerAutomation($this->dir . '/site', $this->dir . '/tpl');
+        $automation = new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl');
         $automation->init(['raven']);
 
         phore_file($this->dir . '/site/docs/index.md')->set_contents('AI page');

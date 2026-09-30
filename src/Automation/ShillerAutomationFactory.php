@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Erstellt Template- und Content-Automation aus einem Startverzeichnis.
  */
-final class SchillerAutomationFactory
+final class ShillerAutomationFactory
 {
     private readonly PhoreDirectory $startDirectory;
 
@@ -23,7 +23,7 @@ final class SchillerAutomationFactory
      * @throws FilesystemException Bei ungueltigen oder nicht lesbaren Verzeichnissen.
      * @see self::create()
      * @see self::createContentAction()
-     * @example $factory = new SchillerAutomationFactory('/srv/site'); assert($factory instanceof SchillerAutomationFactory);
+     * @example $factory = new ShillerAutomationFactory('/srv/site'); assert($factory instanceof ShillerAutomationFactory);
      */
     public function __construct(string $startDirectory)
     {
@@ -47,11 +47,11 @@ final class SchillerAutomationFactory
      * @param string $skillFile Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model AI-Modell fuer phore/ai-harness.
-     * @return SchillerContentAction Konfigurierte Content-Action.
+     * @return ShillerContentAction Konfigurierte Content-Action.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlender oder ungueltiger Konfiguration.
-     * @see SchillerContentAction
-     * @example $action = (new SchillerAutomationFactory('/srv/site'))->createContentAction(); assert($action instanceof SchillerContentAction);
+     * @see ShillerContentAction
+     * @example $action = (new ShillerAutomationFactory('/srv/site'))->createContentAction(); assert($action instanceof ShillerContentAction);
      */
     public function createContentAction(
         string $documentRoot = 'docs',
@@ -60,7 +60,7 @@ final class SchillerAutomationFactory
         string $skillFile = '',
         ?PhoreLogger $logger = null,
         string $model = 'gpt-5-mini',
-    ): SchillerContentAction {
+    ): ShillerContentAction {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
             : $this->startDirectory->withRelativePath($documentRoot);
@@ -73,7 +73,7 @@ final class SchillerAutomationFactory
         }
         $config = $configFile->get_yaml();
         if (!is_array($config)) {
-            throw new RuntimeException("Invalid Schiller config: $configFile");
+            throw new RuntimeException("Invalid Shiller config: $configFile");
         }
         $configDir = $configFile->withParentDir()->assertDirectory()->assertReadable();
 
@@ -148,7 +148,7 @@ final class SchillerAutomationFactory
 
         $contextFiles = array_values(array_unique($contextFiles));
         if ($contextFiles === []) {
-            throw new RuntimeException('No Schiller context files found.');
+            throw new RuntimeException('No Shiller context files found.');
         }
 
         if ($skillFile === '') {
@@ -160,7 +160,7 @@ final class SchillerAutomationFactory
                 ->assertReadable();
         }
 
-        return new SchillerContentAction(
+        return new ShillerContentAction(
             (string) $documentUri,
             (string) $templateUri,
             $contextFiles,
@@ -178,13 +178,13 @@ final class SchillerAutomationFactory
      *
      * @param string $documentRoot Relativer oder absoluter Document Root.
      * @param string $templateDir Optionaler Template-Pfad.
-     * @return SchillerAutomation Konfigurierte Automation.
+     * @return ShillerAutomation Konfigurierte Automation.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Wenn template_dir fehlt oder ungueltig ist.
-     * @see SchillerAutomation
-     * @example $automation = (new SchillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof SchillerAutomation);
+     * @see ShillerAutomation
+     * @example $automation = (new ShillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof ShillerAutomation);
      */
-    public function create(string $documentRoot = 'docs', string $templateDir = ''): SchillerAutomation
+    public function create(string $documentRoot = 'docs', string $templateDir = ''): ShillerAutomation
     {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
@@ -217,7 +217,7 @@ final class SchillerAutomationFactory
                 : $projectRoot->withRelativePath($templateDir);
         }
 
-        return new SchillerAutomation(
+        return new ShillerAutomation(
             (string) $projectRoot,
             (string) $templateUri,
             $documentName,

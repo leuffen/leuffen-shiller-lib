@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
@@ -12,7 +12,7 @@ use RuntimeException;
 
 /** CLI adapter; discovery and automation rules live outside the CLI. */
 #[CliScope('schiller')]
-final class SchillerCli
+final class ShillerCli
 {
     /**
      * Kopiert _root und installiert optional ausgewaehlte Tags im Projekt.
@@ -21,7 +21,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus der .shiller.yml im Document Root.
      * @param string $root Document Root, standardmaessig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Installationsfehlern.
-     * @see SchillerAutomationFactory::create()
+     * @see ShillerAutomationFactory::create()
      * @example schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
      */
     public function init(
@@ -37,7 +37,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->init($this->csv($tags));
         echo implode("\n", $written) . "\n";
@@ -50,7 +50,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root, standardmaessig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Installationsfehlern.
-     * @see SchillerAutomationFactory::create()
+     * @see ShillerAutomationFactory::create()
      * @example schiller install --tags raven
      */
     public function install(
@@ -66,7 +66,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->install($this->csv($tags));
         echo implode("\n", $written) . "\n";
@@ -83,7 +83,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Anpassungsfehlern.
-     * @see SchillerAutomationFactory::createContentAction()
+     * @see ShillerAutomationFactory::createContentAction()
      * @example schiller adapt --select "index.md,_data/general.yml" --mode concurrent
      */
     public function adapt(
@@ -111,7 +111,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->createContentAction(
                 $root,
                 $templateDir,
@@ -134,7 +134,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root.
      * @throws RuntimeException Bei fehlender Dateiauswahl oder Restore-Fehlern.
-     * @see SchillerAutomation::revert()
+     * @see ShillerAutomation::revert()
      * @example schiller revert index.md "_data/*.yml"
      */
     public function revert(
@@ -154,7 +154,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->revert($selectors);
 
@@ -177,7 +177,7 @@ final class SchillerCli
      * @param string $templateDir Optionaler _tpl-Pfad.
      * @param string $root Document Root.
      * @throws RuntimeException Bei ungueltiger Unteraktion oder fehlender Dateiauswahl.
-     * @see SchillerContentAction::adapt()
+     * @see ShillerContentAction::adapt()
      * @example schiller ai adjust index.md "_data/*.yml"
      */
     public function ai(
@@ -213,7 +213,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->createContentAction(
                 $root,
                 $templateDir,

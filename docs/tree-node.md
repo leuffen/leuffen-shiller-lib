@@ -1,6 +1,6 @@
 # TreeNode-Konvention v1
 
-Dieser Datenvertrag ist der gemeinsame Entwurf für Schillers Datei- und Seitenbäume und kann in anderen Projekten mit eigenen Nutzdaten übernommen werden. Die Library und die hier beschriebenen Projektionen sind noch nicht implementiert.
+Dieser Datenvertrag ist der gemeinsame Entwurf für Shillers Datei- und Seitenbäume und kann in anderen Projekten mit eigenen Nutzdaten übernommen werden. Die Library und die hier beschriebenen Projektionen sind noch nicht implementiert.
 
 ## Welcher Standard ist das?
 
@@ -30,9 +30,9 @@ export interface TreeNode<TData = Record<string, unknown>> {
 
 Ein Renderer braucht zum vollständigen Grundaufbau nur id, label und children. Eigene Spalten, Symbole, Menüs oder Links lesen data. Der Vertrag enthält keine zyklischen Elternreferenzen, Klasseninstanzen oder Funktionen. Auswahl, Fokus und aufgeklappte IDs verwaltet das Frontend getrennt; der Serverbaum bleibt ein Lesesnapshot.
 
-Bei vollständig geladenen Bäumen bedeutet `children: []` ein Blatt. Teilweise geladene Daten brauchen zusätzlich ein explizites Nachladeprofil; Schillers Profil steht unten. Eine beliebige Komponente unterstützt dieses Nachladen nicht automatisch.
+Bei vollständig geladenen Bäumen bedeutet `children: []` ein Blatt. Teilweise geladene Daten brauchen zusätzlich ein explizites Nachladeprofil; Shillers Profil steht unten. Eine beliebige Komponente unterstützt dieses Nachladen nicht automatisch.
 
-## Schiller-Profil
+## Shiller-Profil
 
 Die folgende TypeScript-Beschreibung gilt für die JSON-Ausgabe, nicht für PHP-Document-Objekte:
 
@@ -57,7 +57,7 @@ export interface TranslationInfo {
   published: boolean | null;
 }
 
-export interface SchillerTreeData {
+export interface ShillerTreeData {
   kind: FileKind;
   path: string | null;
   file: FileEntry | null;
@@ -67,20 +67,20 @@ export interface SchillerTreeData {
   childrenLoaded: boolean;
 }
 
-export type SchillerTreeNode = TreeNode<SchillerTreeData>;
+export type ShillerTreeNode = TreeNode<ShillerTreeData>;
 
 export interface PageTreePayload {
-  root: SchillerTreeNode;
+  root: ShillerTreeNode;
   diagnostics: unknown[]; // Diagnose-DTO ist nicht Teil dieser Baumkonvention.
 }
 
 export interface FileListingPayload {
-  entries: SchillerTreeNode[];
+  entries: ShillerTreeNode[];
   diagnostics: unknown[];
 }
 ```
 
-PHP verwendet für data den vorgeschlagenen Typ `SchillerTreeData`; die Signaturen stehen in [Proposal § 10](proposals/2026-09-12-schiller-seiten-api.md). Leere metadata/translations werden im JSON als `{}` serialisiert, leere children/entries als `[]`. FileKind wird als String ausgegeben. `toArray()` liefert dafür eine gezielte Projektion, keinen generischen Dump von PHP-Objekten: insbesondere keine Bodies, Document-Referenzen, Storage-Verbindungen oder adapterState.
+PHP verwendet für data den vorgeschlagenen Typ `ShillerTreeData`; die Signaturen stehen in [Proposal § 10](proposals/2026-09-12-schiller-seiten-api.md). Leere metadata/translations werden im JSON als `{}` serialisiert, leere children/entries als `[]`. FileKind wird als String ausgegeben. `toArray()` liefert dafür eine gezielte Projektion, keinen generischen Dump von PHP-Objekten: insbesondere keine Bodies, Document-Referenzen, Storage-Verbindungen oder adapterState.
 
 | Bedeutung | Seitenbaum | Physisches Dateilisting |
 |---|---|---|
@@ -101,13 +101,13 @@ Für einen Seitenknoten verwendet label den nicht leeren effektiven `title` der 
 
 JekyllLegacyAdapter normalisiert die vorhandene _section.yml-Bezeichnung als Kategoriebezeichnung; weitere erlaubte Angaben bleiben in data.metadata erhalten. JekyllPolyglotAdapter ordnet Index-/Blattdateien dem Seitenknoten zu und nutzt für reine Ordner den ID-Fallback. Im physischen Listing ist label immer der letzte Pfadbestandteil, am Root `/`. Beispiele und Tests dürfen keine Titel aus verborgenen Varianten ableiten.
 
-Die Adapter liefern vorhandene Sprachvarianten in data.translations; Schiller ergänzt erlaubte fehlende Sprachen mit exists=false. Eine reine Kategorie ohne Seitengruppe hat data.file=null und translations={}. Metadaten und Labels sind Anzeigeangaben, keine Schreibanweisungen: Eine Änderung im Browser speichert weder einen Seitentitel noch einen Dateinamen. Dafür verwendet die Anwendung die Document- oder Rename-API.
+Die Adapter liefern vorhandene Sprachvarianten in data.translations; Shiller ergänzt erlaubte fehlende Sprachen mit exists=false. Eine reine Kategorie ohne Seitengruppe hat data.file=null und translations={}. Metadaten und Labels sind Anzeigeangaben, keine Schreibanweisungen: Eine Änderung im Browser speichert weder einen Seitentitel noch einen Dateinamen. Dafür verwendet die Anwendung die Document- oder Rename-API.
 
 ## Aufklappen und Öffnen
 
 Ein Knoten mit data.file und Kindern ist zugleich Seite und Elternknoten. Der Aufklapp-Pfeil ändert den UI-Zustand; das Öffnen der Seite führt separat zum Editor. Eine reine Kategorie öffnet keinen Seiteneditor, bleibt aber fokussierbar und aufklappbar. Sie darf dafür nicht pauschal als disabled markiert werden. Dateiöffnung in der physischen Ansicht ist eine separate Anwendungsaktion.
 
-Schiller liefert nur lesbare Kinder. `data.hasChildren` sagt, ob mindestens ein lesbares direktes Kind existiert. `data.childrenLoaded` sagt, ob sämtliche lesbaren direkten Kinder bereits enthalten sind. `TreeNode::isLeaf()` ist die PHP-Komfortmethode für `!data.hasChildren`.
+Shiller liefert nur lesbare Kinder. `data.hasChildren` sagt, ob mindestens ein lesbares direktes Kind existiert. `data.childrenLoaded` sagt, ob sämtliche lesbaren direkten Kinder bereits enthalten sind. `TreeNode::isLeaf()` ist die PHP-Komfortmethode für `!data.hasChildren`.
 
 | Zustand | children | hasChildren | childrenLoaded |
 |---|---|---|---|
@@ -119,7 +119,7 @@ Schiller liefert nur lesbare Kinder. `data.hasChildren` sagt, ob mindestens ein 
 
 ## Vom PHP-Listing zum Frontend
 
-[Beispiel 04](../examples/04-list-pages.php) erzeugt die PageTree-Projektion und JSON; der vorhandene HTTP-Endpunkt der Anwendung sendet dieses JSON als `application/json`. Die Antwort enthält `root` und `diagnostics`. Es ist kein neuer fest eingebauter Schiller-HTTP-Endpunkt vorgesehen.
+[Beispiel 04](../examples/04-list-pages.php) erzeugt die PageTree-Projektion und JSON; der vorhandene HTTP-Endpunkt der Anwendung sendet dieses JSON als `application/json`. Die Antwort enthält `root` und `diagnostics`. Es ist kein neuer fest eingebauter Shiller-HTTP-Endpunkt vorgesehen.
 
 In einer bestehenden React-Anwendung mit eingerichtetem [MUI X Tree View](https://mui.com/x/react-tree-view/quickstart/) genügt dieser Komponentenausschnitt. `PageTreePayload` ist der oben definierte Typ; die Anwendung übergibt ihre bereits empfangene JSON-Antwort als payload:
 
@@ -133,7 +133,7 @@ function PageTreeView({ payload }: { payload: PageTreePayload }) {
 
 Das rendert den Root-Knoten und seine Unterknoten ohne rekursive Umformung. Für die Basisfixture aus Beispiel 04 erscheinen `leistungen` und darunter `Diagnostik`. Das Beispiel zeigt die Baumdarstellung; Editoraktionen, Sprachspalten und die Anzeige von diagnostics bindet die Anwendung zusätzlich an. Die MUI-Integration ist nicht als ausgeführter Test behauptet.
 
-Für das vollständige physische Listing aus [Beispiel 03](../examples/03-list-files.php) lautet die Übergabe `items={payload.entries}`. Komponenten mit anderen Feldnamen benötigen passende Zugriffsfunktionen oder eine kleine Feldzuordnung; universelle Drop-in-Kompatibilität ist nicht zugesagt. Insbesondere berücksichtigt das einfache MUI-Beispiel Schillers Nachladeprofil nicht: dafür entweder vollständig laden oder die Nachlade-API des gewählten Renderers anbinden.
+Für das vollständige physische Listing aus [Beispiel 03](../examples/03-list-files.php) lautet die Übergabe `items={payload.entries}`. Komponenten mit anderen Feldnamen benötigen passende Zugriffsfunktionen oder eine kleine Feldzuordnung; universelle Drop-in-Kompatibilität ist nicht zugesagt. Insbesondere berücksichtigt das einfache MUI-Beispiel Shillers Nachladeprofil nicht: dafür entweder vollständig laden oder die Nachlade-API des gewählten Renderers anbinden.
 
 ## Spätere Vertragsprüfung
 

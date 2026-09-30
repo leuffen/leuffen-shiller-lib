@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\AiHarness\Client\AiRequest;
 use Phore\AiHarness\Client\AiRequestSpooler;
@@ -20,9 +20,9 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Passt installierte Schiller-Inhalte mit phore/ai-harness an Projektkontext an.
+ * Passt installierte Shiller-Inhalte mit phore/ai-harness an Projektkontext an.
  */
-final class SchillerContentAction
+final class ShillerContentAction
 {
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
@@ -43,7 +43,7 @@ final class SchillerContentAction
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlendem Kontext oder ungueltigem Modell.
      * @see self::adapt()
-     * @example $action = new SchillerContentAction('/srv/site/docs', '/srv/site/node_modules/theme/_tpl', ['/srv/site/.shiller-context.txt'], __DIR__ . '/SKILL.md'); assert($action instanceof SchillerContentAction);
+     * @example $action = new ShillerContentAction('/srv/site/docs', '/srv/site/node_modules/theme/_tpl', ['/srv/site/.shiller-context.txt'], __DIR__ . '/SKILL.md'); assert($action instanceof ShillerContentAction);
      */
     public function __construct(
         string $documentRoot,
@@ -57,7 +57,7 @@ final class SchillerContentAction
             throw new RuntimeException('AI model must not be empty.');
         }
         if ($contextFiles === []) {
-            throw new RuntimeException('At least one Schiller context file is required.');
+            throw new RuntimeException('At least one Shiller context file is required.');
         }
 
         $documentPath = (string) phore_uri($documentRoot)->abs();
@@ -93,19 +93,19 @@ final class SchillerContentAction
      * werden zuerst validiert und erst danach geschrieben, damit Request-Fehler
      * keine teilweise bearbeitete Auswahl hinterlassen.
      *
-     * @param string|list<string>|null $selectors Dateiselector; siehe SchillerContentSelector.
+     * @param string|list<string>|null $selectors Dateiselector; siehe ShillerContentSelector.
      * @param bool $concurrent true fuer parallele, false fuer sequenzielle Requests.
      * @return list<string> Bearbeitete Pfade relativ zum Document Root.
      * @throws Throwable Bei AI-, Dateisystem- oder Validierungsfehlern.
-     * @see SchillerContentSelector::select()
+     * @see ShillerContentSelector::select()
      * @see AiRequestSpooler
      * @example $files = $action->adapt(['index.md', '_data/general.yml'], concurrent: true); assert(is_array($files));
      */
     public function adapt(string|array|null $selectors = null, bool $concurrent = true): array
     {
-        $targets = (new SchillerContentSelector((string) $this->documentRoot))->select($selectors);
+        $targets = (new ShillerContentSelector((string) $this->documentRoot))->select($selectors);
         if ($targets === []) {
-            $this->logger?->skip('Keine passenden Schiller-Inhalte gefunden.');
+            $this->logger?->skip('Keine passenden Shiller-Inhalte gefunden.');
             return [];
         }
 
@@ -209,7 +209,7 @@ final class SchillerContentAction
 
             $requests[$index] = $converter
                 ->toAiRequest($this->model, $prompts)
-                ->withOutputSchema('SchillerContentEdit', [
+                ->withOutputSchema('ShillerContentEdit', [
                     'type' => 'object',
                     'properties' => [
                         'content' => ['type' => 'string'],

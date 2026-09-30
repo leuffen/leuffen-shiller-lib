@@ -1,0 +1,3 @@
+template_dir: ../_tpl
+context_file: ../context/project.md
+context_dir: ../.shiller.d

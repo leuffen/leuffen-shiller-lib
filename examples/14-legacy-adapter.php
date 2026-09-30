@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Adapter;
+namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Schiller\Capabilities;
-use Leuffen\Schiller\Document;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\SiteConfig;
-use Leuffen\Schiller\SiteStorage;
+use Leuffen\Shiller\Capabilities;
+use Leuffen\Shiller\Document;
+use Leuffen\Shiller\FieldSet;
+use Leuffen\Shiller\PageTree;
+use Leuffen\Shiller\SiteConfig;
+use Leuffen\Shiller\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
@@ -18,7 +18,7 @@ final class JekyllLegacyAdapter implements Adapter
 {
     private SiteStorage $storage;
 
-    /** Wird durch SchillerDir einmalig nach der argumentlosen Konstruktion aufgerufen. */
+    /** Wird durch ShillerDir einmalig nach der argumentlosen Konstruktion aufgerufen. */
     public function bind(SiteStorage $storage): void
     {
         throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::bind');
@@ -54,7 +54,7 @@ final class JekyllLegacyAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::write');
     }
 
-    /** Liefert PageTree nach TreeNode-Konvention v1: _section.yml-Bezeichnung als label, Zusatzwerte in data.metadata, Quelle in data.file (Kategorie ohne Seite: null), Bestand in data.translations. children vollständig; fehlende Sprachen ergänzt Schiller. */
+    /** Liefert PageTree nach TreeNode-Konvention v1: _section.yml-Bezeichnung als label, Zusatzwerte in data.metadata, Quelle in data.file (Kategorie ohne Seite: null), Bestand in data.translations. children vollständig; fehlende Sprachen ergänzt Shiller. */
     public function buildTree(string $id = '/'): PageTree
     {
         throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::buildTree');

@@ -1,9 +1,9 @@
-# Schiller Library
+# Shiller Library
 
-Die Library enthält den Seitenzugriff über `SchillerDir` und getrennt davon die
-Installation von Theme-Vorlagen über `Leuffen\Schiller\Automation\SchillerAutomation`.
+Die Library enthält den Seitenzugriff über `ShillerDir` und getrennt davon die
+Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomation`.
 Projekt-, Document-Root- und Template-Konfiguration werden über
-`Leuffen\Schiller\Automation\SchillerAutomationFactory` aufgelöst.
+`Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
 
 ## Website aus `_tpl` anlegen
 
@@ -21,9 +21,9 @@ gesamte Auflösung von Projektwurzel, Document Root, `.shiller.yml` und
 ```php
 <?php
 
-use Leuffen\Schiller\Automation\SchillerAutomationFactory;
+use Leuffen\Shiller\Automation\ShillerAutomationFactory;
 
-$automation = (new SchillerAutomationFactory('/srv/site'))->create(
+$automation = (new ShillerAutomationFactory('/srv/site'))->create(
     documentRoot: 'docs',
     templateDir: './node_modules/@leuffen/themejs2/_tpl',
 );
@@ -137,7 +137,7 @@ Projektverzeichnis neben anderen Websites liegen.
 ## Kommando
 
 Composer stellt `bin/schiller` bereit. Das CLI ist nur ein Parameteradapter
-für `SchillerAutomationFactory` und verwendet das aktuelle Arbeitsverzeichnis
+für `ShillerAutomationFactory` und verwendet das aktuelle Arbeitsverzeichnis
 als Startverzeichnis. Ohne `--template-dir` wird `template_dir` aus
 `.shiller.yml` im Document Root gelesen. Ohne `--root` wird `docs` im
 aktuellen Projekt verwendet; `--root` bezeichnet direkt ein anderes
@@ -156,4 +156,8 @@ relativer `--template-dir`-Pfad bezieht sich auf die Projektwurzel.
 
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-schiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
-`SchillerDir`-Bereich.
+`ShillerDir`-Bereich.
+
+## Vollstaendiges Demo-Projekt
+
+Unter [`demo/content-adaptation/`](demo/content-adaptation/) liegt ein kleines, vollstaendiges Beispielprojekt mit `_tpl`, installiertem `docs`-Verzeichnis, Projektkontext, `.shiller.d`, dateispezifischer Instruction und `_data`-Sidecar. Es zeigt damit die von `schiller ai adjust` und `schiller revert` erwartete Projektstruktur ohne externe Theme-Abhaengigkeit.

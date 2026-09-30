@@ -1,14 +1,14 @@
-# Review: Schiller-API und Page Builder
+# Review: Shiller-API und Page Builder
 
 Stand: 2026-09-25. Dies ist ein Abgleich des Vertrags und des ersten Library-Ausbaus, keine getestete Page-Builder-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
 
 ## Ergebnis und Integrationsgrenze
 
-Die Seitenabläufe sind mit dem überarbeiteten Vertrag darstellbar. Ein unveränderter Austausch der bisherigen PHP-Helfer reicht allerdings nicht: Die alte UI erwartet flache pid/lang/ftype-Daten und Sections, während Schiller Documents mit sprachneutraler ID und TreeNodes liefert. Page Builder Neo soll direkt diese API verwenden. Alle Unterschiede der Quellformate, Header und Dateien löst der ausgewählte Schiller-Adapter; kein zusätzlicher Format- oder Übergangslayer ist erforderlich.
+Die Seitenabläufe sind mit dem überarbeiteten Vertrag darstellbar. Ein unveränderter Austausch der bisherigen PHP-Helfer reicht allerdings nicht: Die alte UI erwartet flache pid/lang/ftype-Daten und Sections, während Shiller Documents mit sprachneutraler ID und TreeNodes liefert. Page Builder Neo soll direkt diese API verwenden. Alle Unterschiede der Quellformate, Header und Dateien löst der ausgewählte Shiller-Adapter; kein zusätzlicher Format- oder Übergangslayer ist erforderlich.
 
 Ein vollständiger Ersatz sämtlicher heutiger Page-Builder-Funktionen ist noch nicht entworfen. Die YAML-Dateneditoren für Fragmentübersetzungen und Öffnungszeiten sind auf Nutzerwunsch für den ersten Page-Builder-Ausbau zurückgestellt. Freie Kopien aus beliebigen Quellsprachen sowie die Preview-/VCS-/Benachrichtigungsabläufe sind entweder bewusst ausgeschlossen oder Aufgabe der Anwendung. Legacy darf gemäß Produktentscheidung ausschließlich bestehende Seiten und Übersetzungen bearbeiten. Seine bisherige Kopierfunktion zur Neuanlage entfällt.
 
-Die [TreeNode-Konvention v1](tree-node.md) ist der gemeinsame JSON-Vertrag für Seiten- und Dateiansicht, angelehnt an MUI Rich Tree View. PageTree::toArray liefert root/diagnostics, FileListing::toArray entries/diagnostics. Die UI übergibt [payload.root] beziehungsweise payload.entries an einen passenden Tree-Renderer; Schiller-spezifische Spalten lesen data.translations und data.metadata. Auswahl, Expansion und Seitenöffnung sind getrennte UI-Aktionen. Für eine reine Kategorie darf nicht der ganze Knoten disabled werden, da sonst auch Aufklappen ausfallen kann. Konvention und Beispiel sind noch Entwurf, keine getestete MUI-Integration.
+Die [TreeNode-Konvention v1](tree-node.md) ist der gemeinsame JSON-Vertrag für Seiten- und Dateiansicht, angelehnt an MUI Rich Tree View. PageTree::toArray liefert root/diagnostics, FileListing::toArray entries/diagnostics. Die UI übergibt [payload.root] beziehungsweise payload.entries an einen passenden Tree-Renderer; Shiller-spezifische Spalten lesen data.translations und data.metadata. Auswahl, Expansion und Seitenöffnung sind getrennte UI-Aktionen. Für eine reine Kategorie darf nicht der ganze Knoten disabled werden, da sonst auch Aufklappen ausfallen kann. Konvention und Beispiel sind noch Entwurf, keine getestete MUI-Integration.
 
 ## Was ein API-Nutzer am Aufruf erkennen muss
 
@@ -79,9 +79,9 @@ Lesen ist kein verstecktes Speichern. rename/delete speichern keine lokalen Bear
 
 Die Implementierung braucht weitere Vertragsprüfungen für beide Adapter, Storage-Tests mit kontrollierten Fehlern und Integrationstests an temporären Verzeichnissen. Für den Editor sind insbesondere GET/POST mit leerem Adapterzustand, Erhaltung unbekannter Header, UI-Sprachfallback und alle Formtypen der Referenz zu prüfen. Die [Verschiebematrix](verschieben.md) bleibt verbindlich. PHP-Beispiele sind Entwürfe und ersetzen diese Tests nicht.
 
-Revisionsvergleich und bedingtes Schreiben sind ein späterer Ausbau; die mitgelieferten Adapter werden wegen fehlender Revisionsunterstützung nicht abgewiesen. Der externe Git-/Anwendungsablauf koordiniert Versionsverwaltung und parallele Bearbeitung. Schiller garantiert zunächst keine Erkennung veralteter Editorstände. Die getrennt beschriebenen Quell-/Zielprüfungen und Wiederherstellung bei Gruppenoperationen bleiben bestehen.
+Revisionsvergleich und bedingtes Schreiben sind ein späterer Ausbau; die mitgelieferten Adapter werden wegen fehlender Revisionsunterstützung nicht abgewiesen. Der externe Git-/Anwendungsablauf koordiniert Versionsverwaltung und parallele Bearbeitung. Shiller garantiert zunächst keine Erkennung veralteter Editorstände. Die getrennt beschriebenen Quell-/Zielprüfungen und Wiederherstellung bei Gruppenoperationen bleiben bestehen.
 
-Der ursprüngliche Page-Builder-Container verwendet PHP 8.1; die inzwischen vorhandenen Schiller-Laufzeitklassen verlangen in composer.json PHP >=8.3. Der neue Builder benötigt deshalb eine PHP-8.3-Laufzeit. Die vorhandene Implementierung erfüllt noch nicht den gesamten in diesem Dokument beschriebenen Vertrag; insbesondere Feldrechte, URL-Kollisionen und der HTTP-Dokumenttransport benötigen weitere Prüfung.
+Der ursprüngliche Page-Builder-Container verwendet PHP 8.1; die inzwischen vorhandenen Shiller-Laufzeitklassen verlangen in composer.json PHP >=8.3. Der neue Builder benötigt deshalb eine PHP-8.3-Laufzeit. Die vorhandene Implementierung erfüllt noch nicht den gesamten in diesem Dokument beschriebenen Vertrag; insbesondere Feldrechte, URL-Kollisionen und der HTTP-Dokumenttransport benötigen weitere Prüfung.
 
 ## Geprüfte Referenzen
 
@@ -94,10 +94,10 @@ Der ursprüngliche Page-Builder-Container verwendet PHP 8.1; die inzwischen vorh
 
 ## Vereinfachter Adaptervertrag und Dokumenttransport
 
-getTranslation und getTranslations bleiben am Document. Schiller setzt sie mit gemeinsamem Instanzbestand, expliziter Sprache für load/create, vorhandenem Baum und getSourcePath um. Insbesondere berechnet der Adapter weiterhin Legacy-Suffixe beziehungsweise gespiegelte Sprachpfade; dafür braucht der Page Builder keinen Übergangslayer.
+getTranslation und getTranslations bleiben am Document. Shiller setzt sie mit gemeinsamem Instanzbestand, expliziter Sprache für load/create, vorhandenem Baum und getSourcePath um. Insbesondere berechnet der Adapter weiterhin Legacy-Suffixe beziehungsweise gespiegelte Sprachpfade; dafür braucht der Page Builder keinen Übergangslayer.
 
 Im Adapter gibt es genau write(array $documents), auch für den Ein-Dokument-Fall. Der freie adapterState jedes Documents ist ausschließlich Adapterangelegenheit und wird nicht im Seitenheader gespeichert. Gemeinsam zu speichernde Dokumente werden vorab als ein Endzustand validiert; ein Einzelschreib-Loop ist kein Ersatz.
 
 Der neue HTTP-Entwurf toArray/restoreDocument transportiert den vollständigen Bearbeitungsstand samt opakem Zustand. Er benötigt bei der Implementierung eine geprüfte Site-/Adapter-/Identitätsbindung und darf keine Clientrollen übernehmen. Ein leerer adapterState ist im ersten Ausbau zulässig; Identität und Rechte werden unabhängig davon geprüft. Die UI bearbeitet nur header/content und transportiert den übrigen Zustand unverändert. Beispiel 18 macht diese Einbindung sichtbar; eine installierte Transportimplementierung wird noch nicht behauptet.
 
-JekyllPolyglotAdapter und JekyllLegacyAdapter werden mitgeliefert. Der SchillerDir-Konstruktor akzeptiert eine optionale Adapterinstanz; diese hat Vorrang vor schiller.yaml. Ohne beides gilt JekyllPolyglotAdapter. Die Anwendung konstruiert Adapter ohne Storage-Argument, SchillerDir bindet den kontrollierten Dateizugriff einmalig intern. ConflictException ist als spätere Erweiterung vorgesehen, kein aktuelles Abnahmegate für Legacy oder Polyglot.
+JekyllPolyglotAdapter und JekyllLegacyAdapter werden mitgeliefert. Der ShillerDir-Konstruktor akzeptiert eine optionale Adapterinstanz; diese hat Vorrang vor schiller.yaml. Ohne beides gilt JekyllPolyglotAdapter. Die Anwendung konstruiert Adapter ohne Storage-Argument, ShillerDir bindet den kontrollierten Dateizugriff einmalig intern. ConflictException ist als spätere Erweiterung vorgesehen, kein aktuelles Abnahmegate für Legacy oder Polyglot.

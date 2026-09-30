@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Leuffen\Schiller\Automation\SchillerAutomationFactory;
-use Leuffen\Schiller\Automation\SchillerContentAction;
-use Leuffen\Schiller\Automation\SchillerContentSelector;
+use Leuffen\Shiller\Automation\ShillerAutomationFactory;
+use Leuffen\Shiller\Automation\ShillerContentAction;
+use Leuffen\Shiller\Automation\ShillerContentSelector;
 use PHPUnit\Framework\TestCase;
 
-final class SchillerContentSelectorTest extends TestCase
+final class ShillerContentSelectorTest extends TestCase
 {
     private string $dir;
 
@@ -32,7 +32,7 @@ final class SchillerContentSelectorTest extends TestCase
 
     public function testDefaultSelectsMarkdownAndOnlyDataYaml(): void
     {
-        $files = (new SchillerContentSelector($this->dir . '/site/docs'))->select();
+        $files = (new ShillerContentSelector($this->dir . '/site/docs'))->select();
         $paths = array_map(
             fn($file): string => str_replace('\\', '/', (string) $file->getRelPath(phore_dir($this->dir . '/site/docs'))),
             $files,
@@ -46,7 +46,7 @@ final class SchillerContentSelectorTest extends TestCase
 
     public function testSelectorSupportsExactGlobAndTags(): void
     {
-        $selector = new SchillerContentSelector($this->dir . '/site/docs');
+        $selector = new ShillerContentSelector($this->dir . '/site/docs');
 
         self::assertCount(1, $selector->select('index.md'));
         self::assertCount(1, $selector->select('leistungen/**/*.md'));
@@ -61,8 +61,8 @@ final class SchillerContentSelectorTest extends TestCase
         );
         phore_file($this->dir . '/site/.shiller-context.txt')->set_contents('Praxis Kontext');
 
-        $action = (new SchillerAutomationFactory($this->dir . '/site'))->createContentAction();
+        $action = (new ShillerAutomationFactory($this->dir . '/site'))->createContentAction();
 
-        self::assertInstanceOf(SchillerContentAction::class, $action);
+        self::assertInstanceOf(ShillerContentAction::class, $action);
     }
 }
