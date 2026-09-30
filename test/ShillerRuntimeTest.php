@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use FilesystemIterator;
-use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\Adapter\JekyllLegacyAdapter;
-use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\UnsupportedOperationException;
+use Leuffen\Shiller\AccessContext;
+use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\ShillerDir;
+use Leuffen\Shiller\UnsupportedOperationException;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
-final class SchillerRuntimeTest extends TestCase
+final class ShillerRuntimeTest extends TestCase
 {
     private string $dir;
 
@@ -52,7 +52,7 @@ final class SchillerRuntimeTest extends TestCase
             "---\npid: home/home\nlang: de\ntitle: Start\npublished: true\n---\nHallo\n",
         );
 
-        $site = new SchillerDir(
+        $site = new ShillerDir(
             $this->dir,
             new JekyllLegacyAdapter(),
             new AccessContext('user'),
@@ -85,7 +85,7 @@ final class SchillerRuntimeTest extends TestCase
             "---\ntitle: Start\n---\nHallo\n",
         );
 
-        $site = new SchillerDir($this->dir, null, new AccessContext('user'));
+        $site = new ShillerDir($this->dir, null, new AccessContext('user'));
         $root = $site->getPage('/');
         $english = $root->getTranslation('en', true);
 
