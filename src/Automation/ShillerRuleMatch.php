@@ -28,6 +28,6 @@ final readonly class ShillerRuleMatch
         public bool $important,
         public array $events,
         public string $content,
-    ) {
-    }
+    ) {}
 }
+
