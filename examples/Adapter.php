@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Adapter;
+namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Schiller\Capabilities;
-use Leuffen\Schiller\Document;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\SiteConfig;
-use Leuffen\Schiller\SiteStorage;
+use Leuffen\Shiller\Capabilities;
+use Leuffen\Shiller\Document;
+use Leuffen\Shiller\FieldSet;
+use Leuffen\Shiller\PageTree;
+use Leuffen\Shiller\SiteConfig;
+use Leuffen\Shiller\SiteStorage;
 
 /**
- * Internes Format-Interface: Schiller normalisiert ID/Sprache und verwaltet Documents.
- * Übersetzungen auswählen/listen/klonen ist gemeinsame Schiller-Logik.
+ * Internes Format-Interface: Shiller normalisiert ID/Sprache und verwaltet Documents.
+ * Übersetzungen auswählen/listen/klonen ist gemeinsame Shiller-Logik.
  * Der Adapter entscheidet allein über Ablage, eigenen adapterState und zulässige Mutationen.
  */
 interface Adapter
@@ -27,7 +27,7 @@ interface Adapter
     /** Berechnet den Root-relativen bestehenden Quellpfad oder den eindeutigen Anlagekandidaten; schreibt nichts. Kein Existenzbeweis. */
     public function getSourcePath(string $id, string $language): string;
 
-    /** Lädt genau diese gespeicherte Variante; adapterState darf zunächst leer sein; fehlend/gesperrt: NotFoundException. Objektidentität verwaltet Schiller. */
+    /** Lädt genau diese gespeicherte Variante; adapterState darf zunächst leer sein; fehlend/gesperrt: NotFoundException. Objektidentität verwaltet Shiller. */
     public function load(string $id, string $language): Document;
 
     /** Bereitet eine neue Variante vor (file=null), setzt frischen adapterState, prüft Anlagerechte; kein Schreiben. @param array<string, mixed> $header */
@@ -36,7 +36,7 @@ interface Adapter
     /** Speichert die explizite Liste als gemeinsamen Endzustand; plant nötige Promotionen; Revisionsprüfung/ConflictException erst als spätere Erweiterung. @param list<Document> $documents */
     public function write(array $documents): void;
 
-    /** Liefert PageTree mit id/label/children/data. data enthält file, metadata, vorhandene translations und Kinderstatus; Schiller ergänzt fehlende Sprachen über getSourcePath. */
+    /** Liefert PageTree mit id/label/children/data. data enthält file, metadata, vorhandene translations und Kinderstatus; Shiller ergänzt fehlende Sprachen über getSourcePath. */
     public function buildTree(string $id = '/'): PageTree;
 
     /** Liefert aktuellen Header plus Jekyll-Defaults ohne Rückschreiben. @return array<string, mixed> */

@@ -1,7 +1,7 @@
 <?php
 
 // Unabhängiger Schreibablauf; Basisfixture de/en vorhanden, fr fehlt.
-$site = new SchillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
 $page = $site->getPage('/leistungen/diagnostik');
 $documents = [];
 foreach ($page->getTranslations() as $language => $info) {

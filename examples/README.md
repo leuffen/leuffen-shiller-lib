@@ -2,10 +2,10 @@
 
 ## Eine vorhandene Übersetzung bearbeiten
 
-Schiller öffnet ein extern bereitgestelltes Website-Quellverzeichnis. Dieser typische Ablauf liest eine Seite, bearbeitet ihre vorhandene englische Übersetzung und liefert deren Ziel-URL:
+Shiller öffnet ein extern bereitgestelltes Website-Quellverzeichnis. Dieser typische Ablauf liest eine Seite, bearbeitet ihre vorhandene englische Übersetzung und liefert deren Ziel-URL:
 
 ```php
-$site = new SchillerDir(
+$site = new ShillerDir(
     phore_dir('/srv/site/docs'),
     access: new AccessContext(role: 'user'),
 );
@@ -16,7 +16,7 @@ $english->save();
 echo $english->getUrl(); // /en/leistungen/diagnostik.html
 ```
 
-SchillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage; eine eigene Revisionsprüfung ist erst für später vorgesehen. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
+ShillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage; eine eigene Revisionsprüfung ist erst für später vorgesehen. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
 
 ## Darstellungsform und gemeinsamer Kontext
 
@@ -25,16 +25,16 @@ Die [API](../docs/proposals/2026-09-12-schiller-seiten-api.md) ist ein Vorschlag
 Einmaliger Namenskontext für die Anwendungsausschnitte:
 
 ```php
-use Leuffen\Schiller\AccessContext;
-use Leuffen\Schiller\Adapter\JekyllLegacyAdapter;
-use Leuffen\Schiller\Adapter\JekyllPolyglotAdapter;
-use Leuffen\Schiller\SchillerDir;
-use Leuffen\Schiller\UrlNotResolvableException;
+use Leuffen\Shiller\AccessContext;
+use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Adapter\JekyllPolyglotAdapter;
+use Leuffen\Shiller\ShillerDir;
+use Leuffen\Shiller\UrlNotResolvableException;
 ```
 
-Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Anbindung und SiteStorage sind noch Entwurfsbestandteile. Das vorhandene Repository-Grundgerüst verlangt PHP >=8.3 und hat noch nicht Schillers Namespace; die Beispiele behaupten keine bereits installierbare API.
+Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Anbindung und SiteStorage sind noch Entwurfsbestandteile. Das vorhandene Repository-Grundgerüst verlangt PHP >=8.3 und hat noch nicht Shillers Namespace; die Beispiele behaupten keine bereits installierbare API.
 
-Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist das in 01 geöffnete PhoreDirectory, `$site` je nach Kennzeichnung dessen lesender oder schreibender SchillerDir. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
+Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist das in 01 geöffnete PhoreDirectory, `$site` je nach Kennzeichnung dessen lesender oder schreibender ShillerDir. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
 
 ## Gemeinsame Ausgangsdaten
 
@@ -152,12 +152,12 @@ Datei- und Seitenlisting verwenden die [TreeNode-Konvention v1](../docs/tree-nod
 
 ## Zuständigkeiten und Grenzen
 
-Mitgeliefert werden JekyllPolyglotAdapter und JekyllLegacyAdapter. SchillerDir wählt zuerst den expliziten adapter-Konstruktorparameter, sonst die YAML-Auswahl und sonst JekyllPolyglotAdapter. Die Instanzen werden ohne Argumente erzeugt und intern einmalig über bind(SiteStorage) angebunden; Beispiel 01 zeigt die Auswahl.
+Mitgeliefert werden JekyllPolyglotAdapter und JekyllLegacyAdapter. ShillerDir wählt zuerst den expliziten adapter-Konstruktorparameter, sonst die YAML-Auswahl und sonst JekyllPolyglotAdapter. Die Instanzen werden ohne Argumente erzeugt und intern einmalig über bind(SiteStorage) angebunden; Beispiel 01 zeigt die Auswahl.
 
-Revisionskonflikte werden im ersten Ausbau nicht durch Schiller behandelt. Versionsverwaltung und Zusammenführung liegen beim externen Git-/Anwendungsablauf. ConflictException bleibt als Typ für eine spätere Erweiterung vorgesehen; fehlende Revisionsunterstützung blockiert die normalen Adapter nicht. Rechte, Neuanlage-Kollisionen, Validierung und die Wiederherstellung bei fehlgeschlagenen Gruppenoperationen bleiben erforderlich.
+Revisionskonflikte werden im ersten Ausbau nicht durch Shiller behandelt. Versionsverwaltung und Zusammenführung liegen beim externen Git-/Anwendungsablauf. ConflictException bleibt als Typ für eine spätere Erweiterung vorgesehen; fehlende Revisionsunterstützung blockiert die normalen Adapter nicht. Rechte, Neuanlage-Kollisionen, Validierung und die Wiederherstellung bei fehlgeschlagenen Gruppenoperationen bleiben erforderlich.
 
-Document.save und SchillerDir.saveDocuments führen beide zum selben Adapterauftrag write(list<Document>). Der Adapter kann seinen freien adapterState selbst verwenden; die beiden mitgelieferten Adapter dürfen ihn zunächst leer lassen. Es gibt keine Revisionsparameter und kein Schema für adapterinterne Schlüssel. Das kontrollierte toArray/restoreDocument transportiert den Bearbeitungsstand im Webeditor; Headeränderungen brauchen weiterhin keine Patch-Objekte.
+Document.save und ShillerDir.saveDocuments führen beide zum selben Adapterauftrag write(list<Document>). Der Adapter kann seinen freien adapterState selbst verwenden; die beiden mitgelieferten Adapter dürfen ihn zunächst leer lassen. Es gibt keine Revisionsparameter und kein Schema für adapterinterne Schlüssel. Das kontrollierte toArray/restoreDocument transportiert den Bearbeitungsstand im Webeditor; Headeränderungen brauchen weiterhin keine Patch-Objekte.
 
-Document.getTranslation/getTranslations bleiben öffentliche Komfortmethoden. Ohne Argument, mit null oder mit der konfigurierten Standardsprache liefert getTranslation dasselbe Stammdokument; bei default_lang: de sind getTranslation(null) und getTranslation('de') gleichbedeutend. Am Original wird dieselbe Instanz zurückgegeben. createIfMissing erzeugt bei diesen Aufrufen kein neues Original. Schiller verwaltet Instanzen, konfigurierten Sprachumfang und Originalkopien. Adapter liefern vorhandene Quellen, laden/bereiten eine explizite Sprache vor und bestimmen auch fehlende Quellpfade. Das [Interface](Adapter.php) enthält deshalb keine zusätzlichen Übersetzungsmethoden.
+Document.getTranslation/getTranslations bleiben öffentliche Komfortmethoden. Ohne Argument, mit null oder mit der konfigurierten Standardsprache liefert getTranslation dasselbe Stammdokument; bei default_lang: de sind getTranslation(null) und getTranslation('de') gleichbedeutend. Am Original wird dieselbe Instanz zurückgegeben. createIfMissing erzeugt bei diesen Aufrufen kein neues Original. Shiller verwaltet Instanzen, konfigurierten Sprachumfang und Originalkopien. Adapter liefern vorhandene Quellen, laden/bereiten eine explizite Sprache vor und bestimmen auch fehlende Quellpfade. Das [Interface](Adapter.php) enthält deshalb keine zusätzlichen Übersetzungsmethoden.
 
 Legacy bearbeitet ausschließlich vorhandene Dateien. Polyglot unterstützt auch Anlage, Elternpromotion und Teilbaumoperationen; fehlende Übersetzungen werden bei Bewegungen nicht erzeugt. Die [Verschiebelogik](../docs/verschieben.md) beschreibt vollständige Reichweite und spätere Testfälle. Der [Page-Builder-Abgleich](../docs/pagebuilder-abgleich.md) trennt unterstützte Seitenabläufe von nötigen UI-Anpassungen und späteren Dateneditoren.
