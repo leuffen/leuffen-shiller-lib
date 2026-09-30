@@ -31,10 +31,6 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
-        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
-        bool $debug = false,
     ): void {
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -107,6 +103,10 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
+        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
+        string $event = 'edit',
+        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        bool $debug = false,
     ): void {
         if (!in_array($mode, ['concurrent', 'sequential'], true)) {
             throw new RuntimeException('mode must be concurrent or sequential.');
