@@ -67,7 +67,10 @@ final class ShillerRuleSetManager
 
             $header = $frontMatter->header;
             $selectors = $this->stringList($header['selector'] ?? null, 'selector', (string) $ruleFile, false);
-            $events = $this->stringList($header['on'] ?? null, 'on', (string) $ruleFile, true);
+
+            // ext-yaml follows YAML 1.1 and may parse the unquoted key "on" as boolean true.
+            $eventValue = array_key_exists('on', $header) ? $header['on'] : ($header[1] ?? null);
+            $events = $this->stringList($eventValue, 'on', (string) $ruleFile, true);
             $important = $header['important'] ?? false;
             if (!is_bool($important)) {
                 throw new RuntimeException("Rule important must be boolean: {$ruleFile}");
