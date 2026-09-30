@@ -1,7 +1,7 @@
 <?php
 
 // Unabhängiger Schreibablauf; Rollenquelle ist die authentifizierte Anwendung.
-$site = new SchillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
 $page = $site->getPage('/leistungen/diagnostik');
 $page->rename('/medizin/diagnostik'); // Sofort: ganze Blattgruppe, kein save.
 $page->id;         // '/medizin/diagnostik'

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
@@ -10,7 +10,7 @@ use RuntimeException;
 
 /** CLI adapter; discovery and installation rules live outside the CLI. */
 #[CliScope('schiller')]
-final class SchillerCli
+final class ShillerCli
 {
     /**
      * Kopiert _root und installiert optional ausgewählte Tags im Projekt.
@@ -19,7 +19,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus der .shiller.yml im Document Root.
      * @param string $root Document Root, standardmäßig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungültiger Konfiguration oder Installationsfehlern.
-     * @see SchillerAutomationFactory::create()
+     * @see ShillerAutomationFactory::create()
      * @example schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
      */
     public function init(
@@ -35,7 +35,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->init($this->tags($tags));
         echo implode("\n", $written) . "\n";
@@ -48,7 +48,7 @@ final class SchillerCli
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root, standardmäßig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungültiger Konfiguration oder Installationsfehlern.
-     * @see SchillerAutomationFactory::create()
+     * @see ShillerAutomationFactory::create()
      * @example schiller install --tags raven
      */
     public function install(
@@ -64,7 +64,7 @@ final class SchillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new SchillerAutomationFactory($startDirectory))
+        $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->install($this->tags($tags));
         echo implode("\n", $written) . "\n";

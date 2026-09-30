@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller;
+namespace Leuffen\Shiller;
 
-use Leuffen\Schiller\Adapter\Adapter;
-use Leuffen\Schiller\Adapter\JekyllLegacyAdapter;
-use Leuffen\Schiller\Adapter\JekyllPolyglotAdapter;
-use Leuffen\Schiller\Storage\NativeSiteStorage;
+use Leuffen\Shiller\Adapter\Adapter;
+use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Adapter\JekyllPolyglotAdapter;
+use Leuffen\Shiller\Storage\NativeSiteStorage;
 
-class SchillerException extends \RuntimeException {}
-class ConfigurationException extends SchillerException {}
-class NotFoundException extends SchillerException {}
-class AccessDeniedException extends SchillerException {}
-class ValidationException extends SchillerException {}
-class AlreadyExistsException extends SchillerException {}
-class ConflictException extends SchillerException {}
-class UnsupportedOperationException extends SchillerException {}
-class StorageException extends SchillerException {}
-class UrlNotResolvableException extends SchillerException {}
+class ShillerException extends \RuntimeException {}
+class ConfigurationException extends ShillerException {}
+class NotFoundException extends ShillerException {}
+class AccessDeniedException extends ShillerException {}
+class ValidationException extends ShillerException {}
+class AlreadyExistsException extends ShillerException {}
+class ConflictException extends ShillerException {}
+class UnsupportedOperationException extends ShillerException {}
+class StorageException extends ShillerException {}
+class UrlNotResolvableException extends ShillerException {}
 
 final class AccessContext
 {
@@ -228,7 +228,7 @@ final class Codec
     }
 }
 
-final class SchillerTreeData
+final class ShillerTreeData
 {
     public function __construct(
         public readonly ?string $path,
@@ -266,7 +266,7 @@ final class TreeNode
         public readonly string $id,
         public readonly string $label,
         public readonly array $children,
-        public readonly SchillerTreeData $data,
+        public readonly ShillerTreeData $data,
         private readonly ?Document $document = null,
     ) {}
 
@@ -341,7 +341,7 @@ final class FileListing
 
 final class Document
 {
-    private ?SchillerDir $site = null;
+    private ?ShillerDir $site = null;
     private array $originalHeader;
     private string $originalContent;
 
@@ -359,14 +359,14 @@ final class Document
         $this->originalContent = $content;
     }
 
-    public function attach(SchillerDir $site): self
+    public function attach(ShillerDir $site): self
     {
         $this->site = $site;
 
         return $this;
     }
 
-    private function site(): SchillerDir
+    private function site(): ShillerDir
     {
         return $this->site ?? throw new \LogicException('Document is not attached');
     }
@@ -449,7 +449,7 @@ final class Document
     }
 }
 
-final class SchillerDir
+final class ShillerDir
 {
     private SiteStorage $storage;
     private AccessContext $access;
@@ -529,7 +529,7 @@ final class SchillerDir
                 'file:' . $entryPath,
                 $entry['name'],
                 $children,
-                new SchillerTreeData(
+                new ShillerTreeData(
                     $entryPath,
                     $kind,
                     null,

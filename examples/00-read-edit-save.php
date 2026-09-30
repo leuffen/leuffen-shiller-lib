@@ -1,7 +1,7 @@
 <?php
 
 // Vorhandene englische Seite bearbeiten; Ausgangsdaten und Rechte: README.
-$site = new SchillerDir(
+$site = new ShillerDir(
     phore_dir('/srv/site/docs'),
     access: new AccessContext(role: 'user'),
 );
@@ -10,4 +10,4 @@ $english = $page->getTranslation('en');
 $english->header['title'] = 'Our diagnostics';
 $english->save();
 echo $english->getUrl(); // /en/leistungen/diagnostik.html
-// Nur die englische Datei wurde gespeichert; im ersten Ausbau erfolgt kein Revisionsvergleich durch Schiller.
+// Nur die englische Datei wurde gespeichert; im ersten Ausbau erfolgt kein Revisionsvergleich durch Shiller.

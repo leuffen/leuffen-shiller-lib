@@ -1,7 +1,7 @@
 <?php
 
 // Unabhängiger Schreibablauf; frische Basisfixture, löscht en und danach die Blattgruppe.
-$site = new SchillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
 $page = $site->getPage('/leistungen/diagnostik');
 $english = $page->getTranslation('en');
 

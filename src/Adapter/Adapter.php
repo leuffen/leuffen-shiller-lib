@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Adapter;
+namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Schiller\Capabilities;
-use Leuffen\Schiller\Document;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\SiteConfig;
-use Leuffen\Schiller\SiteStorage;
+use Leuffen\Shiller\Capabilities;
+use Leuffen\Shiller\Document;
+use Leuffen\Shiller\FieldSet;
+use Leuffen\Shiller\PageTree;
+use Leuffen\Shiller\SiteConfig;
+use Leuffen\Shiller\SiteStorage;
 
 /**
- * Adaptervertrag zwischen Schillers gemeinsamer Laufzeit und dem konkreten Ablageformat.
+ * Adaptervertrag zwischen Shillers gemeinsamer Laufzeit und dem konkreten Ablageformat.
  *
- * Adapter normalisieren vorhandene Quellen und Mutationen, während Schiller
+ * Adapter normalisieren vorhandene Quellen und Mutationen, während Shiller
  * Dokumentidentität, Übersetzungen und den kontrollierten Storage verwaltet.
  */
 interface Adapter

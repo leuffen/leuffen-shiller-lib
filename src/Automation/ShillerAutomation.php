@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -10,7 +10,7 @@ use Phore\FileSystem\PhoreFile;
 use RuntimeException;
 
 /** Installiert Dateien aus einem _tpl-Verzeichnis. */
-final class SchillerAutomation
+final class ShillerAutomation
 {
     private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $templateDir;
@@ -23,8 +23,8 @@ final class SchillerAutomation
      * @param string $templateDir Template-Wurzel.
      * @param string $documentRoot Relativer Document Root.
      * @throws FilesystemException Bei Dateisystemfehlern.
-     * @see SchillerAutomationFactory
-     * @example $automation = new SchillerAutomation('/srv/site', '/srv/theme/_tpl', 'docs'); assert($automation instanceof SchillerAutomation);
+     * @see ShillerAutomationFactory
+     * @example $automation = new ShillerAutomation('/srv/site', '/srv/theme/_tpl', 'docs'); assert($automation instanceof ShillerAutomation);
      */
     public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
     {
@@ -46,7 +46,7 @@ final class SchillerAutomation
      * @param list<string> $tags Auswahl der Tags.
      * @return list<string> Geschriebene relative Pfade.
      * @throws FilesystemException Bei Dateisystemfehlern.
-     * @throws RuntimeException Bei ungueltigen Schiller-Daten.
+     * @throws RuntimeException Bei ungueltigen Shiller-Daten.
      * @see self::install()
      * @example $written = $automation->init(['raven']); assert(is_array($written));
      */
@@ -72,7 +72,7 @@ final class SchillerAutomation
      * @param list<string> $tags Auswahl der Tags.
      * @return list<string> Geschriebene relative Pfade.
      * @throws FilesystemException Bei Dateisystemfehlern.
-     * @throws RuntimeException Bei ungueltigen Schiller-Daten.
+     * @throws RuntimeException Bei ungueltigen Shiller-Daten.
      * @see self::init()
      * @example $written = $automation->install(['theme:osman']); assert(is_array($written));
      */
@@ -110,7 +110,7 @@ final class SchillerAutomation
             }
             if (!isset($header['schiller'])) {
                 if ($wrapped) {
-                    throw new RuntimeException("Schiller header missing: $source");
+                    throw new RuntimeException("Shiller header missing: $source");
                 }
                 continue;
             }

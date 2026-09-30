@@ -1,7 +1,7 @@
 {
   "name": "leuffen/shiller-lib",
   "type": "library",
-  "description": "Typed access layer and template automation for Jekyll/Schiller website sources",
+  "description": "Typed access layer and template automation for Jekyll/Shiller website sources",
   "license": "MIT",
   "authors": [
     {

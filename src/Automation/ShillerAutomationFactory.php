@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Automation;
+namespace Leuffen\Shiller\Automation;
 
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -11,7 +11,7 @@ use RuntimeException;
 /**
  * Erstellt die Template-Automation aus einem Startverzeichnis.
  */
-final class SchillerAutomationFactory
+final class ShillerAutomationFactory
 {
     private readonly PhoreDirectory $startDirectory;
 
@@ -21,7 +21,7 @@ final class SchillerAutomationFactory
      * @param string $startDirectory Vorhandenes und lesbares Startverzeichnis.
      * @throws FilesystemException Bei ungueltigen oder nicht lesbaren Verzeichnissen.
      * @see self::create()
-     * @example $factory = new SchillerAutomationFactory('/srv/site'); assert($factory instanceof SchillerAutomationFactory);
+     * @example $factory = new ShillerAutomationFactory('/srv/site'); assert($factory instanceof ShillerAutomationFactory);
      */
     public function __construct(string $startDirectory)
     {
@@ -39,13 +39,13 @@ final class SchillerAutomationFactory
      *
      * @param string $documentRoot Relativer oder absoluter Document Root.
      * @param string $templateDir Optionaler Template-Pfad.
-     * @return SchillerAutomation Konfigurierte Automation.
+     * @return ShillerAutomation Konfigurierte Automation.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Wenn template_dir fehlt oder ungueltig ist.
-     * @see SchillerAutomation
-     * @example $automation = (new SchillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof SchillerAutomation);
+     * @see ShillerAutomation
+     * @example $automation = (new ShillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof ShillerAutomation);
      */
-    public function create(string $documentRoot = 'docs', string $templateDir = ''): SchillerAutomation
+    public function create(string $documentRoot = 'docs', string $templateDir = ''): ShillerAutomation
     {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
@@ -78,7 +78,7 @@ final class SchillerAutomationFactory
                 : $projectRoot->withRelativePath($templateDir);
         }
 
-        return new SchillerAutomation(
+        return new ShillerAutomation(
             (string) $projectRoot,
             (string) $templateUri,
             $documentName,

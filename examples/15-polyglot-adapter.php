@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Adapter;
+namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Schiller\Capabilities;
-use Leuffen\Schiller\Document;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\SiteConfig;
-use Leuffen\Schiller\SiteStorage;
+use Leuffen\Shiller\Capabilities;
+use Leuffen\Shiller\Document;
+use Leuffen\Shiller\FieldSet;
+use Leuffen\Shiller\PageTree;
+use Leuffen\Shiller\SiteConfig;
+use Leuffen\Shiller\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
@@ -18,7 +18,7 @@ final class JekyllPolyglotAdapter implements Adapter
 {
     private SiteStorage $storage;
 
-    /** Wird durch SchillerDir einmalig nach der argumentlosen Konstruktion aufgerufen. */
+    /** Wird durch ShillerDir einmalig nach der argumentlosen Konstruktion aufgerufen. */
     public function bind(SiteStorage $storage): void
     {
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::bind');
@@ -54,7 +54,7 @@ final class JekyllPolyglotAdapter implements Adapter
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::write');
     }
 
-    /** Liefert PageTree nach TreeNode-Konvention v1: Ordner/Index als ein id/label/children/data-Knoten. Quelle in data.file (reiner Ordner: null), vorhandene Varianten in data.translations. children vollständig; fehlende Sprachen ergänzt Schiller. */
+    /** Liefert PageTree nach TreeNode-Konvention v1: Ordner/Index als ein id/label/children/data-Knoten. Quelle in data.file (reiner Ordner: null), vorhandene Varianten in data.translations. children vollständig; fehlende Sprachen ergänzt Shiller. */
     public function buildTree(string $id = '/'): PageTree
     {
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::buildTree');
