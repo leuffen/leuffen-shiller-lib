@@ -30,4 +30,3 @@ final readonly class ShillerRuleMatch
         public string $content,
     ) {}
 }
-
