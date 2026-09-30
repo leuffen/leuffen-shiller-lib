@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Schiller\Adapter;
+namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Schiller\Capabilities;
-use Leuffen\Schiller\Codec;
-use Leuffen\Schiller\ConflictException;
-use Leuffen\Schiller\Document;
-use Leuffen\Schiller\FieldDefinition;
-use Leuffen\Schiller\FieldSet;
-use Leuffen\Schiller\FileEntry;
-use Leuffen\Schiller\FileKind;
-use Leuffen\Schiller\NotFoundException;
-use Leuffen\Schiller\MoveCapableStorage;
-use Leuffen\Schiller\PageTree;
-use Leuffen\Schiller\SchillerTreeData;
-use Leuffen\Schiller\SiteConfig;
-use Leuffen\Schiller\SiteStorage;
-use Leuffen\Schiller\TranslationInfo;
-use Leuffen\Schiller\TreeNode;
-use Leuffen\Schiller\UnsupportedOperationException;
-use Leuffen\Schiller\UrlNotResolvableException;
-use Leuffen\Schiller\ValidationException;
+use Leuffen\Shiller\Capabilities;
+use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\ConflictException;
+use Leuffen\Shiller\Document;
+use Leuffen\Shiller\FieldDefinition;
+use Leuffen\Shiller\FieldSet;
+use Leuffen\Shiller\FileEntry;
+use Leuffen\Shiller\FileKind;
+use Leuffen\Shiller\NotFoundException;
+use Leuffen\Shiller\MoveCapableStorage;
+use Leuffen\Shiller\PageTree;
+use Leuffen\Shiller\ShillerTreeData;
+use Leuffen\Shiller\SiteConfig;
+use Leuffen\Shiller\SiteStorage;
+use Leuffen\Shiller\TranslationInfo;
+use Leuffen\Shiller\TreeNode;
+use Leuffen\Shiller\UnsupportedOperationException;
+use Leuffen\Shiller\UrlNotResolvableException;
+use Leuffen\Shiller\ValidationException;
 
 abstract class AbstractJekyllAdapter implements Adapter
 {
@@ -190,7 +190,7 @@ abstract class AbstractJekyllAdapter implements Adapter
                 $id,
                 $label,
                 $children,
-                new SchillerTreeData(
+                new ShillerTreeData(
                     null,
                     $kind,
                     $file,
