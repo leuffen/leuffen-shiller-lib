@@ -12,7 +12,8 @@ use Phore\FileSystem\PhoreFile;
  * Waehlt editierbare Shiller-Inhalte innerhalb eines Document Roots aus.
  *
  * Unterstuetzt exakte relative Dateinamen, Globs und tag:<name>. Editierbar sind
- * Markdown-Dateien sowie YAML-Dateien unter _data/.
+ * Markdown-Dateien sowie YAML-Dateien unter _data/. Steuerdateien unter
+ * _rules.d/ sind ausdruecklich keine editierbaren Content-Ziele.
  */
 final class ShillerContentSelector
 {
@@ -37,14 +38,16 @@ final class ShillerContentSelector
     /**
      * Waehlt Markdown und _data-YAML anhand von Dateinamen, Globs oder Tags aus.
      *
-     * Ohne Selector werden alle Markdown-Dateien sowie rekursive .yml- und
-     * .yaml-Dateien unter _data/ ausgewaehlt. tag:<name> prueft tags, ptags und
-     * schiller.tags im YAML Front Matter von Markdown-Dateien.
+     * Ohne Selector werden alle Content-Markdown-Dateien sowie rekursive .yml-
+     * und .yaml-Dateien unter _data/ ausgewaehlt. _rules.d bleibt immer
+     * ausgeschlossen. tag:<name> prueft tags, ptags und schiller.tags im
+     * YAML Front Matter von Markdown-Dateien.
      *
      * @param string|list<string>|null $selectors Selector oder Liste; null/leer nutzt den Default.
      * @return list<PhoreFile> Sortierte, lesbare Zieldateien.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @see ShillerContentAction::adapt()
+     * @see ShillerRuleSetManager
      * @example $files = $selector->select(['leistungen/*.md', 'tag:arzt', '_data/general.yml']); assert(is_array($files));
      */
     public function select(string|array|null $selectors = null): array
@@ -63,6 +66,10 @@ final class ShillerContentSelector
         $selected = [];
         foreach ($this->documentRoot->listFiles(recursive: true, sort: 'path') as $file) {
             $relative = str_replace('\\', '/', (string) $file->getRelPath($this->documentRoot));
+            if (str_starts_with($relative, '_rules.d/')) {
+                continue;
+            }
+
             $lower = strtolower($relative);
             $isMarkdown = str_ends_with($lower, '.md');
             $isDataYaml = str_starts_with($lower, '_data/')
@@ -96,6 +103,7 @@ final class ShillerContentSelector
                             $tags = [...$tags, ...array_values(array_filter($value, 'is_string'))];
                         }
                     }
+
                     $schillerTags = is_array($header['schiller'] ?? null) ? ($header['schiller']['tags'] ?? []) : [];
                     $schillerTags = is_string($schillerTags) ? [$schillerTags] : $schillerTags;
                     if (is_array($schillerTags)) {

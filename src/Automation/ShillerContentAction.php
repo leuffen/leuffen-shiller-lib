@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Automation;
 
-use Phore\AiHarness\Client\AiRequest;
 use Phore\AiHarness\Client\AiRequestSpooler;
 use Phore\AiHarness\Client\AiResponse;
 use Phore\AiHarness\Client\OpenAI\OpenAiPromptTypeConverter;
@@ -34,8 +33,12 @@ final class ShillerContentAction
     /**
      * Bindet Document Root, Template-Verzeichnis, Basis-Skill und Kontextquellen.
      *
+     * Das Template-Verzeichnis bleibt Teil des gemeinsamen Automation-Vertrags;
+     * AI-spezifische Bearbeitungsregeln werden jedoch ausschliesslich aus
+     * <document-root>/_rules.d aufgeloest.
+     *
      * @param string $documentRoot Document Root mit den zu bearbeitenden Dateien.
-     * @param string $templateDir _tpl-Verzeichnis fuer schiller.instructions.
+     * @param string $templateDir Zugehoeriges _tpl-Verzeichnis.
      * @param list<string> $contextFiles Kontextdateien, die jedem AI-Request bereitgestellt werden.
      * @param string $skillFile Basis-Skill im Markdown-Format.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
@@ -43,7 +46,8 @@ final class ShillerContentAction
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlendem Kontext oder ungueltigem Modell.
      * @see self::adapt()
-     * @example $action = new ShillerContentAction('/srv/site/docs', '/srv/site/node_modules/theme/_tpl', ['/srv/site/.shiller-context.txt'], __DIR__ . '/SKILL.md'); assert($action instanceof ShillerContentAction);
+     * @see ShillerRuleSetManager
+     * @example $action = new ShillerContentAction('/srv/site/docs', '/srv/theme/_tpl', ['/srv/site/context.md'], __DIR__ . '/SKILL.md'); assert($action instanceof ShillerContentAction);
      */
     public function __construct(
         string $documentRoot,
@@ -68,6 +72,7 @@ final class ShillerContentAction
         $this->templateDir = phore_dir($templatePath, ['rootDir' => $templatePath])
             ->assertDirectory()
             ->assertReadable();
+
         $skillUri = phore_uri($skillFile)->abs();
         $this->skillFile = phore_file((string) $skillUri, ['rootDir' => (string) $skillUri->withParentDir()])
             ->assertFile()
@@ -89,27 +94,44 @@ final class ShillerContentAction
     /**
      * Passt die ausgewaehlten Dateien an den Projektkontext an.
      *
-     * Concurrent nutzt AiRequestSpooler aus phore/ai-harness. Alle AI-Antworten
-     * werden zuerst validiert und erst danach geschrieben, damit Request-Fehler
-     * keine teilweise bearbeitete Auswahl hinterlassen.
+     * Fuer jede Zieldatei werden die passenden _rules.d-Regeln anhand des
+     * Events aufgeloest, nach important und Spezifitaet sortiert und als
+     * instruction-enabled Prompts an phore/ai-harness uebergeben.
+     *
+     * Concurrent nutzt AiRequestSpooler. Alle AI-Antworten werden zuerst
+     * validiert und erst danach geschrieben, damit Request-Fehler keine
+     * teilweise bearbeitete Auswahl hinterlassen.
      *
      * @param string|list<string>|null $selectors Dateiselector; siehe ShillerContentSelector.
      * @param bool $concurrent true fuer parallele, false fuer sequenzielle Requests.
+     * @param string $event Event fuer on-Filter, standardmaessig edit.
+     * @param bool $debug true protokolliert die angewandten Rules vor den AI-Requests.
      * @return list<string> Bearbeitete Pfade relativ zum Document Root.
      * @throws Throwable Bei AI-, Dateisystem- oder Validierungsfehlern.
-     * @see ShillerContentSelector::select()
+     * @see ShillerRuleSetManager::getRulesFor()
      * @see AiRequestSpooler
-     * @example $files = $action->adapt(['index.md', '_data/general.yml'], concurrent: true); assert(is_array($files));
+     * @example $files = $action->adapt(['index.md'], event: 'user-request', debug: true); assert(is_array($files));
      */
-    public function adapt(string|array|null $selectors = null, bool $concurrent = true): array
-    {
+    public function adapt(
+        string|array|null $selectors = null,
+        bool $concurrent = true,
+        string $event = 'edit',
+        bool $debug = false,
+    ): array {
+        if ($event === '') {
+            throw new RuntimeException('AI event must not be empty.');
+        }
+
         $targets = (new ShillerContentSelector((string) $this->documentRoot))->select($selectors);
         if ($targets === []) {
             $this->logger?->skip('Keine passenden Shiller-Inhalte gefunden.');
             return [];
         }
 
-        $this->logger?->step('Passe {} Dateien im Modus {} an.', [count($targets), $concurrent ? 'concurrent' : 'sequential']);
+        $this->logger?->step(
+            'Passe {} Dateien im Modus {} fuer Event {} an.',
+            [count($targets), $concurrent ? 'concurrent' : 'sequential', $event],
+        );
 
         $documentFiles = [];
         foreach ($this->documentRoot->listFiles(recursive: true, sort: 'path') as $file) {
@@ -130,6 +152,7 @@ final class ShillerContentAction
             );
         }
 
+        $ruleManager = new ShillerRuleSetManager((string) $this->documentRoot);
         $converter = new OpenAiPromptTypeConverter();
         $requests = [];
         $relativePaths = [];
@@ -137,47 +160,37 @@ final class ShillerContentAction
         foreach ($targets as $index => $target) {
             $relative = str_replace('\\', '/', (string) $target->getRelPath($this->documentRoot));
             $relativePaths[$index] = $relative;
+
+            $rules = $ruleManager->getRulesFor($relative, $event);
+            if ($debug) {
+                $this->logger?->step('Rules fuer {} [{}]: {}', [$relative, $event, count($rules)]);
+                foreach ($rules as $ruleIndex => $rule) {
+                    $this->logger?->detail(
+                        '#{} {} selector={} matches={} specificity={} important={}',
+                        [
+                            $ruleIndex + 1,
+                            $rule->source,
+                            $rule->selector,
+                            $rule->matchCount,
+                            sprintf('%.12f', $rule->specificity),
+                            $rule->important ? 'true' : 'false',
+                        ],
+                    );
+                }
+            }
+
             $prompts = [
                 new FilePrompt(
                     (string) $this->skillFile,
                     $skillContent,
                     'text/markdown',
                     alias: 'baseSkill',
-                    instructions: 'Verbindlicher Basis-Skill fuer genau diese Content-Anpassung.',
+                    instructions: 'Allgemeiner Basis-Skill fuer diese Content-Anpassung. Nachfolgende _rules.d-Regeln duerfen den Bearbeitungsrahmen entsprechend ihrer Prioritaet praezisieren; important Rules duerfen vorherige Bearbeitungsanweisungen ueberstimmen.',
                     allowInstructions: true,
                 ),
                 ...$contextPrompts,
+                ...$ruleManager->getPromptsFor($relative, $event),
             ];
-
-            $frontMatter = str_ends_with(strtolower($relative), '.md')
-                ? $target->get_front_matter(required: false)
-                : null;
-            $header = $frontMatter?->header;
-            $instructions = is_array($header) && is_array($header['schiller'] ?? null)
-                ? ($header['schiller']['instructions'] ?? [])
-                : [];
-            $instructions = is_string($instructions) ? [$instructions] : $instructions;
-            if (!is_array($instructions)) {
-                throw new RuntimeException("Invalid schiller.instructions in {$relative}");
-            }
-
-            foreach (array_values($instructions) as $instructionIndex => $reference) {
-                if (!is_string($reference) || !str_starts_with($reference, 'tpl:/')) {
-                    throw new RuntimeException("Invalid instruction reference in {$relative}");
-                }
-                $instruction = $this->templateDir
-                    ->withSubPath(substr($reference, strlen('tpl:/')))
-                    ->assertFile()
-                    ->assertReadable();
-                $prompts[] = new FilePrompt(
-                    (string) $instruction,
-                    $instruction->get_contents(),
-                    'text/markdown',
-                    alias: 'fileInstruction' . ($instructionIndex + 1),
-                    instructions: 'Dateispezifische Anweisung fuer targetFile; bei Konflikten gilt baseSkill vor dieser Anweisung.',
-                    allowInstructions: true,
-                );
-            }
 
             $descriptorIndex = 0;
             foreach ($documentFiles as $candidateRelative => $candidate) {
@@ -195,7 +208,7 @@ final class ShillerContentAction
             }
 
             $prompts[] = new TextPrompt(
-                'Passe genau targetFile an den bereitgestellten Kontext an. Verwende baseSkill als fuehrende Regel, erfinde keine Fakten und gib den vollstaendigen resultierenden Dateiinhalt zurueck.',
+                'Passe genau targetFile an den bereitgestellten Kontext und die aufgeloesten Rules an. Erfinde keine Fakten und gib den vollstaendigen resultierenden Dateiinhalt zurueck.',
                 alias: 'editTask',
                 allowInstructions: true,
             );
@@ -204,7 +217,7 @@ final class ShillerContentAction
                 $target->get_contents(),
                 str_ends_with(strtolower($relative), '.md') ? 'text/markdown' : 'text/yaml',
                 alias: 'targetFile',
-                instructions: 'Einzige editierbare Zieldatei dieses Requests. Bestehende Struktur erhalten, soweit baseSkill nichts anderes erlaubt.',
+                instructions: 'Einzige editierbare Zieldatei dieses Requests.',
             );
 
             $requests[$index] = $converter

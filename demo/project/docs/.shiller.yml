@@ -1,3 +1,3 @@
-template_dir: ../_tpl
+template_dir: ../../template/_tpl
 context_file: ../context/project.md
 context_dir: ../.shiller.d

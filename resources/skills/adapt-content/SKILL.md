@@ -19,7 +19,7 @@ YAML-Dateien unter `_data/` sind editierbare strukturierte Website-Daten. Erhalt
 
 ## Prioritaet der Quellen
 
-Der Basis-Skill definiert den Bearbeitungsrahmen. Projektkontext liefert die verbindlichen Fakten. Dateispezifische `schiller.instructions` duerfen den Bearbeitungsauftrag fuer die einzelne Datei praezisieren. Sidecar-Beschreibungen liefern Datenstruktur und Feldbedeutung. Bei Widerspruechen keine Fakten raten; vorhandene Werte beibehalten, soweit keine eindeutige neue Angabe vorliegt.
+Der Basis-Skill definiert den allgemeinen Bearbeitungsrahmen. Projektkontext liefert die verbindlichen Fakten. Die fuer die konkrete Zieldatei aufgeloesten `_rules.d`-Rules praezisieren den Bearbeitungsauftrag in der vom Rule-Manager mitgelieferten Prioritaetsreihenfolge: hoehere Spezifitaet ueberschreibt bei Konflikten niedrigere Spezifitaet; `important`-Rules ueberschreiben normale Rules und duerfen auch vorherige allgemeine Bearbeitungsanweisungen ueberstimmen. Sie duerfen jedoch keine verbindlichen Fakten des Projektkontexts erfinden oder ersetzen. Sidecar-Beschreibungen liefern Datenstruktur und Feldbedeutung. Bei fehlenden Fakten nichts raten; vorhandene Werte beibehalten, soweit keine eindeutige neue Angabe vorliegt.
 
 ## Ergebnis
 

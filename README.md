@@ -110,10 +110,23 @@ Als Basis-Skill wird ohne `--skill`
 `.shiller.d/` aufgenommen, sofern dieses Verzeichnis existiert. `--context`
 kann weitere Dateien relativ zur Projektwurzel ergänzen.
 
-Markdown-Dateien können über `schiller.instructions` zusätzliche
-`tpl:/...`-Anweisungen aus dem Template erhalten. Für jede Zieldatei werden
-außerdem vorhandene Sidecars mit dem Namensschema `<zieldatei>.d.*` als
-Beschreibungsdaten angehängt, zum Beispiel `_data/general.yml.d.json`.
+Bearbeitungsregeln liegen im jeweiligen Document Root unter `_rules.d/*.md`.
+Jede Rule besitzt Front Matter mit `selector` als String oder Liste, optional
+`on` als Event-Filter und optional `important: true`. Fehlt `on`, gilt die
+Rule fuer jedes Event; ist `on` gesetzt, wird sie bei anderen Events
+vollstaendig ignoriert. Fuer jede passende Rule wird die Spezifitaet als
+`1 / Anzahl der vom Selector aktuell getroffenen editierbaren Dateien`
+berechnet. Bei mehreren passenden Selectoren einer Rule zaehlt der spezifischste.
+
+Alle passenden normalen Rules werden von niedriger zu hoher Spezifitaet in den
+Prompt aufgenommen; danach folgen `important`-Rules ebenfalls von niedriger zu
+hoher Spezifitaet. Damit steht die hoechste Prioritaet zuletzt. Bei gleicher
+Prioritaet entscheidet der Rule-Dateiname deterministisch. `--event` waehlt
+den Event-Typ, standardmaessig `edit`; `--debug` gibt vor den AI-Requests
+Rule-Datei, Selector, Match-Anzahl, Spezifitaet, `important` und Reihenfolge
+aus. Fuer jede Zieldatei werden ausserdem vorhandene Sidecars mit dem Namensschema
+`<zieldatei>.d.*` als Beschreibungsdaten angehaengt, zum Beispiel
+`_data/general.yml.d.json`.
 Bei Markdown darf der Skill neben dem Body auch `title`, `order` und
 `description` anpassen. Bei `_data`-YAML bleiben Keys und Struktur grundsätzlich
 erhalten und werden anhand von Kontext und Sidecar-Beschreibung mit neuen Werten
@@ -160,4 +173,10 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 
 ## Vollstaendiges Demo-Projekt
 
-Unter [`demo/content-adaptation/`](demo/content-adaptation/) liegt ein kleines, vollstaendiges Beispielprojekt mit `_tpl`, installiertem `docs`-Verzeichnis, Projektkontext, `.shiller.d`, dateispezifischer Instruction und `_data`-Sidecar. Es zeigt damit die von `schiller ai adjust` und `schiller revert` erwartete Projektstruktur ohne externe Theme-Abhaengigkeit.
+Unter [`demo/`](demo/) sind Template und nutzendes Webseitenprojekt getrennt:
+[`demo/template/`](demo/template/) repraesentiert das Template-Projekt mit
+`_tpl/_root` und Vorlagen, [`demo/project/`](demo/project/) den installierten
+Webseitenstand, in dem Shiller ausgefuehrt wird. Das Projekt zeigt
+`docs/_rules.d`, Projektkontext, `.shiller.d`, mehrere Content-Dateien und ein
+`_data`-Sidecar. Die Rule-Beispiele demonstrieren mehrere Selector, dynamische
+Spezifitaet, `on: user-request` und `important: true`.

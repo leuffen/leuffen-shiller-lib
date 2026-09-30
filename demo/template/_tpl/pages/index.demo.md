@@ -2,8 +2,6 @@
 schiller:
   tags: [demo]
   target: index.md
-  instructions:
-    - tpl:/instructions/index.md
 layout: website
 title: Beispielseite
 description: Unangepasste Demo-Startseite

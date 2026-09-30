@@ -31,6 +31,10 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
+        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
+        string $event = 'edit',
+        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        bool $debug = false,
     ): void {
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -82,6 +86,8 @@ final class ShillerCli
      * @param string $model AI-Modell fuer phore/ai-harness.
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root.
+     * @param string $event Event fuer _rules.d-on-Filter.
+     * @param bool $debug Gibt die angewandten Rules mit Spezifitaet und Reihenfolge aus.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Anpassungsfehlern.
      * @see ShillerAutomationFactory::createContentAction()
      * @example schiller adapt --select "index.md,_data/general.yml" --mode concurrent
@@ -120,7 +126,7 @@ final class ShillerCli
                 new PhoreLogger(new PhoreConsoleLoggerDriver()),
                 $model,
             )
-            ->adapt($this->csv($select), $mode === 'concurrent');
+            ->adapt($this->csv($select), $mode === 'concurrent', $event, $debug);
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
@@ -176,6 +182,8 @@ final class ShillerCli
      * @param string $model AI-Modell fuer phore/ai-harness.
      * @param string $templateDir Optionaler _tpl-Pfad.
      * @param string $root Document Root.
+     * @param string $event Event fuer _rules.d-on-Filter.
+     * @param bool $debug Gibt angewandte Rules, Spezifitaet und Reihenfolge vor dem Request aus.
      * @throws RuntimeException Bei ungueltiger Unteraktion oder fehlender Dateiauswahl.
      * @see ShillerContentAction::adapt()
      * @example schiller ai adjust index.md "_data/*.yml"
@@ -194,6 +202,10 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
+        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
+        string $event = 'edit',
+        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        bool $debug = false,
     ): void {
         $subAction = array_shift($argv);
         if ($subAction !== 'adjust') {
@@ -222,7 +234,7 @@ final class ShillerCli
                 new PhoreLogger(new PhoreConsoleLoggerDriver()),
                 $model,
             )
-            ->adapt($selectors, $mode === 'concurrent');
+            ->adapt($selectors, $mode === 'concurrent', $event, $debug);
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
