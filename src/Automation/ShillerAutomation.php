@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
+use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** Installiert Dateien aus einem _tpl-Verzeichnis. */
@@ -26,7 +27,7 @@ final class ShillerAutomation
      * @see ShillerAutomationFactory
      * @example $automation = new ShillerAutomation('/srv/site', '/srv/theme/_tpl', 'docs'); assert($automation instanceof ShillerAutomation);
      */
-    public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
+    public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs', private readonly ?PhoreLogger $logger = null)
     {
         $projectPath = (string) phore_uri($projectRoot)->abs();
         $templatePath = (string) phore_uri($templateDir)->abs();
@@ -52,6 +53,7 @@ final class ShillerAutomation
      */
     public function init(array $tags = []): array
     {
+        $this->logger?->step('Initialisiere Shiller-Projekt aus Template.');
         $plan = [];
         $root = $this->templateDir->withSubPath('_root')->assertDirectory();
 
@@ -78,6 +80,7 @@ final class ShillerAutomation
      */
     public function install(array $tags): array
     {
+        $this->logger?->step('Installiere Shiller-Templates fuer {} Tags.', [count($tags)]);
         return $this->apply($this->selected($tags));
     }
 
@@ -98,6 +101,7 @@ final class ShillerAutomation
      */
     public function revert(string|array $selectors): array
     {
+        $this->logger?->step('Stelle ausgewaehlte Shiller-Dateien wieder her.');
         $documentDir = $this->projectRoot
             ->withSubPath($this->documentRoot)
             ->assertDirectory()
@@ -332,6 +336,7 @@ final class ShillerAutomation
             /** @var PhoreFile $target */
             $target = $targets[$relative];
             $target->mkdir()->set_contents($content);
+            $this->logger?->success('Geschrieben: {}', [$relative]);
         }
 
         return array_keys($plan);
