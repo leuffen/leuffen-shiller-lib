@@ -231,4 +231,51 @@ final class ShillerAutomationTest extends TestCase
         self::assertSame("name: Original\n", phore_file($this->dir . '/site/docs/_data/general.yml')->get_contents());
     }
 
+    public function testCliInitRunsConfiguredHooksAroundTemplateCopy(): void
+    {
+        $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
+        phore_dir($this->dir . '/site/docs')->mkdir();
+        phore_dir($template . '/_root/docs')->mkdir();
+        phore_file($template . '/_root/docs/copied.txt')->set_contents('copied');
+
+        $before = $this->dir . '/site/before.txt';
+        $after = $this->dir . '/site/after.txt';
+        $php = escapeshellarg(PHP_BINARY);
+        $config = [
+            'template_dir' => '../node_modules/@leuffen/themejs2/_tpl',
+            'hooks' => [
+                'init' => [
+                    'before' => [
+                        $php . ' -r ' . escapeshellarg(
+                            "file_put_contents(" . var_export($before, true) . ", 'before');",
+                        ),
+                    ],
+                    'after' => [
+                        $php . ' -r ' . escapeshellarg(
+                            "if (!file_exists(" . var_export($this->dir . '/site/docs/copied.txt', true)
+                            . ")) { exit(9); } file_put_contents(" . var_export($after, true) . ", 'after');",
+                        ),
+                    ],
+                ],
+            ],
+        ];
+        phore_file($this->dir . '/site/docs/.shiller.yml')->set_contents(yaml_emit($config));
+
+        $previousDirectory = getcwd();
+        self::assertNotFalse($previousDirectory);
+        chdir($this->dir . '/site');
+        try {
+            $command = escapeshellarg(PHP_BINARY)
+                . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+                . ' init';
+            exec($command . ' 2>&1', $output, $status);
+        } finally {
+            chdir($previousDirectory);
+        }
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertSame('before', phore_file($before)->get_contents());
+        self::assertSame('after', phore_file($after)->get_contents());
+    }
+
 }

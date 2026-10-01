@@ -39,9 +39,15 @@ final class ShillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
+        $hooks = $this->loadInitHooks($startDirectory, $root);
+        $this->runInitHooks($hooks['before'], $startDirectory);
+
         $written = (new ShillerAutomationFactory($startDirectory))
             ->create($root, $templateDir)
             ->init($this->csv($tags));
+
+        $this->runInitHooks($hooks['after'], $startDirectory);
+
         echo implode("\n", $written) . "\n";
     }
 
@@ -301,6 +307,74 @@ final class ShillerCli
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
+        }
+    }
+
+    /**
+     * Laedt die konfigurierten Lifecycle-Kommandos fuer schiller init.
+     *
+     * @return array{before: list<string>, after: list<string>}
+     */
+    private function loadInitHooks(string $startDirectory, string $root): array
+    {
+        $projectDirectory = phore_dir($startDirectory, ['rootDir' => $startDirectory])
+            ->assertDirectory()
+            ->assertReadable();
+        $documentDirectory = str_starts_with($root, '/')
+            ? phore_dir($root, ['rootDir' => $root])
+            : $projectDirectory->withRelativePath($root);
+        $configFile = $documentDirectory->withSubPath('.shiller.yml')->asFile();
+
+        if (!$configFile->exists()) {
+            return ['before' => [], 'after' => []];
+        }
+
+        $config = $configFile->get_yaml();
+        if (!is_array($config)) {
+            throw new RuntimeException("Invalid Shiller config: $configFile");
+        }
+
+        $hooks = [];
+        foreach (['before', 'after'] as $phase) {
+            $commands = $config['hooks']['init'][$phase] ?? [];
+            if (!is_array($commands)) {
+                throw new RuntimeException("hooks.init.$phase must be a list in $configFile");
+            }
+
+            $hooks[$phase] = [];
+            foreach ($commands as $command) {
+                if (!is_string($command) || trim($command) === '') {
+                    throw new RuntimeException(
+                        "hooks.init.$phase entries must be non-empty strings in $configFile",
+                    );
+                }
+                $hooks[$phase][] = $command;
+            }
+        }
+
+        return $hooks;
+    }
+
+    /**
+     * @param list<string> $commands
+     */
+    private function runInitHooks(array $commands, string $startDirectory): void
+    {
+        foreach ($commands as $command) {
+            $process = proc_open(
+                $command,
+                [0 => STDIN, 1 => STDOUT, 2 => STDERR],
+                $pipes,
+                $startDirectory,
+            );
+            if (!is_resource($process)) {
+                throw new RuntimeException("Cannot start init hook: $command");
+            }
+
+            $exitCode = proc_close($process);
+            if ($exitCode !== 0) {
+                throw new RuntimeException("Init hook failed with exit code $exitCode: $command");
+            }
         }
     }
 
