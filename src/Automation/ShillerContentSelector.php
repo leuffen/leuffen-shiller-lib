@@ -40,7 +40,7 @@ final class ShillerContentSelector
      *
      * Ohne Selector werden alle Content-Markdown-Dateien sowie rekursive .yml-
      * und .yaml-Dateien unter _data/ ausgewaehlt. _rules.d bleibt immer
-     * ausgeschlossen. tag:<name> prueft tags, ptags und schiller.tags im
+     * ausgeschlossen. tag:<name> prueft tags, ptags und shiller.tags im
      * YAML Front Matter von Markdown-Dateien.
      *
      * @param string|list<string>|null $selectors Selector oder Liste; null/leer nutzt den Default.
@@ -104,10 +104,10 @@ final class ShillerContentSelector
                         }
                     }
 
-                    $schillerTags = is_array($header['schiller'] ?? null) ? ($header['schiller']['tags'] ?? []) : [];
-                    $schillerTags = is_string($schillerTags) ? [$schillerTags] : $schillerTags;
-                    if (is_array($schillerTags)) {
-                        $tags = [...$tags, ...array_values(array_filter($schillerTags, 'is_string'))];
+                    $shillerTags = is_array($header['shiller'] ?? null) ? ($header['shiller']['tags'] ?? []) : [];
+                    $shillerTags = is_string($shillerTags) ? [$shillerTags] : $shillerTags;
+                    if (is_array($shillerTags)) {
+                        $tags = [...$tags, ...array_values(array_filter($shillerTags, 'is_string'))];
                     }
 
                     if (in_array($tag, $tags, true)) {
