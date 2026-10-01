@@ -131,7 +131,19 @@ final class ShillerContextAction
             ),
         ];
 
-        $projectRules = $this->contextDirectory->withSubPath('project.rules.md')->asFile();\n        if ($projectRules->exists()) {\n            $prompts[] = new FilePrompt(\n                (string) $projectRules,\n                $projectRules->assertReadable()->get_contents(),\n                'text/markdown',\n                alias: 'projectBuildRules',\n                instructions: 'Projektspezifische Zusatzregeln fuer den Context-Build.',\n                allowInstructions: true,\n            );\n        }\n\n        foreach ($this->activeContextFiles() as $index => $contextFile) {
+        $projectRules = $this->contextDirectory->withSubPath('project.rules.md')->asFile();
+        if ($projectRules->exists()) {
+            $prompts[] = new FilePrompt(
+                (string) $projectRules,
+                $projectRules->assertReadable()->get_contents(),
+                'text/markdown',
+                alias: 'projectBuildRules',
+                instructions: 'Projektspezifische Zusatzregeln fuer den Context-Build.',
+                allowInstructions: true,
+            );
+        }
+
+        foreach ($this->activeContextFiles() as $index => $contextFile) {
             $prompts[] = new FilePrompt(
                 (string) $contextFile,
                 $contextFile->get_contents(),
@@ -249,7 +261,11 @@ final class ShillerContextAction
 
         foreach ($this->contextDirectory->listFiles(recursive: false, sort: 'path') as $file) {
             $relative = str_replace('\\', '/', (string) $file->getRelPath($this->contextDirectory));
-            if (\n                $relative === 'project.md'\n                || str_ends_with(strtolower($relative), '.rules.md')\n                || !str_ends_with(strtolower($relative), '.md')\n            ) {
+            if (
+                $relative === 'project.md'
+                || str_ends_with(strtolower($relative), '.rules.md')
+                || !str_ends_with(strtolower($relative), '.md')
+            ) {
                 continue;
             }
 
