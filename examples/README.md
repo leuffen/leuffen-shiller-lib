@@ -20,7 +20,7 @@ ShillerDir ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Ar
 
 ## Darstellungsform und gemeinsamer Kontext
 
-Die [API](../docs/proposals/2026-09-12-schiller-seiten-api.md) ist ein Vorschlag, noch keine implementierte Library. Die PHP-Dateien sind lesbare Anwendungsausschnitte mit erwarteten Ergebnissen; sie werden nicht als nacheinander auszuführende Skripte oder Demo-Closures eingebunden. 14/15 sind ausdrücklich Interface-Implementierungsskizzen mit werfenden Methodenstümpfen für Framework-Entwickler.
+Die [API](../docs/proposals/2026-09-12-shiller-seiten-api.md) ist ein Vorschlag, noch keine implementierte Library. Die PHP-Dateien sind lesbare Anwendungsausschnitte mit erwarteten Ergebnissen; sie werden nicht als nacheinander auszuführende Skripte oder Demo-Closures eingebunden. 14/15 sind ausdrücklich Interface-Implementierungsskizzen mit werfenden Methodenstümpfen für Framework-Entwickler.
 
 Einmaliger Namenskontext für die Anwendungsausschnitte:
 
@@ -45,7 +45,7 @@ url: https://example.org
 plugins: [jekyll-polyglot]
 languages: [de, en, fr]
 default_lang: de
-exclude: [schiller.yaml]
+exclude: [shiller.yaml]
 defaults:
   - scope: {path: "", type: pages}
     values: {layout: default, lang: de}
@@ -55,7 +55,7 @@ defaults:
     values: {lang: fr}
 ```
 
-`docs/schiller.yaml` für diese Beispiel-Arbeitskopie:
+`docs/shiller.yaml` für diese Beispiel-Arbeitskopie:
 
 ```yaml
 schema_version: 1
@@ -81,13 +81,13 @@ permissions:
       allow:
         - {path: "**", actions: [read]}
       deny:
-        - {path: "schiller.yaml", actions: [read]}
+        - {path: "shiller.yaml", actions: [read]}
         - {path: "_config.yml", actions: [read]}
     user:
       allow:
         - {path: "**", actions: [read, write, createFile, createDirectory, createTranslation, rename, delete]}
       deny:
-        - {path: "schiller.yaml", actions: [read, write]}
+        - {path: "shiller.yaml", actions: [read, write]}
         - {path: "_config.yml", actions: [read, write]}
     admin:
       allow:
