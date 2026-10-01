@@ -1,6 +1,6 @@
 # Review: Shiller-API und Page Builder
 
-Stand: 2026-09-25. Dies ist ein Abgleich des Vertrags und des ersten Library-Ausbaus, keine getestete Page-Builder-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-schiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
+Stand: 2026-09-25. Dies ist ein Abgleich des Vertrags und des ersten Library-Ausbaus, keine getestete Page-Builder-Integration. Maßgeblich sind [Proposal](proposals/2026-09-12-shiller-seiten-api.md), [Adapter-Interface](../examples/Adapter.php) und die unten verlinkten Originalquellen. Das Referenzrepository bleibt unverändert.
 
 ## Ergebnis und Integrationsgrenze
 
@@ -100,4 +100,4 @@ Im Adapter gibt es genau write(array $documents), auch für den Ein-Dokument-Fal
 
 Der neue HTTP-Entwurf toArray/restoreDocument transportiert den vollständigen Bearbeitungsstand samt opakem Zustand. Er benötigt bei der Implementierung eine geprüfte Site-/Adapter-/Identitätsbindung und darf keine Clientrollen übernehmen. Ein leerer adapterState ist im ersten Ausbau zulässig; Identität und Rechte werden unabhängig davon geprüft. Die UI bearbeitet nur header/content und transportiert den übrigen Zustand unverändert. Beispiel 18 macht diese Einbindung sichtbar; eine installierte Transportimplementierung wird noch nicht behauptet.
 
-JekyllPolyglotAdapter und JekyllLegacyAdapter werden mitgeliefert. Der ShillerDir-Konstruktor akzeptiert eine optionale Adapterinstanz; diese hat Vorrang vor schiller.yaml. Ohne beides gilt JekyllPolyglotAdapter. Die Anwendung konstruiert Adapter ohne Storage-Argument, ShillerDir bindet den kontrollierten Dateizugriff einmalig intern. ConflictException ist als spätere Erweiterung vorgesehen, kein aktuelles Abnahmegate für Legacy oder Polyglot.
+JekyllPolyglotAdapter und JekyllLegacyAdapter werden mitgeliefert. Der ShillerDir-Konstruktor akzeptiert eine optionale Adapterinstanz; diese hat Vorrang vor shiller.yaml. Ohne beides gilt JekyllPolyglotAdapter. Die Anwendung konstruiert Adapter ohne Storage-Argument, ShillerDir bindet den kontrollierten Dateizugriff einmalig intern. ConflictException ist als spätere Erweiterung vorgesehen, kein aktuelles Abnahmegate für Legacy oder Polyglot.
