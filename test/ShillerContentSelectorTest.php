@@ -60,7 +60,7 @@ final class ShillerContentSelectorTest extends TestCase
 
     public function testFactoryBuildsContentActionWithShillerContextDirectory(): void
     {
-        phore_file($this->dir . '/site/docs/.shiller.yml')->set_contents("template_dir: ../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: docs\ntemplate_dir: tpl\n");
         phore_dir($this->dir . '/site/.shiller-context.d/raw')->mkdir();
         phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
         phore_file($this->dir . '/site/.shiller-context.d/team.md')->set_contents('# Team');
