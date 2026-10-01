@@ -80,7 +80,7 @@ export interface FileListingPayload {
 }
 ```
 
-PHP verwendet für data den vorgeschlagenen Typ `ShillerTreeData`; die Signaturen stehen in [Proposal § 10](proposals/2026-09-12-schiller-seiten-api.md). Leere metadata/translations werden im JSON als `{}` serialisiert, leere children/entries als `[]`. FileKind wird als String ausgegeben. `toArray()` liefert dafür eine gezielte Projektion, keinen generischen Dump von PHP-Objekten: insbesondere keine Bodies, Document-Referenzen, Storage-Verbindungen oder adapterState.
+PHP verwendet für data den vorgeschlagenen Typ `ShillerTreeData`; die Signaturen stehen in [Proposal § 10](proposals/2026-09-12-shiller-seiten-api.md). Leere metadata/translations werden im JSON als `{}` serialisiert, leere children/entries als `[]`. FileKind wird als String ausgegeben. `toArray()` liefert dafür eine gezielte Projektion, keinen generischen Dump von PHP-Objekten: insbesondere keine Bodies, Document-Referenzen, Storage-Verbindungen oder adapterState.
 
 | Bedeutung | Seitenbaum | Physisches Dateilisting |
 |---|---|---|
