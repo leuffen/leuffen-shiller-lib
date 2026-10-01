@@ -66,18 +66,18 @@ $site = new ShillerDir(
     access: new AccessContext(role: 'user'),
 );
 
-// Mitgelieferter Adapter für den alten Bestand; Auswahl überschreibt schiller.yaml.
+// Mitgelieferter Adapter für den alten Bestand; Auswahl überschreibt shiller.yaml.
 $legacy = new ShillerDir(
     phore_dir('/srv/websites/legacy/docs'),
     adapter: new JekyllLegacyAdapter(),
 );
 ```
 
-Mitgeliefert werden `Leuffen\Shiller\Adapter\JekyllPolyglotAdapter` und `Leuffen\Shiller\Adapter\JekyllLegacyAdapter`. Auswahlreihenfolge: explizite Adapterinstanz im ShillerDir-Konstruktor, sonst adapter in schiller.yaml, sonst ein neuer JekyllPolyglotAdapter. Die IDs jekyll-polyglot und micx-legacy bleiben für YAML erhalten. Beide Klassen werden ohne Storage-Argument erzeugt; ShillerDir bindet die gewählte Instanz intern einmalig über bind(SiteStorage). Eine Instanz darf nicht an mehrere ShillerDir gebunden werden. Für den normalen Aufruf ist keine Registry erforderlich.
+Mitgeliefert werden `Leuffen\Shiller\Adapter\JekyllPolyglotAdapter` und `Leuffen\Shiller\Adapter\JekyllLegacyAdapter`. Auswahlreihenfolge: explizite Adapterinstanz im ShillerDir-Konstruktor, sonst adapter in shiller.yaml, sonst ein neuer JekyllPolyglotAdapter. Die IDs jekyll-polyglot und micx-legacy bleiben für YAML erhalten. Beide Klassen werden ohne Storage-Argument erzeugt; ShillerDir bindet die gewählte Instanz intern einmalig über bind(SiteStorage). Eine Instanz darf nicht an mehrere ShillerDir gebunden werden. Für den normalen Aufruf ist keine Registry erforderlich.
 
-Ohne `AccessContext` verwendet Shiller die Rolle `reader`: ausschließlich lesend und nur für explizit freigegebene Bereiche. Fehlt `schiller.yaml`, ist die Inspektion normaler Seiten und ihrer Vorfahren read-only erlaubt; sonstige Dateien bleiben verborgen. Keine stillschweigenden Administratorrechte. Eine fehlende optionale Shiller-Konfiguration verhindert also nicht das Lesen einer bestehenden Website.
+Ohne `AccessContext` verwendet Shiller die Rolle `reader`: ausschließlich lesend und nur für explizit freigegebene Bereiche. Fehlt `shiller.yaml`, ist die Inspektion normaler Seiten und ihrer Vorfahren read-only erlaubt; sonstige Dateien bleiben verborgen. Keine stillschweigenden Administratorrechte. Eine fehlende optionale Shiller-Konfiguration verhindert also nicht das Lesen einer bestehenden Website.
 
-`_config.yml` und `schiller.yaml` werden ausschließlich im übergebenen Root gesucht. Keine Suche im Repository-Elternverzeichnis. Ein gesetztes Jekyll-`source`, das auf ein anderes Root zeigt, erzeugt `SOURCE_ROOT_MISMATCH`; Shiller wechselt das Root nicht selbst. Fehlende `_config.yml`, ungültiges YAML oder unbekannte explizite Adapter erzeugen einen `ConfigurationException` mit geeigneter Diagnose. Beide Dateien werden nicht durch das Öffnen angelegt oder verändert.
+`_config.yml` und `shiller.yaml` werden ausschließlich im übergebenen Root gesucht. Keine Suche im Repository-Elternverzeichnis. Ein gesetztes Jekyll-`source`, das auf ein anderes Root zeigt, erzeugt `SOURCE_ROOT_MISMATCH`; Shiller wechselt das Root nicht selbst. Fehlende `_config.yml`, ungültiges YAML oder unbekannte explizite Adapter erzeugen einen `ConfigurationException` mit geeigneter Diagnose. Beide Dateien werden nicht durch das Öffnen angelegt oder verändert.
 
 Jede öffentliche Operation prüft die Konfigurationsdateien erneut. Ein geladenes `Document` hält Header und Inhalt als bearbeitbaren Snapshot. Methoden prüfen die aktuelle Konfiguration, überschreiben jedoch keine ungespeicherten Änderungen. Eine Änderung des effektiv ausgewählten Adapters oder der Sprachstruktur macht bestehende Dokumente ungültig; sie müssen neu geladen werden. Innerhalb einer Operation gilt ein konsistenter Konfigurationsstand. Die externe Anwendung koordiniert parallele Dateibearbeitung. Eine eigene Erkennung konkurrierender Revisionsstände wird für den ersten Ausbau nicht zugesagt. Ein dauerhaft laufender Page Builder muss deshalb nach einer Konfigurationsänderung nicht neu konstruiert werden.
 
@@ -95,7 +95,7 @@ Beispiel für `SiteConfig`, hier als JSON dargestellt:
 }
 ```
 
-`languageLabels: array<string,string>` ergänzt die Sprachcodes um Anzeigenamen. Im Polyglot-Profil kommen optionale Namen aus `schiller.yaml` unter `language_labels`; ohne Angabe dient der Code als Label. Legacy übernimmt vorhandene Namen aus `_data/languages.yml`. Beide Profile liefern dieselbe öffentliche Form.
+`languageLabels: array<string,string>` ergänzt die Sprachcodes um Anzeigenamen. Im Polyglot-Profil kommen optionale Namen aus `shiller.yaml` unter `language_labels`; ohne Angabe dient der Code als Label. Legacy übernimmt vorhandene Namen aus `_data/languages.yml`. Beide Profile liefern dieselbe öffentliche Form.
 
 `SiteConfig` ist eine geprüfte öffentliche Projektion, kein unbeschränkter Dump der Jekyll-Konfiguration oder aller Rollenregeln. Interne Konfigurationszugriffe geben dem Benutzer kein Recht, diese Dateien über `files()` oder andere Zugriffe auszulesen.
 
@@ -297,7 +297,7 @@ url: https://example.org
 plugins: [jekyll-polyglot]
 languages: [de, en, fr]
 default_lang: de
-exclude: [schiller.yaml]
+exclude: [shiller.yaml]
 exclude_from_localization: [assets]
 defaults:
   - scope: {path: "", type: pages}
@@ -397,9 +397,9 @@ Eine existierende Übersetzung wird unverändert zurückgegeben. Bei fehlender �
 
 Bei einer fehlenden Legacy-Übersetzung liefert `createIfMissing: false` null; `createIfMissing: true` wirft UnsupportedOperationException. Eine vorhandene Legacy-Übersetzung wird auch mit gesetzter Option normal zurückgegeben und kann nach Rechteprüfung bearbeitet werden. Bei neuen Polyglot-Übersetzungen bestimmt die aktuelle Ablage der Gruppe den Kandidaten: nach der Umstellung einer Elternseite also `<sprache>/leistungen/index.md`. Fehlende Sprachdateien werden durch die Umstellung nicht angelegt.
 
-## § 7 schiller.yaml: Metafelder, Presets und Bereiche
+## § 7 shiller.yaml: Metafelder, Presets und Bereiche
 
-Die Datei liegt im übergebenen Root, also hier `docs/schiller.yaml`. `schema_version` versioniert ausschließlich die Shiller-YAML-Struktur. `adapter.version` bezeichnet einen Shiller-Kompatibilitätsvertrag, **nicht** die Gem-Version von Polyglot.
+Die Datei liegt im übergebenen Root, also hier `docs/shiller.yaml`. `schema_version` versioniert ausschließlich die Shiller-YAML-Struktur. `adapter.version` bezeichnet einen Shiller-Kompatibilitätsvertrag, **nicht** die Gem-Version von Polyglot.
 
 ```yaml
 schema_version: 1
@@ -460,7 +460,7 @@ permissions:
         - {path: "**", actions: [read]}
       deny:
         - {path: "intern/**", actions: [read]}
-        - {path: "schiller.yaml", actions: [read]}
+        - {path: "shiller.yaml", actions: [read]}
         - {path: "_config.yml", actions: [read]}
     user:
       allow:
@@ -470,7 +470,7 @@ permissions:
         - {path: "fr/**", actions: [write, createFile, createDirectory, createTranslation, rename, delete]}
       deny:
         - {path: "intern/**", actions: [read, write, createFile, createDirectory, createTranslation, rename, delete]}
-        - {path: "schiller.yaml", actions: [read, write]}
+        - {path: "shiller.yaml", actions: [read, write]}
         - {path: "_config.yml", actions: [read, write]}
     admin:
       allow:
@@ -770,7 +770,7 @@ schema_version: 1
 adapter: {id: micx-legacy, version: 1}
 ```
 
-Adapter-Versionen sind registrierte Shiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt JekyllPolyglotAdapter. Legacy wird über den Konstruktor oder schiller.yaml ausdrücklich gewählt. Eine explizite Instanz hat Vorrang vor der YAML-Auswahl; die effektiv ausgewählte Klasse muss zur Website passen, sonst ConfigurationException.
+Adapter-Versionen sind registrierte Shiller-Verträge, keine Gem-Versionen. Keine dynamischen PHP-Klassennamen aus YAML, keine automatische Migration bei Auswahlwechsel. Ohne Auswahl gilt JekyllPolyglotAdapter. Legacy wird über den Konstruktor oder shiller.yaml ausdrücklich gewählt. Eine explizite Instanz hat Vorrang vor der YAML-Auswahl; die effektiv ausgewählte Klasse muss zur Website passen, sonst ConfigurationException.
 
 ### § 11.1 Konkreter Adapterentwurf: gleiche IDs, andere Dateien
 
