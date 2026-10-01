@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Automation;
 
+use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
 use Phore\Log\Driver\PhoreConsoleLoggerDriver;
@@ -24,6 +25,7 @@ final class ShillerCli
      * @see ShillerAutomationFactory::create()
      * @example schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
      */
+    #[CliCommand('init', 'Initialisiert ein Projekt aus dem Template.', 'Kopiert die _root-Basis in das Projekt und installiert optional ausgewaehlte Vorlagentags. Verwende init fuer die erstmalige Grundinitialisierung eines Projekts.')]
     public function init(
         #[CliParameter('tags', 'Kommagetrennte Vorlagentags')]
         string $tags = '',
@@ -53,6 +55,7 @@ final class ShillerCli
      * @see ShillerAutomationFactory::create()
      * @example schiller install --tags raven
      */
+    #[CliCommand('install', 'Installiert ausgewaehlte Vorlagentags.', 'Installiert die mit --tags ausgewaehlten Vorlagen gezielt in ein bereits initialisiertes Projekt und schreibt die zugehoerigen Projektdateien erneut.')]
     public function install(
         #[CliParameter('tags', 'Kommagetrennte Vorlagentags')]
         string $tags,
@@ -88,6 +91,7 @@ final class ShillerCli
      * @see ShillerAutomationFactory::createContentAction()
      * @example schiller adapt --select "index.md,_data/general.yml" --mode concurrent
      */
+    #[CliCommand('adapt', 'Passt installierte Inhalte per AI an.', 'Passt ausgewaehlte installierte Website-Inhalte mit phore/ai-harness an Projektkontext und aktive Rules an. Die Auswahl kann ueber Pfade, Globs oder Tags erfolgen.')]
     public function adapt(
         #[CliParameter('select', 'Kommagetrennte Dateipfade, Globs oder tag:<name>')]
         string $select = '',
@@ -143,6 +147,7 @@ final class ShillerCli
      * @see ShillerAutomation::revert()
      * @example schiller revert index.md "_data/*.yml"
      */
+    #[CliCommand('revert', 'Stellt installierte Originalvorlagen wieder her.', 'Verwirft Anpassungen an ausgewaehlten Content-Dateien und stellt deren Inhalt aus den installierten Originalvorlagen wieder her. Akzeptiert Dateinamen, Globs und Tag-Selektoren.')]
     public function revert(
         array $argv,
         #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
@@ -184,6 +189,7 @@ final class ShillerCli
      * @see ShillerContextAction::build()
      * @example schiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
      */
+    #[CliCommand('context', 'Erstellt oder aktualisiert den Projektkontext.', 'Mit der Unteraktion build wird der zentrale Projektkontext aus einer Datei, einem Verzeichnis oder dem Raw-Kontext aufgebaut beziehungsweise aktualisiert.')]
     public function context(
         array $argv,
         #[CliParameter('focus', 'Optionaler Schwerpunkt fuer die Context-Uebernahme')]
@@ -244,6 +250,7 @@ final class ShillerCli
      * @see ShillerContentAction::adapt()
      * @example schiller ai adjust index.md "_data/*.yml"
      */
+    #[CliCommand('ai', 'Fuehrt AI-Unteraktionen fuer Projektdateien aus.', 'Mit der Unteraktion adjust werden ausgewaehlte Projektdateien anhand des Projektkontexts und der aktiven Rules angepasst. Dateinamen, Globs und Tag-Selektoren werden unterstuetzt.')]
     public function ai(
         array $argv,
         #[CliParameter('mode', 'concurrent oder sequential')]
