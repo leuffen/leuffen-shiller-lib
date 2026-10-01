@@ -12,7 +12,7 @@ use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** CLI adapter; discovery and automation rules live outside the CLI. */
-#[CliScope('schiller')]
+#[CliScope('shiller')]
 final class ShillerCli
 {
     /**
@@ -23,7 +23,7 @@ final class ShillerCli
      * @param string $root Document Root, standardmaessig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Installationsfehlern.
      * @see ShillerAutomationFactory::create()
-     * @example schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
+     * @example shiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
      */
     #[CliCommand('init', 'Initialisiert ein Projekt aus dem Template.', 'Kopiert die _root-Basis in das Projekt und installiert optional ausgewaehlte Vorlagentags. Verwende init fuer die erstmalige Grundinitialisierung eines Projekts.')]
     public function init(
@@ -59,7 +59,7 @@ final class ShillerCli
      * @param string $root Document Root, standardmaessig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Installationsfehlern.
      * @see ShillerAutomationFactory::create()
-     * @example schiller install --tags raven
+     * @example shiller install --tags raven
      */
     #[CliCommand('install', 'Installiert ausgewaehlte Vorlagentags.', 'Installiert die mit --tags ausgewaehlten Vorlagen gezielt in ein bereits initialisiertes Projekt und schreibt die zugehoerigen Projektdateien erneut.')]
     public function install(
@@ -95,7 +95,7 @@ final class ShillerCli
      * @param bool $debug Gibt die angewandten Rules mit Spezifitaet und Reihenfolge aus.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Anpassungsfehlern.
      * @see ShillerAutomationFactory::createContentAction()
-     * @example schiller adapt --select "index.md,_data/general.yml" --mode concurrent
+     * @example shiller adapt --select "index.md,_data/general.yml" --mode concurrent
      */
     #[CliCommand('adapt', 'Passt installierte Inhalte per AI an.', 'Passt ausgewaehlte installierte Website-Inhalte mit phore/ai-harness an Projektkontext und aktive Rules an. Die Auswahl kann ueber Pfade, Globs oder Tags erfolgen.')]
     public function adapt(
@@ -151,7 +151,7 @@ final class ShillerCli
      * @param string $root Document Root.
      * @throws RuntimeException Bei fehlender Dateiauswahl oder Restore-Fehlern.
      * @see ShillerAutomation::revert()
-     * @example schiller revert index.md "_data/*.yml"
+     * @example shiller revert index.md "_data/*.yml"
      */
     #[CliCommand('revert', 'Stellt installierte Originalvorlagen wieder her.', 'Verwirft Anpassungen an ausgewaehlten Content-Dateien und stellt deren Inhalt aus den installierten Originalvorlagen wieder her. Akzeptiert Dateinamen, Globs und Tag-Selektoren.')]
     public function revert(
@@ -193,7 +193,7 @@ final class ShillerCli
      * @param string $model AI-Modell fuer phore/ai-harness.
      * @throws RuntimeException Bei ungueltiger Unteraktion oder Quelle.
      * @see ShillerContextAction::build()
-     * @example schiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
+     * @example shiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
      */
     #[CliCommand('context', 'Erstellt oder aktualisiert den Projektkontext.', 'Mit der Unteraktion build wird der zentrale Projektkontext aus einer Datei, einem Verzeichnis oder dem Raw-Kontext aufgebaut beziehungsweise aktualisiert.')]
     public function context(
@@ -254,7 +254,7 @@ final class ShillerCli
      * @param bool $debug Gibt angewandte Rules, Spezifitaet und Reihenfolge vor dem Request aus.
      * @throws RuntimeException Bei ungueltiger Unteraktion oder fehlender Dateiauswahl.
      * @see ShillerContentAction::adapt()
-     * @example schiller ai adjust index.md "_data/*.yml"
+     * @example shiller ai adjust index.md "_data/*.yml"
      */
     #[CliCommand('ai', 'Fuehrt AI-Unteraktionen fuer Projektdateien aus.', 'Mit der Unteraktion adjust werden ausgewaehlte Projektdateien anhand des Projektkontexts und der aktiven Rules angepasst. Dateinamen, Globs und Tag-Selektoren werden unterstuetzt.')]
     public function ai(
@@ -311,7 +311,7 @@ final class ShillerCli
     }
 
     /**
-     * Laedt die konfigurierten Lifecycle-Kommandos fuer schiller init.
+     * Laedt die konfigurierten Lifecycle-Kommandos fuer shiller init.
      *
      * @return array{before: list<string>, after: list<string>}
      */
