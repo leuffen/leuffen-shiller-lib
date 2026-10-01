@@ -73,6 +73,90 @@ umgeschrieben. Das Projekt muss deshalb den Template-Pfad weiterhin kennen;
 die `.shiller.yml` im Document Root verwendet dafür `template_dir`. Die KI-Bearbeitung
 dieser Anleitungen ist noch kein Teil der Automation.
 
+
+## Installierte Inhalte an neuen Kontext anpassen
+
+Nach `init` beziehungsweise `install` kann `schiller adapt` die installierten
+Website-Inhalte mit `phore/ai-harness` an den Projektkontext anpassen. Standardmäßig
+werden alle Markdown-Dateien und die YAML-Dateien unter `_data/` bearbeitet.
+Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
+werden `tags`, `ptags` und `schiller.tags` im Markdown-Front-Matter geprüft.
+
+```sh
+schiller ai adjust index.md
+schiller ai adjust index.md _data/general.yml
+schiller ai adjust "leistungen/**/*.md" "tag:arzt"
+schiller revert index.md "_data/*.yml"
+
+# Erweiterte Optionen stehen vor der AI-Unteraktion:
+schiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
+```
+
+`schiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
+mehrere Dateinamen sowie Globs werden direkt als Argumente nach `adjust` angegeben;
+ohne weitere Optionen werden Document Root, `template_dir`, Projektkontext,
+Basis-Skill und Modell aus den Standardwerten beziehungsweise `.shiller.yml`
+verwendet. `schiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
+installierten Template-Dateien wieder her und benötigt keinen KI-Zugriff.
+
+`--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
+AI Harness; `sequential` führt dieselben Requests nacheinander aus. Die CLI loggt
+Fortschritt über `phore/log` nach STDERR und schreibt die bearbeiteten relativen
+Dateipfade nach STDOUT.
+
+Als Basis-Skill wird ohne `--skill`
+`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext liegt in
+`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle\nweiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer\nReihenfolge. Dateien mit dem Suffix `.rules.md` sind davon ausgenommen und\nwerden niemals als normaler Projektkontext geladen. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
+`ai adjust` nicht automatisch eingebunden. `--context` kann weiterhin
+zusätzliche Dateien relativ zur Projektwurzel ergänzen.
+
+## Projektkontext aus Rohdaten aufbauen
+
+`schiller context build` aktualisiert
+`.shiller-context.d/project.md` mit `phore/ai-harness`. Ohne Quelle wird
+`.shiller-context.d/raw/` rekursiv verarbeitet. Bereits erfolgreich
+verarbeitete und unveränderte Dateien werden anhand ihres Content-Hashes in
+`.shiller-context.d/.raw-state.json` übersprungen.
+
+Eine explizit angegebene Datei oder ein Verzeichnis wird bewusst erneut
+analysiert. Damit kann derselbe Input mit einem neuen `--focus` noch einmal
+ausgewertet werden:
+
+```sh
+schiller context build
+schiller context build kundendaten.pdf
+schiller context build imports/kunde --focus "Nur Leistungen und Kontaktdaten"
+```
+
+Der mitgelieferte Build-Skill liegt unter
+`resources/skills/build-context/SKILL.md`. Optionale projektspezifische\nZusatzregeln stehen in `.shiller-context.d/project.rules.md`; sie gelten nur\nfür `context build` und werden getrennt vom normalen Kontext geladen. Die\nvorhandene `project.md` ist
+zugleich Vorlage und bestehender, manuell pflegbarer Kontext. Informationen,
+die in neuen Quellen nicht vorkommen, bleiben erhalten. Eindeutige
+Aktualisierungen dürfen bestehende Fakten ändern; unklare Widersprüche werden
+als offene Punkte festgehalten statt stillschweigend überschrieben zu werden.
+
+Bearbeitungsregeln liegen im jeweiligen Document Root unter `_rules.d/*.md`.
+Jede Rule besitzt Front Matter mit `selector` als String oder Liste, optional
+`on` als Event-Filter und optional `important: true`. Fehlt `on`, gilt die
+Rule fuer jedes Event; ist `on` gesetzt, wird sie bei anderen Events
+vollstaendig ignoriert. Fuer jede passende Rule wird die Spezifitaet als
+`1 / Anzahl der vom Selector aktuell getroffenen editierbaren Dateien`
+berechnet. Bei mehreren passenden Selectoren einer Rule zaehlt der spezifischste.
+
+Alle passenden normalen Rules werden von niedriger zu hoher Spezifitaet in den
+Prompt aufgenommen; danach folgen `important`-Rules ebenfalls von niedriger zu
+hoher Spezifitaet. Damit steht die hoechste Prioritaet zuletzt. Bei gleicher
+Prioritaet entscheidet der Rule-Dateiname deterministisch. `--event` waehlt
+den Event-Typ, standardmaessig `edit`; `--debug` gibt vor den AI-Requests
+Rule-Datei, Selector, Match-Anzahl, Spezifitaet, `important` und Reihenfolge
+aus. Fuer jede Zieldatei werden ausserdem vorhandene Sidecars mit dem Namensschema
+`<zieldatei>.d.*` als Beschreibungsdaten angehaengt, zum Beispiel
+`_data/general.yml.d.json`.
+Bei Markdown darf der Skill neben dem Body auch `title`, `order` und
+`description` anpassen. Bei `_data`-YAML bleiben Keys und Struktur grundsätzlich
+erhalten und werden anhand von Kontext und Sidecar-Beschreibung mit neuen Werten
+gefüllt.
+
 ## Document Root und mehrere Websites
 
 `schiller.target` ist **immer relativ zum Document Root**: `index.md` schreibt
@@ -111,3 +195,13 @@ relativer `--template-dir`-Pfad bezieht sich auf die Projektwurzel.
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-schiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 `ShillerDir`-Bereich.
+
+## Vollstaendiges Demo-Projekt
+
+Unter [`demo/`](demo/) sind Template und nutzendes Webseitenprojekt getrennt:
+[`demo/template/`](demo/template/) repraesentiert das Template-Projekt mit
+`_tpl/_root` und Vorlagen, [`demo/project/`](demo/project/) den installierten
+Webseitenstand, in dem Shiller ausgefuehrt wird. Das Projekt zeigt
+`docs/_rules.d`, `.shiller-context.d`, mehrere Content-Dateien und ein
+`_data`-Sidecar. Die Rule-Beispiele demonstrieren mehrere Selector, dynamische
+Spezifitaet, `on: user-request` und `important: true`.

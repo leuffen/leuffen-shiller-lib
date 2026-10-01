@@ -81,6 +81,135 @@ final class ShillerAutomation
         return $this->apply($this->selected($tags));
     }
 
+    /**
+     * Stellt ausgewaehlte installierte Content-Dateien aus den Originalvorlagen wieder her.
+     *
+     * Markdown-Varianten werden anhand ihrer erhaltenen schiller.tags auf die
+     * installierte Template-Variante zurueckgefuehrt. Dateien aus _root/docs,
+     * insbesondere _data-YAML, werden direkt aus _root wiederhergestellt.
+     *
+     * @param string|list<string> $selectors Relative Dateinamen, Globs oder tag:<name>.
+     * @return list<string> Wiederhergestellte Pfade relativ zur Projektwurzel.
+     * @throws FilesystemException Bei Dateisystemfehlern.
+     * @throws RuntimeException Wenn keine eindeutige Originalvorlage gefunden wird.
+     * @see ShillerContentSelector::select()
+     * @see self::init()
+     * @example $restored = $automation->revert(['index.md', '_data/*.yml']); assert(in_array('docs/index.md', $restored, true));
+     */
+    public function revert(string|array $selectors): array
+    {
+        $documentDir = $this->projectRoot
+            ->withSubPath($this->documentRoot)
+            ->assertDirectory()
+            ->assertReadable();
+        $targets = (new ShillerContentSelector((string) $documentDir))->select($selectors);
+
+        $plan = [];
+        foreach ($targets as $target) {
+            $relative = str_replace('\\', '/', (string) $target->getRelPath($documentDir));
+            $plan[$this->documentRoot . '/' . $relative] = $this->originalContent($relative, $target);
+        }
+
+        return $this->apply($plan);
+    }
+
+    /**
+     * Ermittelt den installierten Originalinhalt fuer eine einzelne Content-Datei.
+     */
+    private function originalContent(string $targetRelative, PhoreFile $currentTarget): string
+    {
+        $currentTags = [];
+        $currentFrontMatter = $currentTarget->get_front_matter(required: false);
+        if (is_array($currentFrontMatter?->header)) {
+            $currentConfig = $currentFrontMatter->header['schiller'] ?? [];
+            if (is_array($currentConfig)) {
+                $currentTags = $currentConfig['tags'] ?? [];
+                $currentTags = is_string($currentTags) ? [$currentTags] : $currentTags;
+                $currentTags = is_array($currentTags) ? array_values(array_filter($currentTags, 'is_string')) : [];
+            }
+        }
+
+        $variants = [];
+        foreach ($this->templateDir->listFiles(recursive: true, sort: 'path') as $source) {
+            $sourceRelative = str_replace('\\', '/', (string) $source->getRelPath($this->templateDir));
+            if (str_starts_with($sourceRelative, '_root/')) {
+                continue;
+            }
+
+            $wrapped = str_ends_with($sourceRelative, '.template');
+            if (!$wrapped && !str_ends_with($sourceRelative, '.md')) {
+                continue;
+            }
+
+            $frontMatter = $source->get_front_matter(required: false);
+            if (!is_array($frontMatter?->header) || !is_array($frontMatter->header['schiller'] ?? null)) {
+                continue;
+            }
+
+            $config = $frontMatter->header['schiller'];
+            $sourceTarget = $config['target'] ?? substr($sourceRelative, 0, $wrapped ? -strlen('.template') : null);
+            if (!is_string($sourceTarget) || $this->projectRoot->assertRelativePath($sourceTarget) !== $targetRelative) {
+                continue;
+            }
+
+            $tags = $config['tags'] ?? [];
+            $tags = is_string($tags) ? [$tags] : $tags;
+            if (!is_array($tags) || array_filter($tags, static fn($tag): bool => !is_string($tag) || $tag === '')) {
+                throw new RuntimeException("Invalid schiller tags: $source");
+            }
+
+            $header = $frontMatter->header;
+            $instructions = $config['instructions'] ?? [];
+            $instructions = is_string($instructions) ? [$instructions] : $instructions;
+            if (!is_array($instructions)) {
+                throw new RuntimeException("Invalid schiller instructions: $source");
+            }
+            foreach ($instructions as $key => $reference) {
+                if (!is_string($reference)) {
+                    throw new RuntimeException("Invalid instruction reference: $source");
+                }
+                $instructions[$key] = $this->instruction($reference, $sourceRelative);
+            }
+            if (!$wrapped && $instructions !== ($config['instructions'] ?? [])) {
+                $header['schiller']['instructions'] = array_values($instructions);
+                $frontMatter->header = $header;
+            }
+
+            $variants[] = [
+                'tags' => array_values($tags),
+                'content' => $wrapped ? $frontMatter->content : $frontMatter->render(),
+            ];
+        }
+
+        if ($currentTags !== []) {
+            $matching = array_values(array_filter(
+                $variants,
+                static fn(array $variant): bool => array_intersect($currentTags, $variant['tags']) !== [],
+            ));
+            if (count($matching) === 1) {
+                return $matching[0]['content'];
+            }
+            if (count($matching) > 1) {
+                throw new RuntimeException("Multiple original templates match $targetRelative");
+            }
+        }
+
+        $rootSource = $this->templateDir->withSubPath('_root/docs/' . $targetRelative);
+        if ($rootSource->exists()) {
+            return $rootSource->assertFile()->assertReadable()->get_contents();
+        }
+
+        if (count($variants) === 1) {
+            return $variants[0]['content'];
+        }
+
+        throw new RuntimeException(
+            $variants === []
+                ? "No original template found for $targetRelative"
+                : "Multiple original templates match $targetRelative",
+        );
+    }
+
     private function selected(array $tags): array
     {
         $plan = [];
