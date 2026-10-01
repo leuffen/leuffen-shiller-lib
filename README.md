@@ -106,9 +106,7 @@ Dateipfade nach STDOUT.
 
 Als Basis-Skill wird ohne `--skill`
 `resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext liegt in
-`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle
-weiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer
-Reihenfolge. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
+`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle\nweiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer\nReihenfolge. Dateien mit dem Suffix `.rules.md` sind davon ausgenommen und\nwerden niemals als normaler Projektkontext geladen. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
 `ai adjust` nicht automatisch eingebunden. `--context` kann weiterhin
 zusätzliche Dateien relativ zur Projektwurzel ergänzen.
 
@@ -131,7 +129,7 @@ schiller context build imports/kunde --focus "Nur Leistungen und Kontaktdaten"
 ```
 
 Der mitgelieferte Build-Skill liegt unter
-`resources/skills/build-context/SKILL.md`. Die vorhandene `project.md` ist
+`resources/skills/build-context/SKILL.md`. Optionale projektspezifische\nZusatzregeln stehen in `.shiller-context.d/project.rules.md`; sie gelten nur\nfür `context build` und werden getrennt vom normalen Kontext geladen. Die\nvorhandene `project.md` ist
 zugleich Vorlage und bestehender, manuell pflegbarer Kontext. Informationen,
 die in neuen Quellen nicht vorkommen, bleiben erhalten. Eindeutige
 Aktualisierungen dürfen bestehende Fakten ändern; unklare Widersprüche werden
