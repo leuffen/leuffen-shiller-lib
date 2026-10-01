@@ -7,11 +7,11 @@ Dieses Verzeichnis repraesentiert das einzelne Webseitenprojekt, das
 Beispiele:
 
 ```sh
-php ../../bin/schiller context build
-php ../../bin/schiller context build .shiller-context.d/raw --focus "Kontaktdaten"
-php ../../bin/schiller ai --debug --event edit adjust index.md _data/general.yml
-php ../../bin/schiller ai --debug --event user-request adjust index.md
-php ../../bin/schiller revert index.md _data/general.yml
+php ../../bin/shiller context build
+php ../../bin/shiller context build .shiller-context.d/raw --focus "Kontaktdaten"
+php ../../bin/shiller ai --debug --event edit adjust index.md _data/general.yml
+php ../../bin/shiller ai --debug --event user-request adjust index.md
+php ../../bin/shiller revert index.md _data/general.yml
 ```
 
 `.shiller-context.d/project.md` ist der zentrale Projektkontext. Weitere
