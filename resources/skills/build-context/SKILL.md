@@ -1,5 +1,5 @@
 ---
-name: schiller-build-context
+name: shiller-build-context
 description: Konsolidiert neue Rohdaten in den bestehenden Shiller-Projektkontext, ohne manuell gepflegte Informationen unbemerkt zu verlieren.
 ---
 
