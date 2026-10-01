@@ -105,10 +105,37 @@ Fortschritt über `phore/log` nach STDERR und schreibt die bearbeiteten relative
 Dateipfade nach STDOUT.
 
 Als Basis-Skill wird ohne `--skill`
-`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext kommt aus
-`context_file` in `.shiller.yml`; zusätzlich werden alle Dateien aus
-`.shiller.d/` aufgenommen, sofern dieses Verzeichnis existiert. `--context`
-kann weitere Dateien relativ zur Projektwurzel ergänzen.
+`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext liegt in
+`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle
+weiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer
+Reihenfolge. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
+`ai adjust` nicht automatisch eingebunden. `--context` kann weiterhin
+zusätzliche Dateien relativ zur Projektwurzel ergänzen.
+
+## Projektkontext aus Rohdaten aufbauen
+
+`schiller context build` aktualisiert
+`.shiller-context.d/project.md` mit `phore/ai-harness`. Ohne Quelle wird
+`.shiller-context.d/raw/` rekursiv verarbeitet. Bereits erfolgreich
+verarbeitete und unveränderte Dateien werden anhand ihres Content-Hashes in
+`.shiller-context.d/.raw-state.json` übersprungen.
+
+Eine explizit angegebene Datei oder ein Verzeichnis wird bewusst erneut
+analysiert. Damit kann derselbe Input mit einem neuen `--focus` noch einmal
+ausgewertet werden:
+
+```sh
+schiller context build
+schiller context build kundendaten.pdf
+schiller context build imports/kunde --focus "Nur Leistungen und Kontaktdaten"
+```
+
+Der mitgelieferte Build-Skill liegt unter
+`resources/skills/build-context/SKILL.md`. Die vorhandene `project.md` ist
+zugleich Vorlage und bestehender, manuell pflegbarer Kontext. Informationen,
+die in neuen Quellen nicht vorkommen, bleiben erhalten. Eindeutige
+Aktualisierungen dürfen bestehende Fakten ändern; unklare Widersprüche werden
+als offene Punkte festgehalten statt stillschweigend überschrieben zu werden.
 
 Bearbeitungsregeln liegen im jeweiligen Document Root unter `_rules.d/*.md`.
 Jede Rule besitzt Front Matter mit `selector` als String oder Liste, optional
@@ -177,6 +204,6 @@ Unter [`demo/`](demo/) sind Template und nutzendes Webseitenprojekt getrennt:
 [`demo/template/`](demo/template/) repraesentiert das Template-Projekt mit
 `_tpl/_root` und Vorlagen, [`demo/project/`](demo/project/) den installierten
 Webseitenstand, in dem Shiller ausgefuehrt wird. Das Projekt zeigt
-`docs/_rules.d`, Projektkontext, `.shiller.d`, mehrere Content-Dateien und ein
+`docs/_rules.d`, `.shiller-context.d`, mehrere Content-Dateien und ein
 `_data`-Sidecar. Die Rule-Beispiele demonstrieren mehrere Selector, dynamische
 Spezifitaet, `on: user-request` und `important: true`.

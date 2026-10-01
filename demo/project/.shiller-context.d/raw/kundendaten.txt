@@ -1,0 +1,7 @@
+Kundennotiz fuer die fiktive Demo
+
+Projektname: Demo Praxis Nord
+Ort: Musterstadt
+Telefon: 0000 123456
+E-Mail: demo@example.invalid
+Schwerpunkt: Allgemeine Beratung

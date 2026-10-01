@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Leuffen\Shiller\Automation\ShillerAutomationFactory;
 use Leuffen\Shiller\Automation\ShillerContentAction;
+use Leuffen\Shiller\Automation\ShillerContextAction;
 use Leuffen\Shiller\Automation\ShillerContentSelector;
 use PHPUnit\Framework\TestCase;
 
@@ -57,15 +58,36 @@ final class ShillerContentSelectorTest extends TestCase
         self::assertCount(0, $selector->select('_rules.d/**/*.md'));
     }
 
-    public function testFactoryBuildsContentActionWithConfiguredContext(): void
+    public function testFactoryBuildsContentActionWithShillerContextDirectory(): void
     {
-        phore_file($this->dir . '/site/docs/.shiller.yml')->set_contents(
-            "template_dir: ../tpl\ncontext_file: ../.shiller-context.txt\n",
-        );
-        phore_file($this->dir . '/site/.shiller-context.txt')->set_contents('Praxis Kontext');
+        phore_file($this->dir . '/site/docs/.shiller.yml')->set_contents("template_dir: ../tpl\n");
+        phore_dir($this->dir . '/site/.shiller-context.d/raw')->mkdir();
+        phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
+        phore_file($this->dir . '/site/.shiller-context.d/team.md')->set_contents('# Team');
+        phore_file($this->dir . '/site/.shiller-context.d/raw/source.md')->set_contents('# Rohdaten');
 
         $action = (new ShillerAutomationFactory($this->dir . '/site'))->createContentAction();
 
         self::assertInstanceOf(ShillerContentAction::class, $action);
+    }
+
+    public function testContextBuildSkipsUnchangedDefaultRawSource(): void
+    {
+        phore_dir($this->dir . '/site/.shiller-context.d/raw')->mkdir();
+        phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
+
+        $source = phore_file($this->dir . '/site/.shiller-context.d/raw/source.txt');
+        $source->set_contents('Bekannte Rohdaten');
+        phore_file($this->dir . '/site/.shiller-context.d/.raw-state.json')->set_contents(
+            json_encode(
+                ['.shiller-context.d/raw/source.txt' => hash('sha256', $source->get_contents())],
+                JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR,
+            ) . "\n",
+        );
+
+        $action = (new ShillerAutomationFactory($this->dir . '/site'))->createContextAction();
+
+        self::assertInstanceOf(ShillerContextAction::class, $action);
+        self::assertSame([], $action->build());
     }
 }

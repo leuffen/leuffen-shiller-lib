@@ -38,8 +38,10 @@ final class ShillerAutomationFactory
      *
      * Die Konfiguration wird aus .shiller.yml im Document Root gelesen; als
      * Kompatibilitaetsfallback wird die Datei in der Projektwurzel akzeptiert.
-     * context_file und context_dir werden relativ zum Ort dieser Konfiguration
-     * aufgeloest. Zusaetzliche Kontextdateien sind relativ zur Projektwurzel.
+     * Projektkontext kommt aus .shiller-context.d: project.md wird zuerst
+     * geladen, danach alle weiteren Markdown-Dateien direkt in diesem
+     * Verzeichnis. raw/ wird nicht automatisch als aktiver Kontext geladen.
+     * Zusaetzliche Kontextdateien sind relativ zur Projektwurzel.
      *
      * @param string $documentRoot Relativer oder absoluter Document Root.
      * @param string $templateDir Optionaler _tpl-Pfad; leer liest template_dir aus der Konfiguration.
@@ -92,47 +94,24 @@ final class ShillerAutomationFactory
         }
         $templateUri->assertDirectory()->assertReadable();
 
-        $contextFiles = [];
-        $configuredContext = $config['context_file'] ?? '.shiller-context.txt';
-        $configuredContext = is_string($configuredContext) ? [$configuredContext] : $configuredContext;
-        if (!is_array($configuredContext)) {
-            throw new RuntimeException("Invalid context_file in $configFile");
-        }
+        $contextDirectory = $projectRoot
+            ->withSubPath('.shiller-context.d')
+            ->assertDirectory()
+            ->assertReadable();
+        $projectContext = $contextDirectory
+            ->withSubPath('project.md')
+            ->asFile()
+            ->assertFile()
+            ->assertReadable();
 
-        foreach ($configuredContext as $contextFile) {
-            if (!is_string($contextFile) || $contextFile === '') {
-                throw new RuntimeException("Invalid context_file in $configFile");
+        $contextFiles = [(string) $projectContext];
+        foreach ($contextDirectory->listFiles(recursive: false, sort: 'path') as $contextFile) {
+            $relative = str_replace('\\', '/', (string) $contextFile->getRelPath($contextDirectory));
+            if ($relative === 'project.md' || !str_ends_with(strtolower($relative), '.md')) {
+                continue;
             }
 
-            $candidate = str_starts_with($contextFile, '/')
-                ? phore_uri($contextFile)->abs()
-                : $configDir->withRelativePath($contextFile);
-            if (!$candidate->exists() && !str_starts_with($contextFile, '/')) {
-                $candidate = $projectRoot->withRelativePath($contextFile);
-            }
-
-            if ($candidate->exists()) {
-                $contextFiles[] = (string) $candidate->assertFile()->assertReadable();
-            } elseif (array_key_exists('context_file', $config)) {
-                $candidate->assertFile()->assertReadable();
-            }
-        }
-
-        $contextDirName = $config['context_dir'] ?? '.shiller.d';
-        if (!is_string($contextDirName) || $contextDirName === '') {
-            throw new RuntimeException("Invalid context_dir in $configFile");
-        }
-
-        $contextDir = str_starts_with($contextDirName, '/')
-            ? phore_uri($contextDirName)->abs()
-            : $configDir->withRelativePath($contextDirName);
-        if (!$contextDir->exists() && !str_starts_with($contextDirName, '/')) {
-            $contextDir = $projectRoot->withRelativePath($contextDirName);
-        }
-        if ($contextDir->exists()) {
-            foreach ($contextDir->assertDirectory()->assertReadable()->listFiles(recursive: true, sort: 'path') as $contextFile) {
-                $contextFiles[] = (string) $contextFile->assertReadable();
-            }
+            $contextFiles[] = (string) $contextFile->assertReadable();
         }
 
         foreach ($additionalContextFiles as $additionalContextFile) {
@@ -164,6 +143,45 @@ final class ShillerAutomationFactory
             (string) $documentUri,
             (string) $templateUri,
             $contextFiles,
+            $skillFile,
+            $logger,
+            $model,
+        );
+    }
+
+    /**
+     * Erstellt die AI-Harness-Action zum Aufbauen des Projektkontexts.
+     *
+     * Die Action arbeitet in .shiller-context.d der Projektwurzel. project.md
+     * ist die zentrale, manuell pflegbare Hauptdatei; raw/ ist die
+     * Standardquelle fuer neue oder geaenderte Rohdaten.
+     *
+     * @param string $skillFile Optionaler Build-Skill; leer nutzt den mitgelieferten Skill.
+     * @param PhoreLogger|null $logger Optionales phore/log-Logging.
+     * @param string $model AI-Modell fuer phore/ai-harness.
+     * @return ShillerContextAction Konfigurierte Context-Build-Action.
+     * @throws FilesystemException Bei Dateisystemfehlern.
+     * @see ShillerContextAction
+     * @example $action = (new ShillerAutomationFactory('/srv/site'))->createContextAction(); assert($action instanceof ShillerContextAction);
+     */
+    public function createContextAction(
+        string $skillFile = '',
+        ?PhoreLogger $logger = null,
+        string $model = 'gpt-5-mini',
+    ): ShillerContextAction {
+        $projectRoot = $this->startDirectory;
+
+        if ($skillFile === '') {
+            $skillFile = dirname(__DIR__, 2) . '/resources/skills/build-context/SKILL.md';
+        } elseif (!str_starts_with($skillFile, '/')) {
+            $skillFile = (string) $projectRoot
+                ->withSubPath($projectRoot->assertRelativePath($skillFile))
+                ->assertFile()
+                ->assertReadable();
+        }
+
+        return new ShillerContextAction(
+            (string) $projectRoot,
             $skillFile,
             $logger,
             $model,

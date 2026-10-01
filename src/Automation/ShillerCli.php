@@ -170,10 +170,66 @@ final class ShillerCli
     }
 
     /**
+     * Baut oder aktualisiert den zentralen Projektkontext mit phore/ai-harness.
+     *
+     * Ohne Quelle verarbeitet build .shiller-context.d/raw und ueberspringt
+     * dort bereits unveraenderte Dateien. Eine explizite Datei oder ein
+     * explizites Verzeichnis wird bewusst erneut verarbeitet.
+     *
+     * @param list<string> $argv Erstes Argument build, optional gefolgt von genau einer Quelle.
+     * @param string $focus Optionaler Schwerpunkt fuer die Informationsuebernahme.
+     * @param string $skill Optionaler Context-Build-Skill.
+     * @param string $model AI-Modell fuer phore/ai-harness.
+     * @throws RuntimeException Bei ungueltiger Unteraktion oder Quelle.
+     * @see ShillerContextAction::build()
+     * @example schiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
+     */
+    public function context(
+        array $argv,
+        #[CliParameter('focus', 'Optionaler Schwerpunkt fuer die Context-Uebernahme')]
+        string $focus = '',
+        #[CliParameter('skill', 'Optionaler Context-Build-Skill')]
+        string $skill = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = 'gpt-5-mini',
+    ): void {
+        $subAction = array_shift($argv);
+        if ($subAction !== 'build') {
+            throw new RuntimeException('context requires the sub-action build.');
+        }
+        if (count($argv) > 1) {
+            throw new RuntimeException('context build accepts at most one file or directory source.');
+        }
+
+        $source = array_shift($argv);
+        if ($source !== null && (!is_string($source) || trim($source) === '')) {
+            throw new RuntimeException('context build source must be a non-empty path.');
+        }
+
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $processed = (new ShillerAutomationFactory($startDirectory))
+            ->createContextAction(
+                $skill,
+                new PhoreLogger(new PhoreConsoleLoggerDriver()),
+                $model,
+            )
+            ->build($source, $focus);
+
+        if ($processed !== []) {
+            echo implode("\n", $processed) . "\n";
+        }
+    }
+
+    /**
      * Fuehrt AI-Unteraktionen aus; aktuell ist adjust implementiert.
      *
      * Ohne weitere Optionen nutzt adjust den Standard-Document-Root, template_dir,
-     * context_file, .shiller.d, den mitgelieferten Basis-Skill und gpt-5-mini.
+     * alle aktiven Markdown-Dateien aus .shiller-context.d, den mitgelieferten
+     * Basis-Skill und gpt-5-mini. Das Unterverzeichnis raw/ wird nicht geladen.
      *
      * @param list<string> $argv Erstes Argument adjust, danach Dateinamen, Globs oder tag:<name>.
      * @param string $mode concurrent oder sequential.
