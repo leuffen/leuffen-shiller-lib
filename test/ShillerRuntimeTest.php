@@ -17,7 +17,7 @@ final class ShillerRuntimeTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/schiller-' . bin2hex(random_bytes(4));
+        $this->dir = sys_get_temp_dir() . '/shiller-' . bin2hex(random_bytes(4));
 
         mkdir($this->dir . '/home', 0777, true);
         mkdir($this->dir . '/_data', 0777, true);
@@ -77,7 +77,7 @@ final class ShillerRuntimeTest extends TestCase
     public function testPolyglotCreatesTranslation(): void
     {
         file_put_contents(
-            $this->dir . '/schiller.yaml',
+            $this->dir . '/shiller.yaml',
             "schema_version: 1\nlanguages: [de, en]\ndefault_lang: de\nadapter: {id: jekyll-polyglot, version: 1}\n",
         );
         file_put_contents(
