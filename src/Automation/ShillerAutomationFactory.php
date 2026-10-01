@@ -107,7 +107,7 @@ final class ShillerAutomationFactory
         $contextFiles = [(string) $projectContext];
         foreach ($contextDirectory->listFiles(recursive: false, sort: 'path') as $contextFile) {
             $relative = str_replace('\\', '/', (string) $contextFile->getRelPath($contextDirectory));
-            if ($relative === 'project.md' || !str_ends_with(strtolower($relative), '.md')) {
+            if (\n                $relative === 'project.md'\n                || str_ends_with(strtolower($relative), '.rules.md')\n                || !str_ends_with(strtolower($relative), '.md')\n            ) {
                 continue;
             }
 
