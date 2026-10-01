@@ -13,7 +13,7 @@ $app = new \Phore\Cli\CliApplication();
 $app->addClass(\Leuffen\Shiller\Automation\ShillerCli::class);
 
 try {
-    echo $app->run([$argv[0], 'schiller', ...array_slice($argv, 1)]);
+    echo $app->run([$argv[0], 'shiller', ...array_slice($argv, 1)]);
 } catch (\Throwable $exception) {
     fwrite(STDERR, $exception->getMessage() . "\n");
     exit(1);
