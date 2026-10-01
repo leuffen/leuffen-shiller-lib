@@ -69,9 +69,8 @@ final class ShillerAutomationTest extends TestCase
     {
         $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
         phore_dir($template . '/_root/docs')->mkdir();
-        phore_file($this->dir . '/site/docs/.shiller.yml')
-            ->mkdir()
-            ->set_contents("template_dir: ../node_modules/@leuffen/themejs2/_tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')
+            ->set_contents("doc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
             "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
@@ -104,8 +103,8 @@ final class ShillerAutomationTest extends TestCase
     {
         $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
         phore_dir($template . '/_root/docs')->mkdir();
-        phore_file($template . '/_root/docs/.shiller.yml')
-            ->set_contents("template_dir: ../node_modules/@leuffen/themejs2/_tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')
+            ->set_contents("doc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
             "---\nschiller:\n  tags: [raven]\n  target: index.md\nlayout: website\n---\nRaven\n",
         );
@@ -116,10 +115,10 @@ final class ShillerAutomationTest extends TestCase
         self::assertNotFalse($previousDirectory);
         chdir($this->dir . '/site');
         try {
-            // Ohne --root wählt die CLI docs und liest für install dessen eigene Konfiguration.
+            // Ohne --root waehlt die CLI docs und liest die Konfiguration aus dem Projekt-Root.
             exec($baseCommand . ' init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven 2>&1', $output, $status);
             self::assertSame(0, $status, implode("\n", $output));
-            self::assertTrue(phore_uri($this->dir . '/site/docs/.shiller.yml')->isFile());
+            self::assertTrue(phore_uri($this->dir . '/site/.shiller.yml')->isFile());
             self::assertStringContainsString(
                 'schiller:',
                 phore_file($this->dir . '/site/docs/index.md')->get_contents(),
@@ -141,7 +140,7 @@ final class ShillerAutomationTest extends TestCase
     public function testExplicitDocumentRootMapsBaseFilesAndTargets(): void
     {
         phore_file($this->dir . '/tpl/_root/package.json')->set_contents('{}');
-        phore_file($this->dir . '/tpl/_root/docs/.shiller.yml')->set_contents("template_dir: ../../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: public\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/index.raven.md')->set_contents(
             "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
@@ -156,7 +155,7 @@ final class ShillerAutomationTest extends TestCase
 
         self::assertSame(0, $status, implode("\n", $output));
         self::assertTrue(phore_uri($this->dir . '/site/package.json')->isFile());
-        self::assertTrue(phore_uri($this->dir . '/site/public/.shiller.yml')->isFile());
+        self::assertTrue(phore_uri($this->dir . '/site/.shiller.yml')->isFile());
         self::assertStringContainsString(
             'Raven',
             phore_file($this->dir . '/site/public/index.md')->get_contents(),
@@ -202,7 +201,7 @@ final class ShillerAutomationTest extends TestCase
 
     public function testCliRevertRestoresSelectedFile(): void
     {
-        phore_file($this->dir . '/tpl/_root/docs/.shiller.yml')->set_contents("template_dir: ../../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: docs\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
 
         $baseCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller');
@@ -242,7 +241,8 @@ final class ShillerAutomationTest extends TestCase
         $after = $this->dir . '/site/after.txt';
         $php = escapeshellarg(PHP_BINARY);
         $config = [
-            'template_dir' => '../node_modules/@leuffen/themejs2/_tpl',
+            'doc_root' => 'docs',
+            'template_dir' => 'node_modules/@leuffen/themejs2/_tpl',
             'hooks' => [
                 'init' => [
                     'before' => [
@@ -259,7 +259,7 @@ final class ShillerAutomationTest extends TestCase
                 ],
             ],
         ];
-        phore_file($this->dir . '/site/docs/.shiller.yml')->set_contents(yaml_emit($config));
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents(yaml_emit($config));
 
         $previousDirectory = getcwd();
         self::assertNotFalse($previousDirectory);
