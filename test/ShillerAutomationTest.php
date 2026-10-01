@@ -12,7 +12,7 @@ final class ShillerAutomationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/schiller-automation-' . bin2hex(random_bytes(6));
+        $this->dir = sys_get_temp_dir() . '/shiller-automation-' . bin2hex(random_bytes(6));
         phore_dir($this->dir . '/site')->mkdir();
         phore_dir($this->dir . '/tpl/_root/docs/_includes')->mkdir();
         phore_dir($this->dir . '/tpl/pages')->mkdir();
@@ -29,8 +29,8 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/tpl/_root/docs/_includes/nav.html')->set_contents('default');
         phore_file($this->dir . '/tpl/instructions/style.md')->set_contents('Anleitung');
         phore_file($this->dir . '/tpl/pages/local.md')->set_contents('Lokale Anleitung');
-        phore_file($this->dir . '/tpl/pages/index.seem1.md')->set_contents("---\nschiller:\n  tags: [seem1]\n  target: index.md\n  instructions: [./local.md, 'tpl:/instructions/style.md']\nlayout: website\n---\nStart\n");
-        phore_file($this->dir . '/tpl/pages/nav.html.template')->set_contents("---\nschiller:\n  tags: [seem1]\n  target: _includes/nav.html\n---\n<nav>Variante</nav>\n");
+        phore_file($this->dir . '/tpl/pages/index.seem1.md')->set_contents("---\nshiller:\n  tags: [seem1]\n  target: index.md\n  instructions: [./local.md, 'tpl:/instructions/style.md']\nlayout: website\n---\nStart\n");
+        phore_file($this->dir . '/tpl/pages/nav.html.template')->set_contents("---\nshiller:\n  tags: [seem1]\n  target: _includes/nav.html\n---\n<nav>Variante</nav>\n");
 
         $written = (new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['seem1']);
 
@@ -40,7 +40,7 @@ final class ShillerAutomationTest extends TestCase
             phore_file($this->dir . '/site/docs/_includes/nav.html')->get_contents(),
         );
         $page = phore_file($this->dir . '/site/docs/index.md')->get_contents();
-        self::assertStringContainsString('schiller:', $page);
+        self::assertStringContainsString('shiller:', $page);
         self::assertStringContainsString('tpl:/pages/local.md', $page);
         self::assertStringContainsString('tpl:/instructions/style.md', $page);
         self::assertStringContainsString('layout: website', $page);
@@ -53,7 +53,7 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/tpl/_root/base.txt')->set_contents('basis');
         foreach (['a', 'b'] as $tag) {
             phore_file($this->dir . "/tpl/pages/$tag.html.template")
-                ->set_contents("---\nschiller:\n  tags: [$tag]\n  target: index.html\n---\n$tag\n");
+                ->set_contents("---\nshiller:\n  tags: [$tag]\n  target: index.html\n---\n$tag\n");
         }
 
         $this->expectException(RuntimeException::class);
@@ -72,7 +72,7 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/site/.shiller.yml')
             ->set_contents("doc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
-            "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
+            "---\nshiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
 
         $automation = (new ShillerAutomationFactory($this->dir . '/site'))->create();
@@ -89,7 +89,7 @@ final class ShillerAutomationTest extends TestCase
     {
         phore_file($this->dir . '/tpl/_root/docs/index.md')->set_contents('Start');
         $command = escapeshellarg(PHP_BINARY)
-            . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+            . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller')
             . ' init --root ' . escapeshellarg($this->dir . '/site/docs')
             . ' --template-dir ' . escapeshellarg($this->dir . '/tpl');
 
@@ -106,11 +106,11 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/site/.shiller.yml')
             ->set_contents("doc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
-            "---\nschiller:\n  tags: [raven]\n  target: index.md\nlayout: website\n---\nRaven\n",
+            "---\nshiller:\n  tags: [raven]\n  target: index.md\nlayout: website\n---\nRaven\n",
         );
 
         $baseCommand = escapeshellarg(PHP_BINARY)
-            . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller');
+            . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller');
         $previousDirectory = getcwd();
         self::assertNotFalse($previousDirectory);
         chdir($this->dir . '/site');
@@ -120,7 +120,7 @@ final class ShillerAutomationTest extends TestCase
             self::assertSame(0, $status, implode("\n", $output));
             self::assertTrue(phore_uri($this->dir . '/site/.shiller.yml')->isFile());
             self::assertStringContainsString(
-                'schiller:',
+                'shiller:',
                 phore_file($this->dir . '/site/docs/index.md')->get_contents(),
             );
 
@@ -142,11 +142,11 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/tpl/_root/package.json')->set_contents('{}');
         phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: public\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/index.raven.md')->set_contents(
-            "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
+            "---\nshiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
 
         $command = escapeshellarg(PHP_BINARY)
-            . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+            . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller')
             . ' init --root ' . escapeshellarg($this->dir . '/site/public')
             . ' --template-dir ' . escapeshellarg($this->dir . '/tpl')
             . ' --tags raven';
@@ -165,7 +165,7 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/site/public/index.md')->set_contents('old');
         $output = [];
         exec(
-            escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+            escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller')
                 . ' install --root ' . escapeshellarg($this->dir . '/site/public')
                 . ' --tags raven 2>&1',
             $output,
@@ -182,7 +182,7 @@ final class ShillerAutomationTest extends TestCase
         phore_dir($this->dir . '/site/docs/_data')->mkdir();
         phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
         phore_file($this->dir . '/tpl/pages/index.raven.md')->set_contents(
-            "---\nschiller:\n  tags: [raven]\n  target: index.md\n---\nOriginal page\n",
+            "---\nshiller:\n  tags: [raven]\n  target: index.md\n---\nOriginal page\n",
         );
 
         $automation = new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl');
@@ -204,7 +204,7 @@ final class ShillerAutomationTest extends TestCase
         phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: docs\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
 
-        $baseCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller');
+        $baseCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller');
         exec(
             $baseCommand
                 . ' init --root ' . escapeshellarg($this->dir . '/site/docs')
@@ -266,7 +266,7 @@ final class ShillerAutomationTest extends TestCase
         chdir($this->dir . '/site');
         try {
             $command = escapeshellarg(PHP_BINARY)
-                . ' ' . escapeshellarg(__DIR__ . '/../bin/schiller')
+                . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller')
                 . ' init';
             exec($command . ' 2>&1', $output, $status);
         } finally {

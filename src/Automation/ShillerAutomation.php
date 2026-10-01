@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
+use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** Installiert Dateien aus einem _tpl-Verzeichnis. */
@@ -26,7 +27,7 @@ final class ShillerAutomation
      * @see ShillerAutomationFactory
      * @example $automation = new ShillerAutomation('/srv/site', '/srv/theme/_tpl', 'docs'); assert($automation instanceof ShillerAutomation);
      */
-    public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs')
+    public function __construct(string $projectRoot, string $templateDir, string $documentRoot = 'docs', private readonly ?PhoreLogger $logger = null)
     {
         $projectPath = (string) phore_uri($projectRoot)->abs();
         $templatePath = (string) phore_uri($templateDir)->abs();
@@ -52,6 +53,7 @@ final class ShillerAutomation
      */
     public function init(array $tags = []): array
     {
+        $this->logger?->step('Initialisiere Shiller-Projekt aus Template.');
         $plan = [];
         $root = $this->templateDir->withSubPath('_root')->assertDirectory();
 
@@ -78,13 +80,14 @@ final class ShillerAutomation
      */
     public function install(array $tags): array
     {
+        $this->logger?->step('Installiere Shiller-Templates fuer {} Tags.', [count($tags)]);
         return $this->apply($this->selected($tags));
     }
 
     /**
      * Stellt ausgewaehlte installierte Content-Dateien aus den Originalvorlagen wieder her.
      *
-     * Markdown-Varianten werden anhand ihrer erhaltenen schiller.tags auf die
+     * Markdown-Varianten werden anhand ihrer erhaltenen shiller.tags auf die
      * installierte Template-Variante zurueckgefuehrt. Dateien aus _root/docs,
      * insbesondere _data-YAML, werden direkt aus _root wiederhergestellt.
      *
@@ -98,6 +101,7 @@ final class ShillerAutomation
      */
     public function revert(string|array $selectors): array
     {
+        $this->logger?->step('Stelle ausgewaehlte Shiller-Dateien wieder her.');
         $documentDir = $this->projectRoot
             ->withSubPath($this->documentRoot)
             ->assertDirectory()
@@ -121,7 +125,7 @@ final class ShillerAutomation
         $currentTags = [];
         $currentFrontMatter = $currentTarget->get_front_matter(required: false);
         if (is_array($currentFrontMatter?->header)) {
-            $currentConfig = $currentFrontMatter->header['schiller'] ?? [];
+            $currentConfig = $currentFrontMatter->header['shiller'] ?? [];
             if (is_array($currentConfig)) {
                 $currentTags = $currentConfig['tags'] ?? [];
                 $currentTags = is_string($currentTags) ? [$currentTags] : $currentTags;
@@ -142,11 +146,11 @@ final class ShillerAutomation
             }
 
             $frontMatter = $source->get_front_matter(required: false);
-            if (!is_array($frontMatter?->header) || !is_array($frontMatter->header['schiller'] ?? null)) {
+            if (!is_array($frontMatter?->header) || !is_array($frontMatter->header['shiller'] ?? null)) {
                 continue;
             }
 
-            $config = $frontMatter->header['schiller'];
+            $config = $frontMatter->header['shiller'];
             $sourceTarget = $config['target'] ?? substr($sourceRelative, 0, $wrapped ? -strlen('.template') : null);
             if (!is_string($sourceTarget) || $this->projectRoot->assertRelativePath($sourceTarget) !== $targetRelative) {
                 continue;
@@ -155,14 +159,14 @@ final class ShillerAutomation
             $tags = $config['tags'] ?? [];
             $tags = is_string($tags) ? [$tags] : $tags;
             if (!is_array($tags) || array_filter($tags, static fn($tag): bool => !is_string($tag) || $tag === '')) {
-                throw new RuntimeException("Invalid schiller tags: $source");
+                throw new RuntimeException("Invalid shiller tags: $source");
             }
 
             $header = $frontMatter->header;
             $instructions = $config['instructions'] ?? [];
             $instructions = is_string($instructions) ? [$instructions] : $instructions;
             if (!is_array($instructions)) {
-                throw new RuntimeException("Invalid schiller instructions: $source");
+                throw new RuntimeException("Invalid shiller instructions: $source");
             }
             foreach ($instructions as $key => $reference) {
                 if (!is_string($reference)) {
@@ -171,7 +175,7 @@ final class ShillerAutomation
                 $instructions[$key] = $this->instruction($reference, $sourceRelative);
             }
             if (!$wrapped && $instructions !== ($config['instructions'] ?? [])) {
-                $header['schiller']['instructions'] = array_values($instructions);
+                $header['shiller']['instructions'] = array_values($instructions);
                 $frontMatter->header = $header;
             }
 
@@ -237,22 +241,22 @@ final class ShillerAutomation
             if (!is_array($header)) {
                 throw new RuntimeException("Invalid YAML header: $source");
             }
-            if (!isset($header['schiller'])) {
+            if (!isset($header['shiller'])) {
                 if ($wrapped) {
                     throw new RuntimeException("Shiller header missing: $source");
                 }
                 continue;
             }
 
-            $config = $header['schiller'];
+            $config = $header['shiller'];
             if (!is_array($config)) {
-                throw new RuntimeException("Invalid schiller options: $source");
+                throw new RuntimeException("Invalid shiller options: $source");
             }
 
             $fileTags = $config['tags'] ?? [];
             $fileTags = is_string($fileTags) ? [$fileTags] : $fileTags;
             if (!is_array($fileTags) || array_filter($fileTags, fn($tag): bool => !is_string($tag) || $tag === '')) {
-                throw new RuntimeException("Invalid schiller tags: $source");
+                throw new RuntimeException("Invalid shiller tags: $source");
             }
             if (!array_intersect($tags, $fileTags)) {
                 continue;
@@ -267,7 +271,7 @@ final class ShillerAutomation
             $instructions = $config['instructions'] ?? [];
             $instructions = is_string($instructions) ? [$instructions] : $instructions;
             if (!is_array($instructions)) {
-                throw new RuntimeException("Invalid schiller instructions: $source");
+                throw new RuntimeException("Invalid shiller instructions: $source");
             }
             foreach ($instructions as $key => $reference) {
                 if (!is_string($reference)) {
@@ -283,7 +287,7 @@ final class ShillerAutomation
             if ($wrapped) {
                 $plan[$target] = $frontMatter->content;
             } elseif ($instructions !== ($config['instructions'] ?? [])) {
-                $header['schiller']['instructions'] = array_values($instructions);
+                $header['shiller']['instructions'] = array_values($instructions);
                 $frontMatter->header = $header;
                 $plan[$target] = $frontMatter->render();
             } else {
@@ -332,6 +336,7 @@ final class ShillerAutomation
             /** @var PhoreFile $target */
             $target = $targets[$relative];
             $target->mkdir()->set_contents($content);
+            $this->logger?->success('Geschrieben: {}', [$relative]);
         }
 
         return array_keys($plan);

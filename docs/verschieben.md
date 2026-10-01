@@ -1,6 +1,6 @@
 # Verschieben und Indexablage im Polyglot-Adapter
 
-Der erste ausführbare Ausbau ergänzt [Proposal §§ 8 und 11](proposals/2026-09-12-schiller-seiten-api.md), [Beispiel 16](../examples/16-create-child-page.php) und [Beispiel 17](../examples/17-move-page-tree.php). Die folgende Matrix bleibt der vollständige Zielvertrag; nicht alle dort genannten Prüfungen sind bereits implementiert.
+Der erste ausführbare Ausbau ergänzt [Proposal §§ 8 und 11](proposals/2026-09-12-shiller-seiten-api.md), [Beispiel 16](../examples/16-create-child-page.php) und [Beispiel 17](../examples/17-move-page-tree.php). Die folgende Matrix bleibt der vollständige Zielvertrag; nicht alle dort genannten Prüfungen sind bereits implementiert.
 
 ## Implementierungsstand
 

@@ -15,7 +15,7 @@
     ]
   },
   "bin": [
-    "bin/schiller"
+    "bin/shiller"
   ],
   "require": {
     "php": ">=8.5",

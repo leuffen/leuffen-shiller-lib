@@ -1,8 +1,8 @@
-name: Schiller Runtime
+name: Shiller Runtime
 
 on:
   push:
-    branches: ["feat/schiller-runtime"]
+    branches: ["feat/shiller-runtime"]
   pull_request:
 
 jobs:

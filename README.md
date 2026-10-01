@@ -36,12 +36,12 @@ Wird `templateDir` weggelassen, liest die Factory `template_dir` aus
 CLI auch aus Anwendungen, Jobs oder Tests verwendet werden.
 
 Markdown-Dateien unter `_tpl` werden ausgewählt, wenn ihr YAML Front Matter
-einen `schiller`-Block enthält. Dieser Block bleibt in der installierten Datei
+einen `shiller`-Block enthält. Dieser Block bleibt in der installierten Datei
 für spätere Bearbeitung erhalten:
 
 ```yaml
 ---
-schiller:
+shiller:
   tags: [base, seem2]
   target: index.md
   instructions:
@@ -52,13 +52,13 @@ layout: website
 ```
 
 Andere Textdateien können als `.template` geliefert werden. Ihr erstes YAML
-Front Matter enthält denselben `schiller`-Block; dieser Header wird bei der
+Front Matter enthält denselben `shiller`-Block; dieser Header wird bei der
 Installation entfernt, ebenso die Dateiendung `.template`. Eine Vorlage
 `navbar.osman.html.template` kann so `docs/_includes/navbar.html` erzeugen, wenn `docs` der Document Root ist:
 
 ```yaml
 ---
-schiller:
+shiller:
   tags: [theme:osman]
   target: _includes/navbar.html
   instructions: tpl:/instructions/navbar.md
@@ -76,27 +76,27 @@ dieser Anleitungen ist noch kein Teil der Automation.
 
 ## Installierte Inhalte an neuen Kontext anpassen
 
-Nach `init` beziehungsweise `install` kann `schiller adapt` die installierten
+Nach `init` beziehungsweise `install` kann `shiller adapt` die installierten
 Website-Inhalte mit `phore/ai-harness` an den Projektkontext anpassen. Standardmäßig
 werden alle Markdown-Dateien und die YAML-Dateien unter `_data/` bearbeitet.
 Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
-werden `tags`, `ptags` und `schiller.tags` im Markdown-Front-Matter geprüft.
+werden `tags`, `ptags` und `shiller.tags` im Markdown-Front-Matter geprüft.
 
 ```sh
-schiller ai adjust index.md
-schiller ai adjust index.md _data/general.yml
-schiller ai adjust "leistungen/**/*.md" "tag:arzt"
-schiller revert index.md "_data/*.yml"
+shiller ai adjust index.md
+shiller ai adjust index.md _data/general.yml
+shiller ai adjust "leistungen/**/*.md" "tag:arzt"
+shiller revert index.md "_data/*.yml"
 
 # Erweiterte Optionen stehen vor der AI-Unteraktion:
-schiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
+shiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
 ```
 
-`schiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
+`shiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
 mehrere Dateinamen sowie Globs werden direkt als Argumente nach `adjust` angegeben;
 ohne weitere Optionen werden Document Root, `template_dir`, Projektkontext,
 Basis-Skill und Modell aus den Standardwerten beziehungsweise `.shiller.yml`
-verwendet. `schiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
+verwendet. `shiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
 installierten Template-Dateien wieder her und benötigt keinen KI-Zugriff.
 
 `--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
@@ -112,7 +112,7 @@ zusätzliche Dateien relativ zur Projektwurzel ergänzen.
 
 ## Projektkontext aus Rohdaten aufbauen
 
-`schiller context build` aktualisiert
+`shiller context build` aktualisiert
 `.shiller-context.d/project.md` mit `phore/ai-harness`. Ohne Quelle wird
 `.shiller-context.d/raw/` rekursiv verarbeitet. Bereits erfolgreich
 verarbeitete und unveränderte Dateien werden anhand ihres Content-Hashes in
@@ -123,9 +123,9 @@ analysiert. Damit kann derselbe Input mit einem neuen `--focus` noch einmal
 ausgewertet werden:
 
 ```sh
-schiller context build
-schiller context build kundendaten.pdf
-schiller context build imports/kunde --focus "Nur Leistungen und Kontaktdaten"
+shiller context build
+shiller context build kundendaten.pdf
+shiller context build imports/kunde --focus "Nur Leistungen und Kontaktdaten"
 ```
 
 Der mitgelieferte Build-Skill liegt unter
@@ -159,7 +159,7 @@ gefüllt.
 
 ## Document Root und mehrere Websites
 
-`schiller.target` ist **immer relativ zum Document Root**: `index.md` schreibt
+`shiller.target` ist **immer relativ zum Document Root**: `index.md` schreibt
 `docs/index.md`, `_includes/navbar.html` schreibt
 `docs/_includes/navbar.html`. Dateien aus `_tpl/_root/docs/` werden ebenfalls
 dorthin kopiert. Andere Dateien aus `_tpl/_root/` bleiben relativ zur
@@ -174,7 +174,7 @@ Projektverzeichnis neben anderen Websites liegen.
 
 ## Kommando
 
-Composer stellt `bin/schiller` bereit. Das CLI ist nur ein Parameteradapter
+Composer stellt `bin/shiller` bereit. Das CLI ist nur ein Parameteradapter
 für `ShillerAutomationFactory` und verwendet das aktuelle Arbeitsverzeichnis
 als Startverzeichnis. Ohne `--template-dir` wird `template_dir` aus
 `.shiller.yml` im Document Root gelesen. Ohne `--root` wird `docs` im
@@ -183,16 +183,16 @@ Document-Root-Verzeichnis. Der erste Aufruf kann dieses Verzeichnis über
 `_root/docs/` anlegen.
 
 ```sh
-schiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
-schiller install --tags raven
-schiller init --root /srv/site-a/public --template-dir /srv/site-a/node_modules/@leuffen/themejs2/_tpl --tags raven
+shiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
+shiller install --tags raven
+shiller init --root /srv/site-a/public --template-dir /srv/site-a/node_modules/@leuffen/themejs2/_tpl --tags raven
 ```
 
 Beim ersten Lauf wird der Paketpfad explizit übergeben. Danach enthält die kopierte
 `docs/.shiller.yml` den `template_dir` für weitere Aufrufe. Ein expliziter
 relativer `--template-dir`-Pfad bezieht sich auf die Projektwurzel.
 
-Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-schiller-seiten-api.md)
+Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-shiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 `ShillerDir`-Bereich.
 

@@ -1,5 +1,5 @@
 ---
-name: schiller-adapt-content
+name: shiller-adapt-content
 description: Passt installierte Shiller-Websiteinhalte an den bereitgestellten Projektkontext an, ohne Layout- oder technische Struktur neu zu entwerfen.
 ---
 
