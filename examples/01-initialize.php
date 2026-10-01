@@ -1,6 +1,6 @@
 <?php
 
-// Standard: mitgelieferter JekyllPolyglotAdapter, sofern schiller.yaml keinen anderen auswählt.
+// Standard: mitgelieferter JekyllPolyglotAdapter, sofern shiller.yaml keinen anderen auswählt.
 $root = phore_dir('/srv/site/docs');
 $site = new ShillerDir($root);
 $config = $site->config();
