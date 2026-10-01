@@ -43,7 +43,7 @@ final class ShillerCli
         $this->runInitHooks($hooks['before'], $startDirectory);
 
         $written = (new ShillerAutomationFactory($startDirectory))
-            ->create($root, $templateDir)
+            ->create($root, $templateDir, $this->logger())
             ->init($this->csv($tags));
 
         $this->runInitHooks($hooks['after'], $startDirectory);
@@ -76,7 +76,7 @@ final class ShillerCli
         }
 
         $written = (new ShillerAutomationFactory($startDirectory))
-            ->create($root, $templateDir)
+            ->create($root, $templateDir, $this->logger())
             ->install($this->csv($tags));
         echo implode("\n", $written) . "\n";
     }
@@ -133,7 +133,7 @@ final class ShillerCli
                 $templateDir,
                 $this->csv($context),
                 $skill,
-                new PhoreLogger(new PhoreConsoleLoggerDriver()),
+                $this->logger(),
                 $model,
             )
             ->adapt($this->csv($select), $mode === 'concurrent', $event, $debug);
@@ -172,7 +172,7 @@ final class ShillerCli
         }
 
         $written = (new ShillerAutomationFactory($startDirectory))
-            ->create($root, $templateDir)
+            ->create($root, $templateDir, $this->logger())
             ->revert($selectors);
 
         if ($written !== []) {
@@ -226,7 +226,7 @@ final class ShillerCli
         $processed = (new ShillerAutomationFactory($startDirectory))
             ->createContextAction(
                 $skill,
-                new PhoreLogger(new PhoreConsoleLoggerDriver()),
+                $this->logger(),
                 $model,
             )
             ->build($source, $focus);
@@ -300,7 +300,7 @@ final class ShillerCli
                 $templateDir,
                 $this->csv($context),
                 $skill,
-                new PhoreLogger(new PhoreConsoleLoggerDriver()),
+                $this->logger(),
                 $model,
             )
             ->adapt($selectors, $mode === 'concurrent', $event, $debug);
@@ -389,6 +389,11 @@ final class ShillerCli
             $selectors = [...$selectors, ...$this->csv($value)];
         }
         return $selectors;
+    }
+
+    private function logger(): PhoreLogger
+    {
+        return new PhoreLogger(new PhoreConsoleLoggerDriver());
     }
 
     /**
