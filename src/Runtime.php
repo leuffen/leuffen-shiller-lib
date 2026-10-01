@@ -472,8 +472,8 @@ final class ShillerDir
 
     private function selectAdapter(): Adapter
     {
-        if ($this->storage->exists('schiller.yaml')) {
-            $config = Codec::yaml($this->storage->read('schiller.yaml'), 'schiller.yaml');
+        if ($this->storage->exists('shiller.yaml')) {
+            $config = Codec::yaml($this->storage->read('shiller.yaml'), 'shiller.yaml');
             $id = $config['adapter']['id'] ?? $config['adapter'] ?? null;
 
             if ($id === 'micx-legacy') {
