@@ -15,8 +15,7 @@ php ../../bin/schiller revert index.md _data/general.yml
 ```
 
 `.shiller-context.d/project.md` ist der zentrale Projektkontext. Weitere
-Markdown-Dateien direkt in `.shiller-context.d/` werden ebenfalls immer als
-Kontext geladen. `.shiller-context.d/raw/` enthaelt Rohdaten fuer
+Markdown-Dateien direkt in `.shiller-context.d/` werden ebenfalls immer als\nKontext geladen, außer Dateien mit dem Suffix `.rules.md`.\n`project.rules.md` enthält nur zusätzliche Regeln für `context build` und wird\nnicht als normaler Kontext geladen. `.shiller-context.d/raw/` enthaelt Rohdaten fuer
 `context build` und wird bei `ai adjust` nicht direkt eingebunden.
 
 `docs/_rules.d/` enthaelt allgemeine, dateispezifische, Event-gefilterte und
