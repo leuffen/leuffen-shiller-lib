@@ -202,7 +202,7 @@ final class ShillerAutomationFactory
      * @see ShillerAutomation
      * @example $automation = (new ShillerAutomationFactory('/srv/site'))->create('docs', './node_modules/theme/_tpl'); assert($automation instanceof ShillerAutomation);
      */
-    public function create(string $documentRoot = 'docs', string $templateDir = ''): ShillerAutomation
+    public function create(string $documentRoot = 'docs', string $templateDir = '', ?PhoreLogger $logger = null): ShillerAutomation
     {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
@@ -239,6 +239,7 @@ final class ShillerAutomationFactory
             (string) $projectRoot,
             (string) $templateUri,
             $documentName,
+            $logger,
         );
     }
 }
