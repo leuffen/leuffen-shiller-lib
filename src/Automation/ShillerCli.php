@@ -11,9 +11,9 @@ use Phore\Log\Driver\PhoreConsoleLoggerDriver;
 use Phore\Log\PhoreLogger;
 use RuntimeException;
 
-/** CLI adapter; discovery and automation rules live outside the CLI. */
+/** CLI command for the first project initialization step. */
 #[CliScope('shiller')]
-final class ShillerCli
+final class ShillerInitCli
 {
     /**
      * Initialisiert ein Projekt aus _root und installiert optional ausgewaehlte Vorlagentags.
@@ -51,6 +51,92 @@ final class ShillerCli
         echo implode("\n", $written) . "\n";
     }
 
+    /**
+     * Laedt die konfigurierten Lifecycle-Kommandos fuer shiller init.
+     *
+     * @return array{before: list<string>, after: list<string>}
+     */
+    private function loadInitHooks(string $startDirectory): array
+    {
+        $projectDirectory = phore_dir($startDirectory, ['rootDir' => $startDirectory])
+            ->assertDirectory()
+            ->assertReadable();
+        $configFile = $projectDirectory->withSubPath('.shiller.yml')->asFile();
+
+        if (!$configFile->exists()) {
+            return ['before' => [], 'after' => []];
+        }
+
+        $config = $configFile->get_yaml();
+        if (!is_array($config)) {
+            throw new RuntimeException("Invalid Shiller config: $configFile");
+        }
+
+        $hooks = [];
+        foreach (['before', 'after'] as $phase) {
+            $commands = $config['hooks']['init'][$phase] ?? [];
+            if (!is_array($commands)) {
+                throw new RuntimeException("hooks.init.$phase must be a list in $configFile");
+            }
+
+            $hooks[$phase] = [];
+            foreach ($commands as $command) {
+                if (!is_string($command) || trim($command) === '') {
+                    throw new RuntimeException(
+                        "hooks.init.$phase entries must be non-empty strings in $configFile",
+                    );
+                }
+                $hooks[$phase][] = $command;
+            }
+        }
+
+        return $hooks;
+    }
+
+    /**
+     * @param list<string> $commands
+     */
+    private function runInitHooks(array $commands, string $startDirectory): void
+    {
+        foreach ($commands as $command) {
+            $process = proc_open(
+                $command,
+                [0 => STDIN, 1 => STDOUT, 2 => STDERR],
+                $pipes,
+                $startDirectory,
+            );
+            if (!is_resource($process)) {
+                throw new RuntimeException("Cannot start init hook: $command");
+            }
+
+            $exitCode = proc_close($process);
+            if ($exitCode !== 0) {
+                throw new RuntimeException("Init hook failed with exit code $exitCode: $command");
+            }
+        }
+    }
+
+    private function logger(): PhoreLogger
+    {
+        return new PhoreLogger(new PhoreConsoleLoggerDriver());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function csv(string $values): array
+    {
+        return array_values(array_filter(
+            array_map('trim', explode(',', $values)),
+            static fn(string $value): bool => $value !== '',
+        ));
+    }
+}
+
+/** CLI adapter; discovery and automation rules live outside the CLI. */
+#[CliScope('shiller')]
+final class ShillerCli
+{
     /**
      * Installiert gezielt ausgewaehlte Vorlagentags erneut ueber bestehende Projektdateien.
      *
@@ -177,71 +263,6 @@ final class ShillerCli
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
-        }
-    }
-
-    /**
-     * Laedt die konfigurierten Lifecycle-Kommandos fuer shiller init.
-     *
-     * @return array{before: list<string>, after: list<string>}
-     */
-    private function loadInitHooks(string $startDirectory): array
-    {
-        $projectDirectory = phore_dir($startDirectory, ['rootDir' => $startDirectory])
-            ->assertDirectory()
-            ->assertReadable();
-        $configFile = $projectDirectory->withSubPath('.shiller.yml')->asFile();
-
-        if (!$configFile->exists()) {
-            return ['before' => [], 'after' => []];
-        }
-
-        $config = $configFile->get_yaml();
-        if (!is_array($config)) {
-            throw new RuntimeException("Invalid Shiller config: $configFile");
-        }
-
-        $hooks = [];
-        foreach (['before', 'after'] as $phase) {
-            $commands = $config['hooks']['init'][$phase] ?? [];
-            if (!is_array($commands)) {
-                throw new RuntimeException("hooks.init.$phase must be a list in $configFile");
-            }
-
-            $hooks[$phase] = [];
-            foreach ($commands as $command) {
-                if (!is_string($command) || trim($command) === '') {
-                    throw new RuntimeException(
-                        "hooks.init.$phase entries must be non-empty strings in $configFile",
-                    );
-                }
-                $hooks[$phase][] = $command;
-            }
-        }
-
-        return $hooks;
-    }
-
-    /**
-     * @param list<string> $commands
-     */
-    private function runInitHooks(array $commands, string $startDirectory): void
-    {
-        foreach ($commands as $command) {
-            $process = proc_open(
-                $command,
-                [0 => STDIN, 1 => STDOUT, 2 => STDERR],
-                $pipes,
-                $startDirectory,
-            );
-            if (!is_resource($process)) {
-                throw new RuntimeException("Cannot start init hook: $command");
-            }
-
-            $exitCode = proc_close($process);
-            if ($exitCode !== 0) {
-                throw new RuntimeException("Init hook failed with exit code $exitCode: $command");
-            }
         }
     }
 
