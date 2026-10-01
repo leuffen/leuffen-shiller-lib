@@ -10,6 +10,8 @@ if (is_file(__DIR__ . '/../vendor/autoload.php')) {
 }
 
 $app = new \Phore\Cli\CliApplication();
+$app->addClass(\Leuffen\Shiller\Automation\ShillerInitCli::class);
+$app->addClass(\Leuffen\Shiller\Automation\ShillerContextCli::class);
 $app->addClass(\Leuffen\Shiller\Automation\ShillerCli::class);
 
 try {
