@@ -15,7 +15,7 @@ use RuntimeException;
 final class ShillerCli
 {
     /**
-     * Kopiert _root und installiert optional ausgewaehlte Tags im Projekt.
+     * Initialisiert ein Projekt aus _root und installiert optional ausgewaehlte Vorlagentags.
      *
      * @param string $tags Kommagetrennte Tags, etwa base,theme:osman.
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus der .shiller.yml im Document Root.
@@ -44,7 +44,7 @@ final class ShillerCli
     }
 
     /**
-     * Installiert ausgewaehlte Vorlagen erneut ueber bestehende Projektdateien.
+     * Installiert gezielt ausgewaehlte Vorlagentags erneut ueber bestehende Projektdateien.
      *
      * @param string $tags Kommagetrennte Tags; fuer install erforderlich.
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
@@ -73,7 +73,7 @@ final class ShillerCli
     }
 
     /**
-     * Passt installierte Website-Inhalte mit phore/ai-harness an den Projektkontext an.
+     * Passt ausgewaehlte installierte Website-Inhalte direkt mit phore/ai-harness an den Projektkontext an.
      *
      * @param string $select Kommagetrennte Dateipfade, Globs oder tag:<name>.
      * @param string $mode concurrent oder sequential.
@@ -134,7 +134,7 @@ final class ShillerCli
     }
 
     /**
-     * Stellt eine oder mehrere Content-Dateien aus den installierten Originalvorlagen wieder her.
+     * Stellt ausgewaehlte Content-Dateien aus den installierten Originalvorlagen wieder her und verwirft deren Anpassungen.
      *
      * @param list<string> $argv Dateinamen, Globs oder tag:<name>.
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
@@ -170,7 +170,7 @@ final class ShillerCli
     }
 
     /**
-     * Baut oder aktualisiert den zentralen Projektkontext mit phore/ai-harness.
+     * Erstellt oder aktualisiert den zentralen Projektkontext aus einer Datei, einem Verzeichnis oder dem Raw-Kontext.
      *
      * Ohne Quelle verarbeitet build .shiller-context.d/raw und ueberspringt
      * dort bereits unveraenderte Dateien. Eine explizite Datei oder ein
@@ -225,7 +225,7 @@ final class ShillerCli
     }
 
     /**
-     * Fuehrt AI-Unteraktionen aus; aktuell ist adjust implementiert.
+     * Fuehrt AI-Unteraktionen aus; `adjust` passt ausgewaehlte Projektdateien anhand von Kontext und Rules an.
      *
      * Ohne weitere Optionen nutzt adjust den Standard-Document-Root, template_dir,
      * alle aktiven Markdown-Dateien aus .shiller-context.d, den mitgelieferten
