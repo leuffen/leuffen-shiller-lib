@@ -11,7 +11,6 @@ use Phore\Log\Driver\PhoreConsoleLoggerDriver;
 use Phore\Log\PhoreLogger;
 use RuntimeException;
 
-/** CLI adapter; discovery and automation rules live outside the CLI. */
 /** CLI command for the first project initialization step. */
 #[CliScope('shiller')]
 final class ShillerInitCli
@@ -134,6 +133,7 @@ final class ShillerInitCli
     }
 }
 
+/** CLI adapter; discovery and automation rules live outside the CLI. */
 #[CliScope('shiller')]
 final class ShillerCli
 {
