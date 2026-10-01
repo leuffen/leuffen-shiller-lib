@@ -36,8 +36,7 @@ final class ShillerAutomationFactory
     /**
      * Erstellt die AI-Harness-Action fuer bereits installierte Website-Inhalte.
      *
-     * Die Konfiguration wird aus .shiller.yml im Document Root gelesen; als
-     * Kompatibilitaetsfallback wird die Datei in der Projektwurzel akzeptiert.
+     * Die Konfiguration wird aus .shiller.yml in der Projektwurzel gelesen.
      * Projektkontext kommt aus .shiller-context.d: project.md wird zuerst
      * geladen, danach alle weiteren Markdown-Dateien direkt in diesem
      * Verzeichnis. raw/ wird nicht automatisch als aktiver Kontext geladen.
@@ -69,10 +68,7 @@ final class ShillerAutomationFactory
         $documentUri->assertDirectory()->assertReadable();
 
         $projectRoot = $documentUri->withParentDir()->assertDirectory()->assertReadable();
-        $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
-        if (!$configFile->exists()) {
-            $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
-        }
+        $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
         $config = $configFile->get_yaml();
         if (!is_array($config)) {
             throw new RuntimeException("Invalid Shiller config: $configFile");
@@ -222,7 +218,7 @@ final class ShillerAutomationFactory
         $documentName = $documentUri->getBasename();
 
         if ($templateDir === '') {
-            $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
+            $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
             $config = $configFile->get_yaml();
             $templateDir = is_array($config) ? ($config['template_dir'] ?? '') : '';
 
@@ -232,7 +228,7 @@ final class ShillerAutomationFactory
 
             $templateUri = str_starts_with($templateDir, '/')
                 ? phore_uri($templateDir)->abs()
-                : $documentUri->withRelativePath($templateDir);
+                : $projectRoot->withRelativePath($templateDir);
         } else {
             $templateUri = str_starts_with($templateDir, '/')
                 ? phore_uri($templateDir)->abs()
