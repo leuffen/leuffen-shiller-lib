@@ -19,7 +19,7 @@ final class ShillerCli
      * Initialisiert ein Projekt aus _root und installiert optional ausgewaehlte Vorlagentags.
      *
      * @param string $tags Kommagetrennte Tags, etwa base,theme:osman.
-     * @param string $templateDir _tpl-Pfad; leer liest template_dir aus der .shiller.yml im Document Root.
+     * @param string $templateDir _tpl-Pfad; leer liest template_dir aus der .shiller.yml im Projekt-Root.
      * @param string $root Document Root, standardmaessig docs im aktuellen Projekt.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Installationsfehlern.
      * @see ShillerAutomationFactory::create()
@@ -39,7 +39,7 @@ final class ShillerCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $hooks = $this->loadInitHooks($startDirectory, $root);
+        $hooks = $this->loadInitHooks($startDirectory);
         $this->runInitHooks($hooks['before'], $startDirectory);
 
         $written = (new ShillerAutomationFactory($startDirectory))
@@ -315,15 +315,12 @@ final class ShillerCli
      *
      * @return array{before: list<string>, after: list<string>}
      */
-    private function loadInitHooks(string $startDirectory, string $root): array
+    private function loadInitHooks(string $startDirectory): array
     {
         $projectDirectory = phore_dir($startDirectory, ['rootDir' => $startDirectory])
             ->assertDirectory()
             ->assertReadable();
-        $documentDirectory = str_starts_with($root, '/')
-            ? phore_dir($root, ['rootDir' => $root])
-            : $projectDirectory->withRelativePath($root);
-        $configFile = $documentDirectory->withSubPath('.shiller.yml')->asFile();
+        $configFile = $projectDirectory->withSubPath('.shiller.yml')->asFile();
 
         if (!$configFile->exists()) {
             return ['before' => [], 'after' => []];
