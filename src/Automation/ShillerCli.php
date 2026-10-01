@@ -181,136 +181,6 @@ final class ShillerCli
     }
 
     /**
-     * Erstellt oder aktualisiert den zentralen Projektkontext aus einer Datei, einem Verzeichnis oder dem Raw-Kontext.
-     *
-     * Ohne Quelle verarbeitet build .shiller-context.d/raw und ueberspringt
-     * dort bereits unveraenderte Dateien. Eine explizite Datei oder ein
-     * explizites Verzeichnis wird bewusst erneut verarbeitet.
-     *
-     * @param list<string> $argv Erstes Argument build, optional gefolgt von genau einer Quelle.
-     * @param string $focus Optionaler Schwerpunkt fuer die Informationsuebernahme.
-     * @param string $skill Optionaler Context-Build-Skill.
-     * @param string $model AI-Modell fuer phore/ai-harness.
-     * @throws RuntimeException Bei ungueltiger Unteraktion oder Quelle.
-     * @see ShillerContextAction::build()
-     * @example shiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
-     */
-    #[CliCommand('context', 'Erstellt oder aktualisiert den Projektkontext.', 'Mit der Unteraktion build wird der zentrale Projektkontext aus einer Datei, einem Verzeichnis oder dem Raw-Kontext aufgebaut beziehungsweise aktualisiert.')]
-    public function context(
-        array $argv,
-        #[CliParameter('focus', 'Optionaler Schwerpunkt fuer die Context-Uebernahme')]
-        string $focus = '',
-        #[CliParameter('skill', 'Optionaler Context-Build-Skill')]
-        string $skill = '',
-        #[CliParameter('model', 'AI-Modell')]
-        string $model = 'gpt-5-mini',
-    ): void {
-        $subAction = array_shift($argv);
-        if ($subAction !== 'build') {
-            throw new RuntimeException('context requires the sub-action build.');
-        }
-        if (count($argv) > 1) {
-            throw new RuntimeException('context build accepts at most one file or directory source.');
-        }
-
-        $source = array_shift($argv);
-        if ($source !== null && (!is_string($source) || trim($source) === '')) {
-            throw new RuntimeException('context build source must be a non-empty path.');
-        }
-
-        $startDirectory = getcwd();
-        if ($startDirectory === false) {
-            throw new RuntimeException('Cannot determine current directory.');
-        }
-
-        $processed = (new ShillerAutomationFactory($startDirectory))
-            ->createContextAction(
-                $skill,
-                $this->logger(),
-                $model,
-            )
-            ->build($source, $focus);
-
-        if ($processed !== []) {
-            echo implode("\n", $processed) . "\n";
-        }
-    }
-
-    /**
-     * Fuehrt AI-Unteraktionen aus; `adjust` passt ausgewaehlte Projektdateien anhand von Kontext und Rules an.
-     *
-     * Ohne weitere Optionen nutzt adjust den Standard-Document-Root, template_dir,
-     * alle aktiven Markdown-Dateien aus .shiller-context.d, den mitgelieferten
-     * Basis-Skill und gpt-5-mini. Das Unterverzeichnis raw/ wird nicht geladen.
-     *
-     * @param list<string> $argv Erstes Argument adjust, danach Dateinamen, Globs oder tag:<name>.
-     * @param string $mode concurrent oder sequential.
-     * @param string $context Zusaetzliche Kontextdateien relativ zur Projektwurzel.
-     * @param string $skill Optionaler Basis-Skill.
-     * @param string $model AI-Modell fuer phore/ai-harness.
-     * @param string $templateDir Optionaler _tpl-Pfad.
-     * @param string $root Document Root.
-     * @param string $event Event fuer _rules.d-on-Filter.
-     * @param bool $debug Gibt angewandte Rules, Spezifitaet und Reihenfolge vor dem Request aus.
-     * @throws RuntimeException Bei ungueltiger Unteraktion oder fehlender Dateiauswahl.
-     * @see ShillerContentAction::adapt()
-     * @example shiller ai adjust index.md "_data/*.yml"
-     */
-    #[CliCommand('ai', 'Fuehrt AI-Unteraktionen fuer Projektdateien aus.', 'Mit der Unteraktion adjust werden ausgewaehlte Projektdateien anhand des Projektkontexts und der aktiven Rules angepasst. Dateinamen, Globs und Tag-Selektoren werden unterstuetzt.')]
-    public function ai(
-        array $argv,
-        #[CliParameter('mode', 'concurrent oder sequential')]
-        string $mode = 'concurrent',
-        #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
-        string $context = '',
-        #[CliParameter('skill', 'Optionaler Basis-Skill')]
-        string $skill = '',
-        #[CliParameter('model', 'AI-Modell')]
-        string $model = 'gpt-5-mini',
-        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
-        string $templateDir = '',
-        #[CliParameter('root', 'Document Root')]
-        string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
-        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
-        bool $debug = false,
-    ): void {
-        $subAction = array_shift($argv);
-        if ($subAction !== 'adjust') {
-            throw new RuntimeException('ai requires the sub-action adjust.');
-        }
-
-        $selectors = $this->selectors($argv);
-        if ($selectors === []) {
-            throw new RuntimeException('ai adjust requires at least one filename, glob or tag selector.');
-        }
-        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
-            throw new RuntimeException('mode must be concurrent or sequential.');
-        }
-
-        $startDirectory = getcwd();
-        if ($startDirectory === false) {
-            throw new RuntimeException('Cannot determine current directory.');
-        }
-
-        $written = (new ShillerAutomationFactory($startDirectory))
-            ->createContentAction(
-                $root,
-                $templateDir,
-                $this->csv($context),
-                $skill,
-                $this->logger(),
-                $model,
-            )
-            ->adapt($selectors, $mode === 'concurrent', $event, $debug);
-
-        if ($written !== []) {
-            echo implode("\n", $written) . "\n";
-        }
-    }
-
-    /**
      * Laedt die konfigurierten Lifecycle-Kommandos fuer shiller init.
      *
      * @return array{before: list<string>, after: list<string>}
@@ -405,5 +275,147 @@ final class ShillerCli
             array_map('trim', explode(',', $values)),
             static fn(string $value): bool => $value !== '',
         ));
+    }
+}
+
+/** CLI subcommands for project context operations. */
+#[CliScope(['shiller', 'context'])]
+final class ShillerContextCli
+{
+    /**
+     * Erstellt oder aktualisiert den zentralen Projektkontext.
+     *
+     * @param array<int, string> $argv Optional genau eine Datei oder ein Verzeichnis.
+     * @param string $focus Optionaler Schwerpunkt fuer die Informationsuebernahme.
+     * @param string $skill Optionaler Context-Build-Skill.
+     * @param string $model AI-Modell fuer phore/ai-harness.
+     * @throws RuntimeException Bei ungueltiger Quelle.
+     * @see ShillerContextAction::build()
+     * @example shiller context build kundeninfo.pdf --focus "Nur Leistungen und Kontaktdaten"
+     */
+    #[CliCommand('build', 'Erstellt oder aktualisiert den Projektkontext.')]
+    public function build(
+        array $argv,
+        #[CliParameter('focus', 'Optionaler Schwerpunkt fuer die Context-Uebernahme')]
+        string $focus = '',
+        #[CliParameter('skill', 'Optionaler Context-Build-Skill')]
+        string $skill = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = 'gpt-5-mini',
+    ): void {
+        if (count($argv) > 1) {
+            throw new RuntimeException('context build accepts at most one file or directory source.');
+        }
+
+        $source = array_shift($argv);
+        if ($source !== null && (!is_string($source) || trim($source) === '')) {
+            throw new RuntimeException('context build source must be a non-empty path.');
+        }
+
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $processed = (new ShillerAutomationFactory($startDirectory))
+            ->createContextAction($skill, $this->logger(), $model)
+            ->build($source, $focus);
+
+        if ($processed !== []) {
+            echo implode("\\n", $processed) . "\\n";
+        }
+    }
+
+    private function logger(): PhoreLogger
+    {
+        return new PhoreLogger(new PhoreConsoleLoggerDriver());
+    }
+}
+
+/** CLI subcommands for AI-assisted project file operations. */
+#[CliScope(['shiller', 'ai'])]
+final class ShillerAiCli
+{
+    /**
+     * Passt ausgewaehlte Projektdateien anhand von Kontext und Rules an.
+     *
+     * @param array<int, string> $argv Dateinamen, Globs oder tag:<name>.
+     * @throws RuntimeException Bei fehlender Dateiauswahl oder ungueltigem Modus.
+     * @see ShillerContentAction::adapt()
+     * @example shiller ai adjust index.md "_data/*.yml"
+     */
+    #[CliCommand('adjust', 'Passt ausgewaehlte Projektdateien per AI an.')]
+    public function adjust(
+        array $argv,
+        #[CliParameter('mode', 'concurrent oder sequential')]
+        string $mode = 'concurrent',
+        #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
+        string $context = '',
+        #[CliParameter('skill', 'Optionaler Basis-Skill')]
+        string $skill = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = 'gpt-5-mini',
+        #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
+        string $templateDir = '',
+        #[CliParameter('root', 'Document Root')]
+        string $root = 'docs',
+        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
+        string $event = 'edit',
+        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        bool $debug = false,
+    ): void {
+        $selectors = $this->selectors($argv);
+        if ($selectors === []) {
+            throw new RuntimeException('ai adjust requires at least one filename, glob or tag selector.');
+        }
+        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
+            throw new RuntimeException('mode must be concurrent or sequential.');
+        }
+
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $written = (new ShillerAutomationFactory($startDirectory))
+            ->createContentAction(
+                $root,
+                $templateDir,
+                $this->csv($context),
+                $skill,
+                $this->logger(),
+                $model,
+            )
+            ->adapt($selectors, $mode === 'concurrent', $event, $debug);
+
+        if ($written !== []) {
+            echo implode("\\n", $written) . "\\n";
+        }
+    }
+
+    /** @param array<int, string> $argv @return list<string> */
+    private function selectors(array $argv): array
+    {
+        $selectors = [];
+        foreach ($argv as $value) {
+            if (is_string($value)) {
+                $selectors = [...$selectors, ...$this->csv($value)];
+            }
+        }
+        return $selectors;
+    }
+
+    /** @return list<string> */
+    private function csv(string $values): array
+    {
+        return array_values(array_filter(
+            array_map('trim', explode(',', $values)),
+            static fn(string $value): bool => $value !== '',
+        ));
+    }
+
+    private function logger(): PhoreLogger
+    {
+        return new PhoreLogger(new PhoreConsoleLoggerDriver());
     }
 }
