@@ -306,7 +306,7 @@ final class ShillerContextCli
     /**
      * Erstellt oder aktualisiert den zentralen Projektkontext.
      *
-     * @param array<int, string> $argv Optional genau eine Datei oder ein Verzeichnis.
+     * @param array<int, string> $argv Optionale Dateien oder Verzeichnisse.
      * @param string $focus Optionaler Schwerpunkt fuer die Informationsuebernahme.
      * @param string $skill Optionaler Context-Build-Skill.
      * @param string $model AI-Modell fuer phore/ai-harness.
@@ -324,14 +324,13 @@ final class ShillerContextCli
         #[CliParameter('model', 'AI-Modell')]
         string $model = 'gpt-5-mini',
     ): void {
-        if (count($argv) > 1) {
-            throw new RuntimeException('context build accepts at most one file or directory source.');
+        foreach ($argv as $source) {
+            if (!is_string($source) || trim($source) === '') {
+                throw new RuntimeException('context build sources must be non-empty paths.');
+            }
         }
 
-        $source = array_shift($argv);
-        if ($source !== null && (!is_string($source) || trim($source) === '')) {
-            throw new RuntimeException('context build source must be a non-empty path.');
-        }
+        $sources = $argv === [] ? null : $argv;
 
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -340,7 +339,7 @@ final class ShillerContextCli
 
         $processed = (new ShillerAutomationFactory($startDirectory))
             ->createContextAction($skill, $this->logger(), $model)
-            ->build($source, $focus);
+            ->build($sources, $focus);
 
         if ($processed !== []) {
             echo implode("\\n", $processed) . "\\n";

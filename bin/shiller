@@ -17,6 +17,6 @@ $app->addClass(\Leuffen\Shiller\Automation\ShillerCli::class);
 try {
     echo $app->run([$argv[0], 'shiller', ...array_slice($argv, 1)]);
 } catch (\Throwable $exception) {
-    \Phore\Cli\Out::Error($exception->getMessage());
+    \Phore\Cli\Output\Out::TextDanger($exception->getMessage());
     exit(1);
 }

@@ -81,16 +81,16 @@ final class ShillerContextAction
      * bestehender Kontext mitgegeben. Geschrieben wird ausschliesslich
      * project.md sowie nach erfolgreichem Lauf der Raw-State.
      *
-     * @param string|null $source Datei oder Verzeichnis relativ zur Projektwurzel.
+     * @param string|list<string>|null $source Dateien oder Verzeichnisse relativ zur Projektwurzel.
      * @param string $focus Optionaler Schwerpunkt fuer die Informationsuebernahme.
      * @return list<string> Tatsächlich analysierte Quellen relativ zur Projektwurzel.
      * @throws Throwable Bei AI-, Dateisystem-, JSON- oder Validierungsfehlern.
      * @see ShillerAutomationFactory::createContextAction()
      * @example $processed = $action->build('imports/kunde', 'Nur Kontaktdaten'); assert(is_array($processed));
      */
-    public function build(?string $source = null, string $focus = ''): array
+    public function build(string|array|null $source = null, string $focus = ''): array
     {
-        $defaultSource = $source === null || trim($source) === '';
+        $defaultSource = $source === null || $source === '' || $source === [];
         $sources = $this->sourceFiles($defaultSource ? null : $source);
         if ($sources === []) {
             $this->logger?->skip('Keine Context-Quellen gefunden.');
@@ -157,6 +157,7 @@ final class ShillerContextAction
         }
 
         foreach ($selected as $index => $sourceFile) {
+            $this->logger?->step('Fuege Context-Quelle an: {}', [$this->relativePath($sourceFile)]);
             $prompts[] = new FilePrompt(
                 (string) $sourceFile,
                 $sourceFile->get_contents(),
@@ -214,42 +215,48 @@ final class ShillerContextAction
     }
 
     /**
+     * @param string|list<string>|null $source
      * @return list<PhoreFile>
      */
-    private function sourceFiles(?string $source): array
+    private function sourceFiles(string|array|null $source): array
     {
-        $relativeSource = $source === null
-            ? '.shiller-context.d/raw'
-            : $this->projectRoot->assertRelativePath($source);
-        $sourceUri = $this->projectRoot->withSubPath($relativeSource);
+        $sourcePaths = $source === null ? ['.shiller-context.d/raw'] : (array) $source;
+        $filesByPath = [];
 
-        if ($sourceUri->isFile()) {
-            return [$sourceUri->assertFile()->assertReadable()];
-        }
+        foreach ($sourcePaths as $sourcePath) {
+            $relativeSource = $this->projectRoot->assertRelativePath($sourcePath);
+            $sourceUri = $this->projectRoot->withSubPath($relativeSource);
 
-        if (!$sourceUri->isDirectory()) {
-            throw new RuntimeException('Context source not found: ' . $sourceUri);
-        }
-
-        $files = [];
-        foreach ($sourceUri->assertDirectory()->assertReadable()->listFiles(recursive: true, sort: 'path') as $file) {
-            $relative = $this->relativePath($file);
-            if (
-                $relative === '.shiller-context.d/project.md'
-                || $relative === '.shiller-context.d/.raw-state.json'
-                || (
-                    str_starts_with($relative, '.shiller-context.d/')
-                    && !str_contains(substr($relative, strlen('.shiller-context.d/')), '/')
-                    && str_ends_with(strtolower($relative), '.md')
-                )
-            ) {
+            if ($sourceUri->isFile()) {
+                $file = $sourceUri->assertFile()->assertReadable();
+                $filesByPath[$this->relativePath($file)] = $file;
                 continue;
             }
 
-            $files[] = $file->assertFile()->assertReadable();
+            if (!$sourceUri->isDirectory()) {
+                throw new RuntimeException('Context source not found: ' . $sourceUri);
+            }
+
+            foreach ($sourceUri->assertDirectory()->assertReadable()->listFiles(recursive: true, sort: 'path') as $file) {
+                $relative = $this->relativePath($file);
+                if (
+                    $relative === '.shiller-context.d/project.md'
+                    || $relative === '.shiller-context.d/.raw-state.json'
+                    || (
+                        str_starts_with($relative, '.shiller-context.d/')
+                        && !str_contains(substr($relative, strlen('.shiller-context.d/')), '/')
+                        && str_ends_with(strtolower($relative), '.md')
+                    )
+                ) {
+                    continue;
+                }
+
+                $filesByPath[$relative] = $file->assertFile()->assertReadable();
+            }
         }
 
-        return $files;
+        ksort($filesByPath);
+        return array_values($filesByPath);
     }
 
     /**
