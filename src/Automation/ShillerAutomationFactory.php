@@ -61,6 +61,7 @@ final class ShillerAutomationFactory
         string $skillFile = '',
         ?PhoreLogger $logger = null,
         string $model = 'gpt-5-mini',
+        string $skillsDir = '',
     ): ShillerContentAction {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
