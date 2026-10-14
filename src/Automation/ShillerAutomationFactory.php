@@ -94,6 +94,20 @@ final class ShillerAutomationFactory
         }
         $templateUri->assertDirectory()->assertReadable();
 
+        // Explizite Skills-Pfade gelten relativ zur .shiller.yml.
+        if ($skillsDir === '') {
+            $skillsDir = $config['skills_dir'] ?? '';
+        }
+        if (!is_string($skillsDir)) {
+            throw new RuntimeException("Invalid skills_dir in $configFile");
+        }
+        $skillsUri = $skillsDir === ''
+            ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
+            : (str_starts_with($skillsDir, '/')
+                ? phore_uri($skillsDir)->abs()
+                : $configDir->withRelativePath($skillsDir));
+        $skillsUri->assertDirectory()->assertReadable();
+
         $contextDirectory = $projectRoot
             ->withSubPath('.shiller-context.d')
             ->assertDirectory()
