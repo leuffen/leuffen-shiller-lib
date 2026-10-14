@@ -134,27 +134,10 @@ die in neuen Quellen nicht vorkommen, bleiben erhalten. Eindeutige
 Aktualisierungen dürfen bestehende Fakten ändern; unklare Widersprüche werden
 als offene Punkte festgehalten statt stillschweigend überschrieben zu werden.
 
-Bearbeitungsregeln liegen im jeweiligen Document Root unter `_rules.d/*.md`.
-Jede Rule besitzt Front Matter mit `selector` als String oder Liste, optional
-`on` als Event-Filter und optional `important: true`. Fehlt `on`, gilt die
-Rule fuer jedes Event; ist `on` gesetzt, wird sie bei anderen Events
-vollstaendig ignoriert. Fuer jede passende Rule wird die Spezifitaet als
-`1 / Anzahl der vom Selector aktuell getroffenen editierbaren Dateien`
-berechnet. Bei mehreren passenden Selectoren einer Rule zaehlt der spezifischste.
-
-Alle passenden normalen Rules werden von niedriger zu hoher Spezifitaet in den
-Prompt aufgenommen; danach folgen `important`-Rules ebenfalls von niedriger zu
-hoher Spezifitaet. Damit steht die hoechste Prioritaet zuletzt. Bei gleicher
-Prioritaet entscheidet der Rule-Dateiname deterministisch. `--event` waehlt
-den Event-Typ, standardmaessig `edit`; `--debug` gibt vor den AI-Requests
-Rule-Datei, Selector, Match-Anzahl, Spezifitaet, `important` und Reihenfolge
-aus. Fuer jede Zieldatei werden ausserdem vorhandene Sidecars mit dem Namensschema
-`<zieldatei>.d.*` als Beschreibungsdaten angehaengt, zum Beispiel
-`_data/general.yml.d.json`.
-Bei Markdown darf der Skill neben dem Body auch `title`, `order` und
-`description` anpassen. Bei `_data`-YAML bleiben Keys und Struktur grundsätzlich
-erhalten und werden anhand von Kontext und Sidecar-Beschreibung mit neuen Werten
-gefüllt.
+Sidecars wie `_data/general.yml.d.json` liefern Feldbedeutung und
+Strukturhinweise. Markdown-Front-Matter und bestehende Layouts bleiben
+grundsaetzlich erhalten; fuer `_data`-YAML gelten die vorhandenen
+Keys und Strukturen.
 
 ## Document Root und mehrere Websites
 
