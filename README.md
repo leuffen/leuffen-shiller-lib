@@ -2,9 +2,10 @@
 
 ## CLI: Neue Website anlegen
 
-Voraussetzungen: PHP-/Composer-Paket `leuffen/shiller-lib` ist im
-Website-Projekt installiert (`./vendor/bin/shiller` ist vorhanden).
-Das ThemeJS2-Paket liegt unter `node_modules/@leuffen/themejs2/`;
+Vor dem ersten Shiller-Aufruf muss im neuen Website-Projekt das
+PHP-/Composer-Paket `leuffen/shiller-lib` installiert sein
+(`./vendor/bin/shiller` ist dann vorhanden). Das ThemeJS2-Paket
+muss unter `node_modules/@leuffen/themejs2/` liegen;
 es kann per npm bereitgestellt oder bewusst im Website-Repository
 mitversioniert werden. Die Befehle werden **im Website-Projektverzeichnis**
 ausgeführt, nicht im Theme-Paket.
