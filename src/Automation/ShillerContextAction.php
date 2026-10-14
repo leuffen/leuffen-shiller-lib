@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use JsonException;
-use Phore\AiHarness\Client\OpenAI\OpenAiPromptTypeConverter;
-use Phore\AiHarness\Helper\Toolkit;
-use Phore\AiHarness\PhoreAi;
+use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
 use Phore\FileSystem\Exception\FilesystemException;
@@ -176,32 +174,16 @@ final class ShillerContextAction
         }
 
         $prompts[] = new TextPrompt(
-            'Aktualisiere currentProject gemaess contextBuildSkill anhand der bereitgestellten Rohdaten. '
-            . 'Gib den vollstaendigen resultierenden Inhalt von project.md zurueck.',
+            'Bearbeite ausschliesslich targetText (bestehende project.md) gemaess contextBuildSkill. '
+            . 'Erhalte bestehende Fakten und verwende write_text fuer die Aenderung.',
             alias: 'contextBuildTask',
             allowInstructions: true,
         );
 
-        $request = (new OpenAiPromptTypeConverter())
-            ->toAiRequest($this->model, $prompts)
-            ->withOutputSchema('ShillerContextBuild', [
-                'type' => 'object',
-                'properties' => [
-                    'content' => ['type' => 'string'],
-                    'summary' => ['type' => 'string'],
-                ],
-                'required' => ['content', 'summary'],
-                'additionalProperties' => false,
-            ], 'Complete project.md content and a short change summary.')
-            ->withExtraBody(['reasoning' => ['effort' => 'low']]);
-
-        $response = (new PhoreAi())->getOpenAiClient()->createResponse($request);
-        $result = Toolkit::decodeJsonOutputValue($response->getOutputText());
-        if (!is_array($result) || !is_string($result['content'] ?? null) || !is_string($result['summary'] ?? null)) {
-            throw new RuntimeException('Invalid AI result for .shiller-context.d/project.md');
-        }
-
-        $this->projectFile->set_contents($result['content']);
+        // Text-Edits nutzen dieselbe Cursor- und Callback-API wie adapt.
+        $context = new AiContext(options: ['model' => $this->model]);
+        $result = $context->text($prompts, input: $this->projectFile->get_contents());
+        $this->projectFile->set_contents($result);
         foreach ($selected as $sourceFile) {
             $relative = $this->relativePath($sourceFile);
             $state[$relative] = $hashes[$relative];
@@ -209,7 +191,6 @@ final class ShillerContextAction
         $this->writeState($state);
 
         $this->logger?->success('Projektkontext aktualisiert: {}', ['.shiller-context.d/project.md']);
-        $this->logger?->detail('Context-Build: {}', [$result['summary']]);
 
         return array_map(fn(PhoreFile $file): string => $this->relativePath($file), $selected);
     }
