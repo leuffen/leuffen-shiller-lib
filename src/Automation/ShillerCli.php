@@ -197,8 +197,6 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
         #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
         bool $debug = false,
     ): void {
@@ -375,8 +373,6 @@ final class ShillerAiCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
         #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
         bool $debug = false,
     ): void {
