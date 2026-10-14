@@ -20,22 +20,22 @@ als Website-Dateien kopiert.
 |   |-- _root/
 |   |   |-- .shiller.yml
 |   |   |-- .shiller-context.d/
-|   |   |   \`-- project.md
+|   |   |   `-- project.md
 |   |   |-- docs/
 |   |   |   |-- _data/
-|   |   |   |   \`-- general.yml
-|   |   |   \`-- _includes/
-|   |   \`-- package.json
+|   |   |   |   `-- general.yml
+|   |   |   `-- _includes/
+|   |   `-- package.json
 |   |-- pages/
 |   |   |-- index.base.md
-|   |   \`-- navbar.osman.html.template
-|   \`-- instructions/
-|       \`-- schreibstil.md
-\`-- skills/
-    \`-- edit-themejs2-site/
+|   |   `-- navbar.osman.html.template
+|   `-- instructions/
+|       `-- schreibstil.md
+`-- skills/
+    `-- edit-themejs2-site/
         |-- SKILL.md
-        \`-- references/
-            \`-- startseite.md
+        `-- references/
+            `-- startseite.md
 ```
 
 ### Kopier- und Zielregeln
