@@ -180,10 +180,7 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 
 ## Vollstaendiges Demo-Projekt
 
-Unter [`demo/`](demo/) sind Template und nutzendes Webseitenprojekt getrennt:
-[`demo/template/`](demo/template/) repraesentiert das Template-Projekt mit
-`_tpl/_root` und Vorlagen, [`demo/project/`](demo/project/) den installierten
-Webseitenstand, in dem Shiller ausgefuehrt wird. Das Projekt zeigt
-`docs/_rules.d`, `.shiller-context.d`, mehrere Content-Dateien und ein
-`_data`-Sidecar. Die Rule-Beispiele demonstrieren mehrere Selector, dynamische
-Spezifitaet, `on: user-request` und `important: true`.
+Unter [demo/](demo/) stehen Template und installierte Website getrennt.
+Die Beispiele zeigen den zentralen Projektkontext, konfigurierbares
+`skills_dir`, Markdown-Zieldateien und YAML-Sidecars. Bearbeitungsregeln
+werden ausschliesslich durch die ThemeJS2-Skills bereitgestellt.
