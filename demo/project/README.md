@@ -9,8 +9,8 @@ Beispiele:
 ```sh
 php ../../bin/shiller context build
 php ../../bin/shiller context build .shiller-context.d/raw --focus "Kontaktdaten"
-php ../../bin/shiller ai --debug --event edit adjust index.md _data/general.yml
-php ../../bin/shiller ai --debug --event user-request adjust index.md
+php ../../bin/shiller ai --debug adjust index.md _data/general.yml
+php ../../bin/shiller ai adjust index.md
 php ../../bin/shiller revert index.md _data/general.yml
 ```
 
@@ -18,8 +18,8 @@ php ../../bin/shiller revert index.md _data/general.yml
 Markdown-Dateien direkt in `.shiller-context.d/` werden ebenfalls immer als\nKontext geladen, außer Dateien mit dem Suffix `.rules.md`.\n`project.rules.md` enthält nur zusätzliche Regeln für `context build` und wird\nnicht als normaler Kontext geladen. `.shiller-context.d/raw/` enthaelt Rohdaten fuer
 `context build` und wird bei `ai adjust` nicht direkt eingebunden.
 
-`docs/_rules.d/` enthaelt allgemeine, dateispezifische, Event-gefilterte und
-`important` Rules. `--debug` zeigt vor dem AI-Request die angewandten Rules
-mit Selector, Match-Anzahl, Spezifitaet, important-Status und finaler
-Reihenfolge. `docs/_data/general.yml.d.json` beschreibt die strukturierten
-Daten.
+`docs/.shiller.yml` konfiguriert `skills_dir` fuer die ThemeJS2-Skills.
+Shiller analysiert den Projektkontext einmal und nutzt einen Checkpoint
+fuer die getrennte Anpassung jeder ausgewählten Datei. `--debug` zeigt
+Skill- und Dateischritte. `docs/_data/general.yml.d.json` beschreibt
+die strukturierten Felder.

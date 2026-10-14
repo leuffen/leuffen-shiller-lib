@@ -76,39 +76,38 @@ dieser Anleitungen ist noch kein Teil der Automation.
 
 ## Installierte Inhalte an neuen Kontext anpassen
 
-Nach `init` beziehungsweise `install` kann `shiller adapt` die installierten
-Website-Inhalte mit `phore/ai-harness` an den Projektkontext anpassen. Standardmäßig
-werden alle Markdown-Dateien und die YAML-Dateien unter `_data/` bearbeitet.
-Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
-werden `tags`, `ptags` und `shiller.tags` im Markdown-Front-Matter geprüft.
+Nach init/install bearbeitet `shiller ai adjust` Markdown und YAML unter
+`_data/` mit dem neuen `AiContext` aus phore/ai-harness. Der Selector
+unterstuetzt Dateien, Globs und `tag:<name>`.
 
 ```sh
 shiller ai adjust index.md
 shiller ai adjust index.md _data/general.yml
 shiller ai adjust "leistungen/**/*.md" "tag:arzt"
+shiller ai --debug --context "context/zusatz.md" adjust index.md
 shiller revert index.md "_data/*.yml"
-
-# Erweiterte Optionen stehen vor der AI-Unteraktion:
-shiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
 ```
 
-`shiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
-mehrere Dateinamen sowie Globs werden direkt als Argumente nach `adjust` angegeben;
-ohne weitere Optionen werden Document Root, `template_dir`, Projektkontext,
-Basis-Skill und Modell aus den Standardwerten beziehungsweise `.shiller.yml`
-verwendet. `shiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
-installierten Template-Dateien wieder her und benötigt keinen KI-Zugriff.
+Die Factory liest `skills_dir` aus der `.shiller.yml`; ohne Angabe gilt
+`node_modules/@leuffen/themejs2/skills` relativ zur Projektwurzel.
+Konfigurierte relative Skill-Pfade beziehen sich auf die `.shiller.yml`.
+Die SkillCollection erkennt die darin publizierten ThemeJS2-Skills und
+laedt deren Instructions und References nach Bedarf. Ein optionaler
+Basis-Skill aus `resources/skills/adapt-content/SKILL.md` ergaenzt sie.
 
-`--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
-AI Harness; `sequential` führt dieselben Requests nacheinander aus. Die CLI loggt
-Fortschritt über `phore/log` nach STDERR und schreibt die bearbeiteten relativen
-Dateipfade nach STDOUT.
+Projektkontext wird zuerst aus `.shiller-context.d/project.md`, danach
+den weiteren Markdown-Dateien direkt in `.shiller-context.d/` geladen;
+`*.rules.md` und `raw/` bleiben davon ausgenommen. `--context` kann
+weitere Quellen ergaenzen. AiContext analysiert den gemeinsamen Kontext
+zuerst und setzt danach einen Checkpoint. Von diesem Ausgangspunkt wird
+jede ausgewaehlte Datei separat angepasst; erst nach erfolgreichen
+AI-Aufrufen werden alle Ergebnisinhalte geschrieben.
 
-Als Basis-Skill wird ohne `--skill`
-`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext liegt in
-`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle\nweiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer\nReihenfolge. Dateien mit dem Suffix `.rules.md` sind davon ausgenommen und\nwerden niemals als normaler Projektkontext geladen. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
-`ai adjust` nicht automatisch eingebunden. `--context` kann weiterhin
-zusätzliche Dateien relativ zur Projektwurzel ergänzen.
+Vorhandene `shiller.instructions`-Referenzen der jeweiligen Markdown-Datei
+und Sidecars `<zieldatei>.d.*` werden ebenfalls beruecksichtigt.
+`--debug` ergaenzt Skill- und Datei-Logging. Der bisherige Einstieg
+`shiller adapt --select "index.md"` bleibt verfuegbar; Rule-Prioritaeten,
+`--event` und `--mode` werden nicht mehr verwendet.
 
 ## Projektkontext aus Rohdaten aufbauen
 
@@ -135,27 +134,10 @@ die in neuen Quellen nicht vorkommen, bleiben erhalten. Eindeutige
 Aktualisierungen dürfen bestehende Fakten ändern; unklare Widersprüche werden
 als offene Punkte festgehalten statt stillschweigend überschrieben zu werden.
 
-Bearbeitungsregeln liegen im jeweiligen Document Root unter `_rules.d/*.md`.
-Jede Rule besitzt Front Matter mit `selector` als String oder Liste, optional
-`on` als Event-Filter und optional `important: true`. Fehlt `on`, gilt die
-Rule fuer jedes Event; ist `on` gesetzt, wird sie bei anderen Events
-vollstaendig ignoriert. Fuer jede passende Rule wird die Spezifitaet als
-`1 / Anzahl der vom Selector aktuell getroffenen editierbaren Dateien`
-berechnet. Bei mehreren passenden Selectoren einer Rule zaehlt der spezifischste.
-
-Alle passenden normalen Rules werden von niedriger zu hoher Spezifitaet in den
-Prompt aufgenommen; danach folgen `important`-Rules ebenfalls von niedriger zu
-hoher Spezifitaet. Damit steht die hoechste Prioritaet zuletzt. Bei gleicher
-Prioritaet entscheidet der Rule-Dateiname deterministisch. `--event` waehlt
-den Event-Typ, standardmaessig `edit`; `--debug` gibt vor den AI-Requests
-Rule-Datei, Selector, Match-Anzahl, Spezifitaet, `important` und Reihenfolge
-aus. Fuer jede Zieldatei werden ausserdem vorhandene Sidecars mit dem Namensschema
-`<zieldatei>.d.*` als Beschreibungsdaten angehaengt, zum Beispiel
-`_data/general.yml.d.json`.
-Bei Markdown darf der Skill neben dem Body auch `title`, `order` und
-`description` anpassen. Bei `_data`-YAML bleiben Keys und Struktur grundsätzlich
-erhalten und werden anhand von Kontext und Sidecar-Beschreibung mit neuen Werten
-gefüllt.
+Sidecars wie `_data/general.yml.d.json` liefern Feldbedeutung und
+Strukturhinweise. Markdown-Front-Matter und bestehende Layouts bleiben
+grundsaetzlich erhalten; fuer `_data`-YAML gelten die vorhandenen
+Keys und Strukturen.
 
 ## Document Root und mehrere Websites
 
@@ -198,10 +180,7 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 
 ## Vollstaendiges Demo-Projekt
 
-Unter [`demo/`](demo/) sind Template und nutzendes Webseitenprojekt getrennt:
-[`demo/template/`](demo/template/) repraesentiert das Template-Projekt mit
-`_tpl/_root` und Vorlagen, [`demo/project/`](demo/project/) den installierten
-Webseitenstand, in dem Shiller ausgefuehrt wird. Das Projekt zeigt
-`docs/_rules.d`, `.shiller-context.d`, mehrere Content-Dateien und ein
-`_data`-Sidecar. Die Rule-Beispiele demonstrieren mehrere Selector, dynamische
-Spezifitaet, `on: user-request` und `important: true`.
+Unter [demo/](demo/) stehen Template und installierte Website getrennt.
+Die Beispiele zeigen den zentralen Projektkontext, konfigurierbares
+`skills_dir`, Markdown-Zieldateien und YAML-Sidecars. Bearbeitungsregeln
+werden ausschliesslich durch die ThemeJS2-Skills bereitgestellt.

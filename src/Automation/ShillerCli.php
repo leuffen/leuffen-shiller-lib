@@ -171,24 +171,20 @@ final class ShillerCli
      * Passt ausgewaehlte installierte Website-Inhalte direkt mit phore/ai-harness an den Projektkontext an.
      *
      * @param string $select Kommagetrennte Dateipfade, Globs oder tag:<name>.
-     * @param string $mode concurrent oder sequential.
      * @param string $context Zusaetzliche Kontextdateien relativ zur Projektwurzel.
      * @param string $skill Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param string $model AI-Modell fuer phore/ai-harness.
      * @param string $templateDir _tpl-Pfad; leer liest template_dir aus .shiller.yml.
      * @param string $root Document Root.
-     * @param string $event Event fuer _rules.d-on-Filter.
-     * @param bool $debug Gibt die angewandten Rules mit Spezifitaet und Reihenfolge aus.
+     * @param bool $debug Aktiviert Skill- und Dateilogging.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Anpassungsfehlern.
      * @see ShillerAutomationFactory::createContentAction()
-     * @example shiller adapt --select "index.md,_data/general.yml" --mode concurrent
+     * @example shiller adapt --select "index.md,_data/general.yml" --debug
      */
-    #[CliCommand('adapt', 'Passt installierte Inhalte per AI an.', 'Passt ausgewaehlte installierte Website-Inhalte mit phore/ai-harness an Projektkontext und aktive Rules an. Die Auswahl kann ueber Pfade, Globs oder Tags erfolgen.')]
+    #[CliCommand('adapt', 'Passt installierte Inhalte per AI an.', 'Passt installierte Website-Inhalte mit AiContext und ThemeJS2-Skills an. Die Auswahl kann ueber Pfade, Globs oder Tags erfolgen.')]
     public function adapt(
         #[CliParameter('select', 'Kommagetrennte Dateipfade, Globs oder tag:<name>')]
         string $select = '',
-        #[CliParameter('mode', 'concurrent oder sequential')]
-        string $mode = 'concurrent',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
@@ -199,14 +195,9 @@ final class ShillerCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
-        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        #[CliParameter('debug', 'Skill- und Dateilogging aktivieren')]
         bool $debug = false,
     ): void {
-        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
-            throw new RuntimeException('mode must be concurrent or sequential.');
-        }
 
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -222,7 +213,7 @@ final class ShillerCli
                 $this->logger(),
                 $model,
             )
-            ->adapt($this->csv($select), $mode === 'concurrent', $event, $debug);
+            ->adapt($this->csv($select), $debug);
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
@@ -357,18 +348,16 @@ final class ShillerContextCli
 final class ShillerAiCli
 {
     /**
-     * Passt ausgewaehlte Projektdateien anhand von Kontext und Rules an.
+     * Passt ausgewaehlte Projektdateien anhand von Kontext und Skills an.
      *
      * @param array<int, string> $argv Dateinamen, Globs oder tag:<name>.
-     * @throws RuntimeException Bei fehlender Dateiauswahl oder ungueltigem Modus.
+     * @throws RuntimeException Bei fehlender Dateiauswahl.
      * @see ShillerContentAction::adapt()
      * @example shiller ai adjust index.md "_data/*.yml"
      */
     #[CliCommand('adjust', 'Passt ausgewaehlte Projektdateien per AI an.')]
     public function adjust(
         array $argv,
-        #[CliParameter('mode', 'concurrent oder sequential')]
-        string $mode = 'concurrent',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
@@ -379,17 +368,12 @@ final class ShillerAiCli
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
         string $root = 'docs',
-        #[CliParameter('event', 'Rule-Event, z. B. edit, user-request oder upgrade')]
-        string $event = 'edit',
-        #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
+        #[CliParameter('debug', 'Skill- und Dateilogging aktivieren')]
         bool $debug = false,
     ): void {
         $selectors = $this->selectors($argv);
         if ($selectors === []) {
             throw new RuntimeException('ai adjust requires at least one filename, glob or tag selector.');
-        }
-        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
-            throw new RuntimeException('mode must be concurrent or sequential.');
         }
 
         $startDirectory = getcwd();
@@ -406,7 +390,7 @@ final class ShillerAiCli
                 $this->logger(),
                 $model,
             )
-            ->adapt($selectors, $mode === 'concurrent', $event, $debug);
+            ->adapt($selectors, $debug);
 
         if ($written !== []) {
             echo implode("\\n", $written) . "\\n";

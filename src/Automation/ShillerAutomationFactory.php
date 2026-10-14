@@ -48,6 +48,7 @@ final class ShillerAutomationFactory
      * @param string $skillFile Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model AI-Modell fuer phore/ai-harness.
+     * @param string $skillsDir Skill-Verzeichnis; leer nutzt skills_dir oder den ThemeJS2-Default.
      * @return ShillerContentAction Konfigurierte Content-Action.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlender oder ungueltiger Konfiguration.
@@ -61,6 +62,7 @@ final class ShillerAutomationFactory
         string $skillFile = '',
         ?PhoreLogger $logger = null,
         string $model = 'gpt-5-mini',
+        string $skillsDir = '',
     ): ShillerContentAction {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
@@ -69,6 +71,9 @@ final class ShillerAutomationFactory
 
         $projectRoot = $documentUri->withParentDir()->assertDirectory()->assertReadable();
         $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
+        if (!$configFile->exists()) {
+            $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
+        }
         $config = $configFile->get_yaml();
         if (!is_array($config)) {
             throw new RuntimeException("Invalid Shiller config: $configFile");
@@ -89,6 +94,20 @@ final class ShillerAutomationFactory
                 : $projectRoot->withRelativePath($templateDir);
         }
         $templateUri->assertDirectory()->assertReadable();
+
+        // Explizite Skills-Pfade gelten relativ zur .shiller.yml.
+        if ($skillsDir === '') {
+            $skillsDir = $config['skills_dir'] ?? '';
+        }
+        if (!is_string($skillsDir)) {
+            throw new RuntimeException("Invalid skills_dir in $configFile");
+        }
+        $skillsUri = $skillsDir === ''
+            ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
+            : (str_starts_with($skillsDir, '/')
+                ? phore_uri($skillsDir)->abs()
+                : $configDir->withRelativePath($skillsDir));
+        $skillsUri->assertDirectory()->assertReadable();
 
         $contextDirectory = $projectRoot
             ->withSubPath('.shiller-context.d')
@@ -146,6 +165,7 @@ final class ShillerAutomationFactory
             $skillFile,
             $logger,
             $model,
+            (string) $skillsUri,
         );
     }
 
