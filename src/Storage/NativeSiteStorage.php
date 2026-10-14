@@ -120,7 +120,7 @@ final class NativeSiteStorage implements MoveCapableStorage
 
                 $this->ensureParent($resolvedPath, $createdDirectories);
 
-                $temporaryPath = $resolvedPath . '.schiller-' . bin2hex(random_bytes(4));
+                $temporaryPath = $resolvedPath . '.shiller-' . bin2hex(random_bytes(4));
                 if (
                     file_put_contents($temporaryPath, (string) $content, LOCK_EX) === false
                     || !rename($temporaryPath, $resolvedPath)

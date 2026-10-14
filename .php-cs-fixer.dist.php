@@ -6,7 +6,7 @@ use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 
 /**
- * Formatter-Konfiguration für die Schiller-Library.
+ * Formatter-Konfiguration für die Shiller-Library.
  *
  * PHP-CS-Fixer prüft produktiven Code, Tests und die dokumentierten Beispiele
  * gegen den aktuellen PHP-FIG PER Coding Style. Fachliche Kommentare und

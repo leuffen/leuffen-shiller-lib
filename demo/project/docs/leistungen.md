@@ -1,5 +1,5 @@
 ---
-schiller:
+shiller:
   tags: [demo]
   target: leistungen.md
 layout: website

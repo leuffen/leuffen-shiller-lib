@@ -19,9 +19,9 @@ final class PolyglotStructureTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/schiller-structure-' . bin2hex(random_bytes(6));
+        $this->dir = sys_get_temp_dir() . '/shiller-structure-' . bin2hex(random_bytes(6));
         mkdir($this->dir, 0770, true);
-        $this->put('schiller.yaml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\n");
+        $this->put('shiller.yaml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\n");
     }
 
     protected function tearDown(): void
@@ -207,7 +207,7 @@ final class PolyglotStructureTest extends TestCase
             }
         }
 
-        symlink($this->dir . '/schiller.yaml', $this->dir . '/baum/link');
+        symlink($this->dir . '/shiller.yaml', $this->dir . '/baum/link');
         $this->expectException(ValidationException::class);
         $site->rename('/baum', '/neu');
     }

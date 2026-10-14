@@ -580,8 +580,8 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
     public function loadConfig(): SiteConfig
     {
-        $schiller = $this->s()->exists('schiller.yaml')
-            ? Codec::yaml($this->s()->read('schiller.yaml'), 'schiller.yaml')
+        $shiller = $this->s()->exists('shiller.yaml')
+            ? Codec::yaml($this->s()->read('shiller.yaml'), 'shiller.yaml')
             : [];
         $jekyll = $this->s()->exists('_config.yml')
             ? Codec::yaml($this->s()->read('_config.yml'), '_config.yml')
@@ -590,14 +590,14 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         $languages = array_values(array_map(
             'strval',
             (array) (
-                $schiller['languages']
+                $shiller['languages']
                 ?? $jekyll['languages']
-                ?? [$schiller['default_lang'] ?? 'de', 'en']
+                ?? [$shiller['default_lang'] ?? 'de', 'en']
             ),
         ));
         $defaultLanguage = (string) (
-            $schiller['default_lang']
-            ?? $schiller['default_language']
+            $shiller['default_lang']
+            ?? $shiller['default_language']
             ?? $languages[0]
             ?? 'de'
         );
@@ -608,7 +608,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
         $labels = [];
         foreach ($languages as $language) {
-            $labels[$language] = (string) ($schiller['language_labels'][$language] ?? $language);
+            $labels[$language] = (string) ($shiller['language_labels'][$language] ?? $language);
         }
 
         return new SiteConfig(
