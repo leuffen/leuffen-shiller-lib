@@ -28,6 +28,7 @@ als Website-Dateien kopiert.
 |   |   `-- package.json
 |   |-- pages/
 |   |   |-- index.base.md
+|   |   |-- index-anleitung.md
 |   |   `-- navbar.osman.html.template
 |   `-- instructions/
 |       `-- schreibstil.md
