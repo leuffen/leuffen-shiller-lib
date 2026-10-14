@@ -70,6 +70,9 @@ final class ShillerAutomationFactory
 
         $projectRoot = $documentUri->withParentDir()->assertDirectory()->assertReadable();
         $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
+        if (!$configFile->exists()) {
+            $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
+        }
         $config = $configFile->get_yaml();
         if (!is_array($config)) {
             throw new RuntimeException("Invalid Shiller config: $configFile");
