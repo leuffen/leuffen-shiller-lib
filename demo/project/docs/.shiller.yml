@@ -1,1 +1,2 @@
 template_dir: ../../template/_tpl
+skills_dir: ../node_modules/@leuffen/themejs2/skills
