@@ -76,39 +76,38 @@ dieser Anleitungen ist noch kein Teil der Automation.
 
 ## Installierte Inhalte an neuen Kontext anpassen
 
-Nach `init` beziehungsweise `install` kann `shiller adapt` die installierten
-Website-Inhalte mit `phore/ai-harness` an den Projektkontext anpassen. Standardmäßig
-werden alle Markdown-Dateien und die YAML-Dateien unter `_data/` bearbeitet.
-Der Selector akzeptiert exakte relative Pfade, Globs und `tag:<name>`; bei Tags
-werden `tags`, `ptags` und `shiller.tags` im Markdown-Front-Matter geprüft.
+Nach init/install bearbeitet `shiller ai adjust` Markdown und YAML unter
+`_data/` mit dem neuen `AiContext` aus phore/ai-harness. Der Selector
+unterstuetzt Dateien, Globs und `tag:<name>`.
 
 ```sh
 shiller ai adjust index.md
 shiller ai adjust index.md _data/general.yml
 shiller ai adjust "leistungen/**/*.md" "tag:arzt"
+shiller ai --debug --context "context/zusatz.md" adjust index.md
 shiller revert index.md "_data/*.yml"
-
-# Erweiterte Optionen stehen vor der AI-Unteraktion:
-shiller ai --mode sequential --context "context/zusatz.md" adjust "leistungen/**/*.md"
 ```
 
-`shiller ai adjust` ist der bevorzugte Einstieg für die KI-Anpassung. Ein oder
-mehrere Dateinamen sowie Globs werden direkt als Argumente nach `adjust` angegeben;
-ohne weitere Optionen werden Document Root, `template_dir`, Projektkontext,
-Basis-Skill und Modell aus den Standardwerten beziehungsweise `.shiller.yml`
-verwendet. `shiller revert` stellt dieselbe Dateiauswahl aus den ursprünglichen
-installierten Template-Dateien wieder her und benötigt keinen KI-Zugriff.
+Die Factory liest `skills_dir` aus der `.shiller.yml`; ohne Angabe gilt
+`node_modules/@leuffen/themejs2/skills` relativ zur Projektwurzel.
+Konfigurierte relative Skill-Pfade beziehen sich auf die `.shiller.yml`.
+Die SkillCollection erkennt die darin publizierten ThemeJS2-Skills und
+laedt deren Instructions und References nach Bedarf. Ein optionaler
+Basis-Skill aus `resources/skills/adapt-content/SKILL.md` ergaenzt sie.
 
-`--mode concurrent` ist der Default und verwendet den `AiRequestSpooler` des
-AI Harness; `sequential` führt dieselben Requests nacheinander aus. Die CLI loggt
-Fortschritt über `phore/log` nach STDERR und schreibt die bearbeiteten relativen
-Dateipfade nach STDOUT.
+Projektkontext wird zuerst aus `.shiller-context.d/project.md`, danach
+den weiteren Markdown-Dateien direkt in `.shiller-context.d/` geladen;
+`*.rules.md` und `raw/` bleiben davon ausgenommen. `--context` kann
+weitere Quellen ergaenzen. AiContext analysiert den gemeinsamen Kontext
+zuerst und setzt danach einen Checkpoint. Von diesem Ausgangspunkt wird
+jede ausgewaehlte Datei separat angepasst; erst nach erfolgreichen
+AI-Aufrufen werden alle Ergebnisinhalte geschrieben.
 
-Als Basis-Skill wird ohne `--skill`
-`resources/skills/adapt-content/SKILL.md` verwendet. Projektkontext liegt in
-`.shiller-context.d/`: `project.md` wird immer zuerst geladen, danach alle\nweiteren Markdown-Dateien direkt in diesem Verzeichnis in alphabetischer\nReihenfolge. Dateien mit dem Suffix `.rules.md` sind davon ausgenommen und\nwerden niemals als normaler Projektkontext geladen. `.shiller-context.d/raw/` enthält Rohdaten und wird bei
-`ai adjust` nicht automatisch eingebunden. `--context` kann weiterhin
-zusätzliche Dateien relativ zur Projektwurzel ergänzen.
+Vorhandene `shiller.instructions`-Referenzen der jeweiligen Markdown-Datei
+und Sidecars `<zieldatei>.d.*` werden ebenfalls beruecksichtigt.
+`--debug` ergaenzt Skill- und Datei-Logging. Der bisherige Einstieg
+`shiller adapt --select "index.md"` bleibt verfuegbar; Rule-Prioritaeten,
+`--event` und `--mode` werden nicht mehr verwendet.
 
 ## Projektkontext aus Rohdaten aufbauen
 
