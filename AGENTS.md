@@ -104,7 +104,7 @@ nach der Installation in der Markdown-Datei erhalten:
 ```markdown
 ---
 shiller:
-  tags: [base, "theme:osman"]
+  tags: [base, startseite]
   target: index.md
   instructions:
     - ./index-anleitung.md
