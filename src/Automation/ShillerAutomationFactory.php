@@ -48,6 +48,7 @@ final class ShillerAutomationFactory
      * @param string $skillFile Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model AI-Modell fuer phore/ai-harness.
+     * @param string $skillsDir Skill-Verzeichnis; leer nutzt skills_dir oder den ThemeJS2-Default.
      * @return ShillerContentAction Konfigurierte Content-Action.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlender oder ungueltiger Konfiguration.
@@ -164,6 +165,7 @@ final class ShillerAutomationFactory
             $skillFile,
             $logger,
             $model,
+            (string) $skillsUri,
         );
     }
 
