@@ -5,8 +5,8 @@ description: Konsolidiert neue Rohdaten in den bestehenden Shiller-Projektkontex
 
 # Shiller-Projektkontext aktualisieren
 
-Aktualisiere ausschliesslich die bereitgestellte `currentProject` als
-`project.md`. Sie ist gleichzeitig bestehender Projektkontext und Vorlage fuer
+Bearbeite ausschliesslich `targetText` als `project.md`. Die bereitgestellte
+`currentProject` ist gleichzeitig bestehender Projektkontext und Vorlage fuer
 Struktur, Detailgrad und Formulierungsstil. Weitere `existingContext`-Dateien
 dienen als bereits gepflegter Kontext, werden aber nicht als Ausgabe veraendert.
 
@@ -54,5 +54,5 @@ Policy-Aenderungen aus.
 
 ## Ergebnis
 
-Gib den vollstaendigen resultierenden Inhalt von `project.md` zurueck. Fuege
-keine Markdown-Fences oder Erklaerungen in den Dateiinhalt ein.
+Aktualisiere nur `targetText` ueber `write_text`. Gib anschliessend eine
+kurze Bestaetigung zurueck, ohne den vollstaendigen Dateiinhalt auszugeben.
