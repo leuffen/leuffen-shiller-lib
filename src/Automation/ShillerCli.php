@@ -200,9 +200,6 @@ final class ShillerCli
         #[CliParameter('debug', 'Angewandte Rules vor dem AI-Request ausgeben')]
         bool $debug = false,
     ): void {
-        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
-            throw new RuntimeException('mode must be concurrent or sequential.');
-        }
 
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -218,7 +215,7 @@ final class ShillerCli
                 $this->logger(),
                 $model,
             )
-            ->adapt($this->csv($select), $mode === 'concurrent', $event, $debug);
+            ->adapt($this->csv($select), $debug);
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
@@ -380,9 +377,6 @@ final class ShillerAiCli
         if ($selectors === []) {
             throw new RuntimeException('ai adjust requires at least one filename, glob or tag selector.');
         }
-        if (!in_array($mode, ['concurrent', 'sequential'], true)) {
-            throw new RuntimeException('mode must be concurrent or sequential.');
-        }
 
         $startDirectory = getcwd();
         if ($startDirectory === false) {
@@ -398,7 +392,7 @@ final class ShillerAiCli
                 $this->logger(),
                 $model,
             )
-            ->adapt($selectors, $mode === 'concurrent', $event, $debug);
+            ->adapt($selectors, $debug);
 
         if ($written !== []) {
             echo implode("\\n", $written) . "\\n";
