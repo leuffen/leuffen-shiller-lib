@@ -187,8 +187,6 @@ final class ShillerCli
     public function adapt(
         #[CliParameter('select', 'Kommagetrennte Dateipfade, Globs oder tag:<name>')]
         string $select = '',
-        #[CliParameter('mode', 'concurrent oder sequential')]
-        string $mode = 'concurrent',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
@@ -367,8 +365,6 @@ final class ShillerAiCli
     #[CliCommand('adjust', 'Passt ausgewaehlte Projektdateien per AI an.')]
     public function adjust(
         array $argv,
-        #[CliParameter('mode', 'concurrent oder sequential')]
-        string $mode = 'concurrent',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
