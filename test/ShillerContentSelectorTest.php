@@ -16,7 +16,6 @@ final class ShillerContentSelectorTest extends TestCase
     {
         $this->dir = sys_get_temp_dir() . '/shiller-content-' . bin2hex(random_bytes(6));
         phore_dir($this->dir . '/site/docs/_data')->mkdir();
-        phore_dir($this->dir . '/site/docs/_rules.d')->mkdir();
         phore_dir($this->dir . '/site/docs/leistungen')->mkdir();
         phore_dir($this->dir . '/site/tpl')->mkdir();
 
@@ -25,7 +24,6 @@ final class ShillerContentSelectorTest extends TestCase
         phore_file($this->dir . '/site/docs/_data/general.yml')->set_contents("name: Alt\n");
         phore_file($this->dir . '/site/docs/_data/openhours.yaml')->set_contents("monday: 8-12\n");
         phore_file($this->dir . '/site/docs/_config.yml')->set_contents("title: technisch\n");
-        phore_file($this->dir . '/site/docs/_rules.d/editorial.md')->set_contents("---\nselector: '**/*.md'\n---\nRegel\n");
     }
 
     protected function tearDown(): void
@@ -55,12 +53,13 @@ final class ShillerContentSelectorTest extends TestCase
         self::assertCount(1, $selector->select('leistungen/**/*.md'));
         self::assertCount(1, $selector->select('tag:arzt'));
         self::assertCount(2, $selector->select(['tag:arzt', '_data/general.yml']));
-        self::assertCount(0, $selector->select('_rules.d/**/*.md'));
     }
 
     public function testFactoryBuildsContentActionWithShillerContextDirectory(): void
     {
         phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: docs\ntemplate_dir: tpl\n");
+        phore_dir($this->dir . '/site/node_modules/@leuffen/themejs2/skills/edit-themejs2-site')->mkdir();
+        phore_file($this->dir . '/site/node_modules/@leuffen/themejs2/skills/edit-themejs2-site/SKILL.md')->set_contents("---\nname: edit-themejs2-site\ndescription: Demo\n---\n# Demo\n");
         phore_dir($this->dir . '/site/.shiller-context.d/raw')->mkdir();
         phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
         phore_file($this->dir . '/site/.shiller-context.d/team.md')->set_contents('# Team');
