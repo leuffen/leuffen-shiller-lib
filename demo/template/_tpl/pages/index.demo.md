@@ -1,5 +1,5 @@
 ---
-schiller:
+shiller:
   tags: [demo]
   target: index.md
 layout: website
@@ -8,4 +8,4 @@ description: Unangepasste Demo-Startseite
 ---
 # Beispielseite
 
-Dieser Platzhaltertext wird durch `schiller ai adjust index.md` an den Projektkontext angepasst.
+Dieser Platzhaltertext wird durch `shiller ai adjust index.md` an den Projektkontext angepasst.
