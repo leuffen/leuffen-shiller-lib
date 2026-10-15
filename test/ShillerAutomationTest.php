@@ -186,7 +186,8 @@ final class ShillerAutomationTest extends TestCase
         $automation = new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl');
         $automation->init(['raven']);
 
-        phore_file($this->dir . '/site/docs/index.md')->set_contents('AI page');
+        $pageFile = phore_file($this->dir . '/site/docs/index.md');
+        $pageFile->set_contents(str_replace('Original page', 'AI page', $pageFile->get_contents()));
         phore_file($this->dir . '/site/docs/_data/general.yml')->set_contents('name: AI');
 
         $restored = $automation->revert(['index.md', '_data/*.yml']);
