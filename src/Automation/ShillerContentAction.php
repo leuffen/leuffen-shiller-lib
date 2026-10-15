@@ -164,10 +164,10 @@ final class ShillerContentAction
             $contextTask?->detail('Lade Skills und analysiere Projektinformationen');
             $context->do(
                 new TextPrompt(
-                'Analysiere die Projektfakten und das Skill-Angebot. Lade ueber skill_load '
+                    'Analysiere die Projektfakten und das Skill-Angebot. Lade ueber skill_load '
                 . 'den passenden ThemeJS2-Skill. Erarbeite den Bearbeitungsrahmen '
                 . 'ohne Dateiaenderungen; erfinde keine Fakten.',
-                alias: 'analyzeTask',
+                    alias: 'analyzeTask',
                     allowInstructions: true,
                 ),
                 throw: true,
