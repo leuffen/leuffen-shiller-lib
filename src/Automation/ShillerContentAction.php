@@ -232,8 +232,9 @@ final class ShillerContentAction
                 echo 'Datei: ' . $this->formatUsage($beforeFile, $afterFile)
                     . ' | Gesamt: ' . $this->formatUsage($startStats, $afterFile) . PHP_EOL;
             } catch (Throwable $e) {
+                // Zeigt den Dateifehler an, lässt aber die übrigen Ziele des Batch-Laufs weiterlaufen.
                 $task?->failure($e->getMessage());
-                throw $e;
+                continue;
             }
         }
 
