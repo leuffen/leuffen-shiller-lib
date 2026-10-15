@@ -235,8 +235,8 @@ final class ShillerContentAction
         $cost = $after['knownCostUsd'] - $before['knownCostUsd'];
         $tokenText = $missing > 0 ? 'mindestens ' . $tokens : (string) $tokens;
         $costText = $missing > 0 || $unpriced > 0
-            ? 'nicht vollstaendig bestimmbar (bekannt:  . number_format($cost, 6, '.', '') . ')'
-            : ' . number_format($cost, 6, '.', '');
+            ? 'nicht vollstaendig bestimmbar (bekannt: ' . chr(36) . number_format($cost, 6, '.', '') . ')'
+            : chr(36) . number_format($cost, 6, '.', '');
         echo sprintf('%s: %s Tokens, Kosten geschaetzt: %s', $label, $tokenText, $costText) . PHP_EOL;
     }
 }
