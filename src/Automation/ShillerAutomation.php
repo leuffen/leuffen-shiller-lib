@@ -62,7 +62,9 @@ final class ShillerAutomation
             $destination = str_starts_with($relative, 'docs/')
                 ? $this->documentRoot . substr($relative, strlen('docs'))
                 : $relative;
-            $plan[$destination] = $source->get_contents();
+            $plan[$destination] = str_starts_with($relative, 'docs/')
+                ? $this->installedContent($source, $source->get_contents())
+                : $source->get_contents();
         }
 
         return $this->apply($this->selected($tags) + $plan);
@@ -122,96 +124,45 @@ final class ShillerAutomation
      */
     private function originalContent(string $targetRelative, PhoreFile $currentTarget): string
     {
-        $currentTags = [];
-        $currentFrontMatter = $currentTarget->get_front_matter(required: false);
-        if (is_array($currentFrontMatter?->header)) {
-            $currentConfig = $currentFrontMatter->header['shiller'] ?? [];
-            if (is_array($currentConfig)) {
-                $currentTags = $currentConfig['tags'] ?? [];
-                $currentTags = is_string($currentTags) ? [$currentTags] : $currentTags;
-                $currentTags = is_array($currentTags) ? array_values(array_filter($currentTags, 'is_string')) : [];
-            }
-        }
+        $header = $currentTarget->get_front_matter(required: false)?->header;
+        $config = is_array($header) ? ($header['shiller'] ?? null) : null;
+        $source = is_array($config) ? ($config['source'] ?? null) : null;
 
-        $variants = [];
-        foreach ($this->templateDir->listFiles(recursive: true, sort: 'path') as $source) {
-            $sourceRelative = str_replace('\\', '/', (string) $source->getRelPath($this->templateDir));
-            if (str_starts_with($sourceRelative, '_root/')) {
-                continue;
-            }
-
-            $wrapped = str_ends_with($sourceRelative, '.template');
-            if (!$wrapped && !str_ends_with($sourceRelative, '.md')) {
-                continue;
-            }
-
-            $frontMatter = $source->get_front_matter(required: false);
-            if (!is_array($frontMatter?->header) || !is_array($frontMatter->header['shiller'] ?? null)) {
-                continue;
-            }
-
-            $config = $frontMatter->header['shiller'];
-            $sourceTarget = $config['target'] ?? substr($sourceRelative, 0, $wrapped ? -strlen('.template') : null);
-            if (!is_string($sourceTarget) || $this->projectRoot->assertRelativePath($sourceTarget) !== $targetRelative) {
-                continue;
-            }
-
-            $tags = $config['tags'] ?? [];
-            $tags = is_string($tags) ? [$tags] : $tags;
-            if (!is_array($tags) || array_filter($tags, static fn($tag): bool => !is_string($tag) || $tag === '')) {
-                throw new RuntimeException("Invalid shiller tags: $source");
-            }
-
-            $header = $frontMatter->header;
-            $instructions = $config['instructions'] ?? [];
-            $instructions = is_string($instructions) ? [$instructions] : $instructions;
-            if (!is_array($instructions)) {
-                throw new RuntimeException("Invalid shiller instructions: $source");
-            }
-            foreach ($instructions as $key => $reference) {
-                if (!is_string($reference)) {
-                    throw new RuntimeException("Invalid instruction reference: $source");
-                }
-                $instructions[$key] = $this->instruction($reference, $sourceRelative);
-            }
-            if (!$wrapped && $instructions !== ($config['instructions'] ?? [])) {
-                $header['shiller']['instructions'] = array_values($instructions);
-                $frontMatter->header = $header;
-            }
-
-            $variants[] = [
-                'tags' => array_values($tags),
-                'content' => $wrapped ? $frontMatter->content : $frontMatter->render(),
-            ];
-        }
-
-        if ($currentTags !== []) {
-            $matching = array_values(array_filter(
-                $variants,
-                static fn(array $variant): bool => array_intersect($currentTags, $variant['tags']) !== [],
-            ));
-            if (count($matching) === 1) {
-                return $matching[0]['content'];
-            }
-            if (count($matching) > 1) {
-                throw new RuntimeException("Multiple original templates match $targetRelative");
-            }
+        if (is_string($source) && $source !== '') {
+            $path = $this->templateDir->assertRelativePath($source);
+            $original = $this->templateDir->withSubPath($path)->asFile()->assertFile()->assertReadable();
+            return $this->installedContent($original, $original->get_contents());
         }
 
         $rootSource = $this->templateDir->withSubPath('_root/docs/' . $targetRelative);
         if ($rootSource->exists()) {
-            return $rootSource->assertFile()->assertReadable()->get_contents();
+            $original = $rootSource->asFile()->assertFile()->assertReadable();
+            return $this->installedContent($original, $original->get_contents());
         }
 
-        if (count($variants) === 1) {
-            return $variants[0]['content'];
+        throw new RuntimeException("No shiller.source found for $targetRelative");
+    }
+
+    /** Gibt kopierten Markdown-Dateien ausschliesslich die Herkunft im Shiller-Block. */
+    private function installedContent(PhoreFile $source, string $content): string
+    {
+        $relative = str_replace('\\', '/', (string) $source->getRelPath($this->templateDir));
+        if (!str_ends_with(strtolower($relative), '.md')) {
+            return $content;
         }
 
-        throw new RuntimeException(
-            $variants === []
-                ? "No original template found for $targetRelative"
-                : "Multiple original templates match $targetRelative",
-        );
+        $frontMatter = $source->get_front_matter(required: false);
+        if ($frontMatter === null) {
+            return "---\nshiller:\n  source: " . $relative . "\n---\n" . $content;
+        }
+
+        $header = $frontMatter->header;
+        if (!is_array($header)) {
+            throw new RuntimeException("Invalid YAML header: $source");
+        }
+        $header['shiller'] = ['source' => $relative];
+        $frontMatter->header = $header;
+        return $frontMatter->render();
     }
 
     private function selected(array $tags): array
@@ -268,50 +219,18 @@ final class ShillerAutomation
             }
             $target = $this->documentRoot . '/' . $this->projectRoot->assertRelativePath($target);
 
-            $instructions = $config['instructions'] ?? [];
-            $instructions = is_string($instructions) ? [$instructions] : $instructions;
-            if (!is_array($instructions)) {
-                throw new RuntimeException("Invalid shiller instructions: $source");
-            }
-            foreach ($instructions as $key => $reference) {
-                if (!is_string($reference)) {
-                    throw new RuntimeException("Invalid instruction reference: $source");
-                }
-                $instructions[$key] = $this->instruction($reference, $relative);
-            }
-
             if (array_key_exists($target, $plan)) {
                 throw new RuntimeException("Multiple templates target $target: $source");
             }
 
             if ($wrapped) {
                 $plan[$target] = $frontMatter->content;
-            } elseif ($instructions !== ($config['instructions'] ?? [])) {
-                $header['shiller']['instructions'] = array_values($instructions);
-                $frontMatter->header = $header;
-                $plan[$target] = $frontMatter->render();
             } else {
-                $plan[$target] = $frontMatter->render();
+                $plan[$target] = $this->installedContent($source, $source->get_contents());
             }
         }
 
         return $plan;
-    }
-
-    private function instruction(string $reference, string $source): string
-    {
-        if (str_starts_with($reference, 'tpl:/')) {
-            $path = substr($reference, 5);
-        } elseif (str_starts_with($reference, './')) {
-            $path = dirname($source) . '/' . substr($reference, 2);
-        } else {
-            throw new RuntimeException("Invalid instruction reference $reference in $source");
-        }
-
-        $path = $this->templateDir->assertRelativePath($path);
-        $this->templateDir->withSubPath($path)->assertFile()->assertReadable();
-
-        return 'tpl:/' . $path;
     }
 
     private function apply(array $plan): array

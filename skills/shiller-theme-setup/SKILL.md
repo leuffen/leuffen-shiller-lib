@@ -30,8 +30,6 @@ Layout des npm-Pakets `@leuffen/themejs2` ist:
 |   |   `-- package.json
 |   |-- pages/
 |   |   `-- leistungen.base.md
-|   `-- instructions/
-|       `-- leistungen.md
 `-- skills/
     `-- edit-website/
         |-- SKILL.md
@@ -44,8 +42,7 @@ Layout des npm-Pakets `@leuffen/themejs2` ist:
 Document Root (standardmäßig `docs/`) des neuen Website-Projekts;
 alle übrigen `_root/`-Dateien in dessen Projektwurzel.
 Andere Dateien unter `_tpl/` werden nur über ihre Shiller-Tags
-installiert. `skills/` und `_tpl/instructions/` bleiben
-im Theme-Paket; sie werden nicht als Website-Dateien kopiert.
+installiert. `skills/` bleibt im Theme-Paket und wird nicht als Website-Datei kopiert.
 
 ## 2. Konfiguration und Kontext liefern
 
@@ -68,8 +65,7 @@ Neue Quellen werden im Zielprojekt unter
 ## 3. Installierbare Vorlagen kennzeichnen
 
 Markdown-Vorlagen außerhalb von `_root/` benötigen YAML Front Matter
-mit `shiller.tags` und ggf. `shiller.target` sowie
-`shiller.instructions`. Beispiel für
+mit `shiller.tags` und ggf. `shiller.target`. Beispiel für
 `_tpl/pages/leistungen.base.md`:
 
 ```markdown
@@ -77,7 +73,6 @@ mit `shiller.tags` und ggf. `shiller.target` sowie
 shiller:
   tags: [base, leistungen]
   target: leistungen.md
-  instructions: tpl:/instructions/leistungen.md
 layout: website
 title: Leistungen
 ---
@@ -88,10 +83,9 @@ Hier stehen zunächst neutrale Platzhalter.
 
 `--tags base` installiert diese Datei als
 `docs/leistungen.md`; `shiller.target` ist relativ zum
-Document Root. `instructions` verweist auf eine existierende
-Anleitungsdatei: `tpl:/` startet in `_tpl/`, `./`
-direkt neben der Quelldatei. Shiller erhält das Front Matter in
-installierten Markdown-Dateien.
+Document Root. In die installierte Markdown-Datei wird ausschliesslich `shiller.source`
+als Pfad relativ zu `_tpl/` geschrieben, z. B. `pages/leistungen.base.md`.
+Die Auswahlfelder `tags` und `target` bleiben nur in der Vorlage.
 
 Für andere Textdateien eine `*.template`-Datei mit Shiller-Header
 verwenden, beispielsweise `_tpl/pages/navbar.html.template`:
@@ -195,3 +189,15 @@ existieren und die konfigurierten Skills lesbar sind. `install`
 und `revert` können bestehende Website-Inhalte überschreiben:
 in bestehenden Projekten nur gezielt und nach Sichtprüfung ausführen.
 Keine nicht angeforderten Theme-Dateien oder fremden Repositories ändern.
+
+## 7. Bestehende Markdown-Vorlagen reworken
+
+Bei einem Rework alle Legacy-Front-Matter-Felder entfernen, deren Name
+mit `_shiller` beginnt, sowie weitere obsolete Shiller-Attribute.
+Im kopierten Markdown bleibt innerhalb des YAML Front Matter nur
+`shiller.source` (relativ zum `_tpl/`-Verzeichnis), keine Tags,
+Targets oder Instructions. In der installierbaren Quelle sind
+`shiller.tags` und optional `shiller.target` fuer die Auswahl erlaubt.
+Entferne aus den Vorlagen ausserdem `pid` und `lang`, sofern vorhanden,
+und benenne `*.de.md` in `*.md` um. Sonstige Front-Matter-Felder
+und Inhalte unveraendert lassen.

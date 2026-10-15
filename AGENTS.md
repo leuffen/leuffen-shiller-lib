@@ -30,8 +30,6 @@ als Website-Dateien kopiert.
 |   |   |-- index.base.md
 |   |   |-- index-anleitung.md
 |   |   `-- navbar.osman.html.template
-|   `-- instructions/
-|       `-- schreibstil.md
 `-- skills/
     `-- edit-themejs2-site/
         |-- SKILL.md
@@ -60,12 +58,10 @@ ueberschrieben; mehrere ausgewaehlte Varianten fuer dasselbe Ziel
 sind ein Fehler. `shiller install` schreibt nur die ausgewaehlten
 Varianten, nicht erneut die gesamte Startstruktur.
 
-`_tpl/instructions/` und `skills/` sind Quellen im Template-Paket
-und werden nicht in die Website kopiert. Die referenzierten
-`shiller.instructions`-Dateien werden vor der Installation geprueft;
-`./` ist relativ zur Vorlagendatei, `tpl:/` relativ zu `_tpl/`.
-Nach der Installation gespeicherte Markdown-Anweisungen werden als
-`tpl:/`-Referenzen auf das Paket normalisiert.
+`skills/` bleibt Quelle im Template-Paket und wird nicht kopiert.
+Dateispezifische Bearbeitungsregeln werden ausschliesslich durch Skills
+und deren References geladen. Beim Kopieren von Markdown speichert
+Shiller unter `shiller.source` den Dateipfad relativ zu `_tpl/`.
 
 ### Konfiguration und Startkontext
 
@@ -98,17 +94,14 @@ bei unveraenderten Quellen ist dieser Schritt nicht erneut notwendig.
 ### Vorlagendateien und Skills
 
 Tag-gesteuerte Markdown-Vorlagen besitzen YAML Front Matter mit
-`shiller:` und einem oder mehreren `tags`; der Block bleibt
-nach der Installation in der Markdown-Datei erhalten:
+`shiller:` und einem oder mehreren `tags`; in der installierten Markdown-Datei werden `tags` und `target` durch
+`source` ersetzt; andere Front-Matter-Felder bleiben erhalten:
 
 ```markdown
 ---
 shiller:
   tags: [base, startseite]
   target: index.md
-  instructions:
-    - ./index-anleitung.md
-    - tpl:/instructions/schreibstil.md
 layout: website
 title: Startseite
 ---
@@ -128,6 +121,8 @@ shiller:
 ---
 <nav>Navigation</nav>
 ```
+
+Die installierte Datei enthaelt beispielsweise `shiller.source: pages/index.base.md`.
 
 Ein Skill liegt als `skills/<name>/SKILL.md` mit YAML-Front-Matter
 (`name`, `description`) vor. Zusaetzliche
