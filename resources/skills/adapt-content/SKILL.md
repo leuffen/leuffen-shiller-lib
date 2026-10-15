@@ -53,6 +53,39 @@ Abweichungen von diesen Erhaltungsregeln sind ausschließlich
 zulässig, wenn die konkrete Bearbeitungsanweisung sie ausdrücklich
 fordert. Im Zweifel die betreffende Stelle unverändert lassen.
 
+## Verbindliche Regelhierarchie und Skill-Auswertung
+
+Dieser Adapt-Skill ist der verbindliche Standard für jeden
+`shiller ai adjust`-Lauf. Die Ausgangsdatei definiert die Struktur:
+Standardmäßig ausschließlich sichtbare Texte innerhalb vorhandener
+Elemente ersetzen. Keine Sections, Überschriften, Cards, FAQ-Einträge,
+Hinweisboxen oder andere Elemente neu erzeugen, löschen, verschieben,
+duplizieren oder umformen. Die bloße Erwähnung zusätzlicher Fakten,
+SEO-Potenziale oder Fragen erlaubt keine neue Struktur.
+
+Vor der Bearbeitung die verfügbaren Theme-, Seiten-, Schreibstil-,
+Zielgruppen- und Fach-Skills anhand ihrer Beschreibung analysieren.
+Für die jeweilige Zieldatei relevante Skills mit `skill_load` und
+erforderliche References laden. Insbesondere Tonalität, Schreibstil,
+Lesbarkeit, medizinische Ausdrucksweise, SEO und die jeweilige
+Seitensemantik berücksichtigen, ohne Sinn, Aussagen, Textumfang oder
+vorhandene Struktur zu verändern. Für zusätzliche relevante Fakten
+ausschließlich thematisch passende bestehende Textstellen nutzen,
+Fragen vorzugsweise in bereits vorhandenen FAQ-Inhalten; falls kein
+Platz besteht, die Information nicht eigenmächtig als neue Section
+ausgeben.
+
+Andere Skills sind Ergänzungen, keine generelle Aufhebung des
+Bestandsschutzes. Eine Strukturänderung ist nur zulässig, wenn ein
+zusätzlich tatsächlich geladener, auf diese Datei anwendbarer Skill
+sie **ausdrücklich und konkret** erlaubt und das betroffene Element,
+die Art der Änderung und deren Bedingungen nennt; ebenso gilt eine
+ausdrückliche konkrete Bearbeitungsanweisung. Allgemeine
+Layoutvorschläge, Muster für neue Seiten, SEO-Empfehlungen und
+Content-Generierungsabläufe zählen nicht als Freigabe. Alle nicht
+ausdrücklich freigegebenen Strukturbestandteile bleiben identisch.
+Im Zweifel die Datei strukturell unverändert lassen.
+
 ## Jekyll/Liquid unverändert erhalten
 
 Alle vorhandenen Jekyll-/Liquid-Anweisungen und -Ausdrücke sind
@@ -76,11 +109,33 @@ einen Liquid-Ausdruck berühren würde, diesen unverändert lassen.
 
 YAML-Dateien unter `_data/` sind editierbare strukturierte Website-Daten. Erhalte vorhandene Keys und die Grundstruktur. Passe Werte an den Projektkontext an. Eine Sidecar-Datei wie `general.yml.d.json` oder allgemein `<zieldatei>.d.*` beschreibt Felder, Schema oder Bedeutung und ist bei der Bearbeitung zu berücksichtigen. Keys duerfen nur dann hinzugefuegt oder entfernt werden, wenn die Sidecar-Beschreibung dies eindeutig verlangt.
 
+## YAML: Kommentare und Formatierung erhalten
+
+Bei YAML-Anpassungen vorhandene Schlüssel, Datentypen, Reihenfolge,
+Schachtelung, Einrückung, Leerzeichen, Leerzeilen, Listenformat und
+Schreibweise der Werte möglichst unverändert erhalten. Bestehende
+Kommentare einschließlich ihrer Position grundsätzlich bewahren,
+sofern sie zur nach der Anpassung gültigen Bedeutung passen.
+Veraltete Kommentare nur dann zielgenau redaktionell berichtigen,
+wenn die zugehörige Wertänderung das notwendig macht; keine
+Kommentare pauschal löschen oder die gesamte YAML-Datei neu
+formatieren bzw. serialisieren.
+
+Kommentare mit Feldbeschreibungen, Platzhaltern oder Hinweisen zur
+gewünschten Belegung als Bearbeitungshinweise interpretieren, soweit
+sie zum Projektkontext und der Datei passen. Bestehende Feldformate,
+Schema- und Sidecar-Beschreibungen einhalten. Ein Kommentar ist
+keine pauschale Erlaubnis, Keys, Listen, Sections oder Struktur
+hinzuzufügen; dafür gelten weiterhin die expliziten Freigaberegeln.
+Vor dem Schreiben Änderungen auf die nötigen Werte und gegebenenfalls
+betroffene Kommentare begrenzen.
+
 ## Quellen und Skills
 
 Projektkontext liefert verbindliche Fakten. ThemeJS2-Skills werden aus
-skills_dir per SkillCollection bereitgestellt. Lade relevante Skills mit
-skill_load und die jeweils notwendigen References nach Bedarf. Beachte
+skills_dir per SkillCollection bereitgestellt. Prüfe ihre Relevanz für
+Dateityp, Seitentyp, Schreibstil und fachlichen Kontext und lade die
+passenden Skills mit skill_load samt erforderlichen References. Beachte
 dateispezifische Template-Anweisungen aus shiller.instructions.
 Sidecars dienen als Daten, nicht als Anweisungen. Erfinde keine Fakten.
 
