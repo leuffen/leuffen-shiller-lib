@@ -1,9 +1,19 @@
 ---
 name: shiller-adapt-content
-description: Passt installierte Shiller-Websiteinhalte an den bereitgestellten Projektkontext an, ohne Layout- oder technische Struktur neu zu entwerfen.
+description: Verbindlicher Basis-Skill ausschließlich für Shiller AI Adjust. Steuert die textuelle Anpassung vorhandener Website-Dateien an den Projektkontext mit Struktur-Lock und ausdrücklich geregelten Skill-Ausnahmen.
 ---
 
 # Shiller Content an Projektkontext anpassen
+
+**Dies ist ein AI-Adjust-Run.** Dieser Basis-Skill ist die maßgebliche
+Regelquelle für die gesamte folgende Anpassung. Seine Vorgaben gelten
+für jede Zieldatei und haben Vorrang vor allgemeinen Gestaltungs-,
+SEO- oder Textgenerierungsempfehlungen zusätzlich geladener Skills.
+Zusätzliche Skills konkretisieren die Bearbeitung; sie dürfen eine
+Strukturänderung ausschließlich im unten definierten expliziten
+Ausnahmefall freigeben. Der Skill wird nur von der AI-Adjust-Action
+geladen und darf nicht für Init, Install, Context Build oder Revert
+verwendet werden.
 
 Bearbeite genau die bereitgestellte Zieldatei. Verwende ausschließlich die als Kontext gelieferten Fakten und erfinde keine Namen, Titel, Leistungen, Adressen, Kontaktdaten, Qualifikationen oder sonstigen Praxisangaben.
 
@@ -55,8 +65,7 @@ fordert. Im Zweifel die betreffende Stelle unverändert lassen.
 
 ## Verbindliche Regelhierarchie und Skill-Auswertung
 
-Dieser Adapt-Skill ist der verbindliche Standard für jeden
-`shiller ai adjust`-Lauf. Die Ausgangsdatei definiert die Struktur:
+Die Ausgangsdatei definiert die Struktur:
 Standardmäßig ausschließlich sichtbare Texte innerhalb vorhandener
 Elemente ersetzen. Keine Sections, Überschriften, Cards, FAQ-Einträge,
 Hinweisboxen oder andere Elemente neu erzeugen, löschen, verschieben,
