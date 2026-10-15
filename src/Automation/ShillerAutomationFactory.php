@@ -152,6 +152,11 @@ final class ShillerAutomationFactory
                 ->assertReadable();
         }
 
+        $reasoningEffort = $config['ai']['reasoning_effort'] ?? 'medium';
+        if (!is_string($reasoningEffort)) {
+            throw new RuntimeException("Invalid ai.reasoning_effort in $configFile");
+        }
+
         return new ShillerContentAction(
             (string) $documentUri,
             (string) $templateUri,
@@ -160,6 +165,7 @@ final class ShillerAutomationFactory
             $logger,
             $model,
             (string) $skillsUri,
+            $reasoningEffort,
         );
     }
 
