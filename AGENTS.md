@@ -1,5 +1,17 @@
 # Repository-Regeln
 
+## Interne Basis-Skills
+
+Unter `resources/skills/` liegen die von Shiller intern verwendeten
+Basis-Skills. Sie sind keine allgemeinen Theme- oder Projekt-Skills und
+werden ausschließlich durch den jeweils dafür vorgesehenen Workflow
+geladen. Der Skill `resources/skills/adapt-content/SKILL.md` darf nur
+für die Content-Anpassung über `shiller ai adjust` beziehungsweise die
+zugehörige `ShillerContentAction` eingesetzt werden. Andere Befehle,
+insbesondere Init, Install, Context Build und Revert, dürfen ihn nicht
+laden oder als allgemeine Anweisung übernehmen. Weitere Theme- und
+Seitenspezifische Skills stammen aus dem konfigurierten `skills_dir`.
+
 ## Dateisystemzugriff
 
 Für Datei- und Verzeichniszugriffe sowie sicherheitsrelevante Pfad-, Root-, Symlink-, Hardlink-, Existenz-, Lesbarkeits-, Schreibbarkeits- und Traversierungsprüfungen ist ausschließlich `phore/filesystem` zu verwenden. Restrictions werden am Phore-Einstieg gebunden und über die daraus abgeleiteten `PhoreUri`-, `PhoreFile`- und `PhoreDirectory`-Objekte weitergereicht; native PHP-Dateisystemprüfungen, eigene Walk- oder Pfadvalidierungs-Helper und parallele Catch-and-Re-throw-Logik dürfen dafür nicht ergänzt werden. Shiller-eigene fachliche Validierungen, etwa Tags, Referenzsyntax oder Kollisionen innerhalb eines Installationsplans, bleiben Aufgabe dieser Library.
