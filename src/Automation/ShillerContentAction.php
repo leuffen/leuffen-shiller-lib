@@ -52,7 +52,7 @@ final class ShillerContentAction
         array $contextFiles,
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
-        private readonly string $model = 'gpt-5-mini',
+        private readonly string $model = 'gpt-6.1-sol',
         string $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
         private readonly bool $webAccess = false,
@@ -137,6 +137,7 @@ final class ShillerContentAction
 
         $usage = GlobalUsage::instance();
         $startStats = $usage->getStats();
+        $this->logger?->step('AI-Modell: {}; Reasoning: {}', [$this->model, $this->reasoningEffort]);
         $context = new AiContext($prompts, [
             'model' => $this->model,
             'reasoning' => ['effort' => $this->reasoningEffort],
