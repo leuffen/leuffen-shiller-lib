@@ -52,7 +52,7 @@ final class ShillerContentAction
         array $contextFiles,
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
-        private readonly string $model = 'gpt-6.1-sol',
+        private readonly string $model = ShillerAiDefaults::MODEL,
         string $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
         private readonly bool $webAccess = false,
