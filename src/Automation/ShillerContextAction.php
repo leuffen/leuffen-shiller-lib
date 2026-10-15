@@ -41,7 +41,7 @@ final class ShillerContextAction
         string $projectRoot,
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
-        private readonly string $model = 'gpt-6.1-sol',
+        private readonly string $model = ShillerAiDefaults::MODEL,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
