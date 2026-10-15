@@ -1,2 +1,8 @@
 template_dir: ../../template/_tpl
 skills_dir: ../node_modules/@leuffen/themejs2/skills
+
+# Reasoning-Stufen: none, minimal, low, medium, high, xhigh (Standard: medium).
+# Internetzugriff: true = aktiviert, false = deaktiviert (Standard: false).
+ai:
+  reasoning_effort: medium
+  web_access: true
