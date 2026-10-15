@@ -53,6 +53,25 @@ Abweichungen von diesen Erhaltungsregeln sind ausschließlich
 zulässig, wenn die konkrete Bearbeitungsanweisung sie ausdrücklich
 fordert. Im Zweifel die betreffende Stelle unverändert lassen.
 
+## Jekyll/Liquid unverändert erhalten
+
+Alle vorhandenen Jekyll-/Liquid-Anweisungen und -Ausdrücke sind
+unveränderliche Bestandteile des Templates. Dies betrifft sämtliche
+Tags der Form `{% ... %}` und Ausdrücke der Form `{{ ... }}`,
+einschließlich Varianten mit Whitespace-Steuerung (`{%- ... -%}`,
+`{{- ... -}}`). Erhalte diese Zeichenfolgen exakt, einschließlich
+Inhalt, Parametern, Filterketten, Anführungszeichen, Abständen und
+Reihenfolge. Weder ersetzen noch entfernen, umschreiben, verschieben
+oder in statischen Text umwandeln.
+
+Insbesondere `include`-, `include_relative`-, `render`- und
+sonstige Liquid-Tags sowie zugehörige öffnende und schließende
+Kontroll-Tags und Variablenreferenzen erhalten. Auch umgebende
+Template-Struktur und Einbettung in Markdown, HTML, Attribute oder
+Front Matter unverändert lassen. Bearbeite ausschließlich redaktionellen
+Text außerhalb solcher Ausdrücke; falls eine gewünschte Änderung
+einen Liquid-Ausdruck berühren würde, diesen unverändert lassen.
+
 ## YAML unter _data
 
 YAML-Dateien unter `_data/` sind editierbare strukturierte Website-Daten. Erhalte vorhandene Keys und die Grundstruktur. Passe Werte an den Projektkontext an. Eine Sidecar-Datei wie `general.yml.d.json` oder allgemein `<zieldatei>.d.*` beschreibt Felder, Schema oder Bedeutung und ist bei der Bearbeitung zu berücksichtigen. Keys duerfen nur dann hinzugefuegt oder entfernt werden, wenn die Sidecar-Beschreibung dies eindeutig verlangt.
