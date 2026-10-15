@@ -62,7 +62,9 @@ final class ShillerAutomation
             $destination = str_starts_with($relative, 'docs/')
                 ? $this->documentRoot . substr($relative, strlen('docs'))
                 : $relative;
-            $plan[$destination] = $this->installedContent($source, $source->get_contents());
+            $plan[$destination] = str_starts_with($relative, 'docs/')
+                ? $this->installedContent($source, $source->get_contents())
+                : $source->get_contents();
         }
 
         return $this->apply($this->selected($tags) + $plan);
