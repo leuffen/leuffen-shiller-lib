@@ -196,7 +196,7 @@ final class ShillerContentAction
                         . 'for this and every other file edit in this AI Adjust session. '
                         . 'Do not generate new HTML elements, tags, wrappers, or blocks. '
                         . 'Preserve existing HTML and the full original page structure. '
-                        . 'and allows structural changes only by explicit applicable exception. '
+                        . 'Only explicitly authorized, narrowly scoped structural exceptions are permitted. '
                         . 'Bearbeite ausschliesslich targetText fuer ' . $relative . ' anhand des '
                         . 'Projektkontexts und der jeweils relevanten Skills und References. '
                         . 'Lade bei Bedarf weitere Skills/References. Erhalte technische '
