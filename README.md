@@ -84,7 +84,7 @@ weitere Vorlagen unter `_tpl/`. `init()` kopiert `_root` in das Projekt und
 installiert danach Vorlagen mit mindestens einem ausgewählten Tag im gewählten Document Root. `install()`
 installiert nur markierte Vorlagen. Bereits vorhandene Zieldateien werden
 überschrieben; zwei gleichzeitig ausgewählte Vorlagen für dasselbe Ziel sind
-ein Fehler. Vor dem Kopieren werden sämtliche Ziele und Referenzen geprüft.
+ein Fehler. Vor dem Kopieren werden sämtliche Ziele geprüft.
 
 Für normale Nutzung erhält die Factory ein Startverzeichnis und übernimmt die
 gesamte Auflösung von Projektwurzel, Document Root, `.shiller.yml` und
@@ -116,9 +116,6 @@ für spätere Bearbeitung erhalten:
 shiller:
   tags: [base, seem2]
   target: index.md
-  instructions:
-    - ./index-anleitung.md
-    - tpl:/instructions/schreibstil.md
 layout: website
 ---
 ```
@@ -133,17 +130,14 @@ Installation entfernt, ebenso die Dateiendung `.template`. Eine Vorlage
 shiller:
   tags: [theme:osman]
   target: _includes/navbar.html
-  instructions: tpl:/instructions/navbar.md
 ---
 <nav>...</nav>
 ```
 
-`./` verweist auf eine Anleitungsdatei neben der Quelle, `tpl:/` auf eine
-Datei relativ zu `_tpl`. Anleitungen werden geprüft, aber nicht installiert.
-Bei Markdown werden relative Anleitungen für spätere Verwendung nach `tpl:/`
-umgeschrieben. Das Projekt muss deshalb den Template-Pfad weiterhin kennen;
-die `.shiller.yml` im Document Root verwendet dafür `template_dir`. Die KI-Bearbeitung
-dieser Anleitungen ist noch kein Teil der Automation.
+In kopierten Markdown-Dateien wird der Shiller-Block auf
+`source: pages/index.base.md` reduziert. Der Pfad ist relativ
+zum konfigurierten `_tpl/`-Verzeichnis; so bleibt die Originalvorlage
+auffindbar und `revert` kann sie direkt wiederherstellen.
 
 
 ## Installierte Inhalte an neuen Kontext anpassen
@@ -175,8 +169,7 @@ zuerst und setzt danach einen Checkpoint. Von diesem Ausgangspunkt wird
 jede ausgewaehlte Datei separat angepasst; erst nach erfolgreichen
 AI-Aufrufen werden alle Ergebnisinhalte geschrieben.
 
-Vorhandene `shiller.instructions`-Referenzen der jeweiligen Markdown-Datei
-und Sidecars `<zieldatei>.d.*` werden ebenfalls beruecksichtigt.
+Sidecars `<zieldatei>.d.*` werden ebenfalls beruecksichtigt.
 `--debug` ergaenzt Skill- und Datei-Logging. Der bisherige Einstieg
 `shiller adapt --select "index.md"` bleibt verfuegbar; Rule-Prioritaeten,
 `--event` und `--mode` werden nicht mehr verwendet.

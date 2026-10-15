@@ -27,9 +27,7 @@ final class ShillerAutomationTest extends TestCase
     public function testInitKeepsMarkdownMetadataAndStripsWrappedIncludeHeader(): void
     {
         phore_file($this->dir . '/tpl/_root/docs/_includes/nav.html')->set_contents('default');
-        phore_file($this->dir . '/tpl/instructions/style.md')->set_contents('Anleitung');
-        phore_file($this->dir . '/tpl/pages/local.md')->set_contents('Lokale Anleitung');
-        phore_file($this->dir . '/tpl/pages/index.seem1.md')->set_contents("---\nshiller:\n  tags: [seem1]\n  target: index.md\n  instructions: [./local.md, 'tpl:/instructions/style.md']\nlayout: website\n---\nStart\n");
+        phore_file($this->dir . '/tpl/pages/index.seem1.md')->set_contents("---\nshiller:\n  tags: [seem1]\n  target: index.md\nlayout: website\n---\nStart\n");
         phore_file($this->dir . '/tpl/pages/nav.html.template')->set_contents("---\nshiller:\n  tags: [seem1]\n  target: _includes/nav.html\n---\n<nav>Variante</nav>\n");
 
         $written = (new ShillerAutomation($this->dir . '/site', $this->dir . '/tpl'))->init(['seem1']);
@@ -41,8 +39,8 @@ final class ShillerAutomationTest extends TestCase
         );
         $page = phore_file($this->dir . '/site/docs/index.md')->get_contents();
         self::assertStringContainsString('shiller:', $page);
-        self::assertStringContainsString('tpl:/pages/local.md', $page);
-        self::assertStringContainsString('tpl:/instructions/style.md', $page);
+        self::assertStringContainsString('source: pages/index.seem1.md', $page);
+        self::assertStringNotContainsString('instructions:', $page);
         self::assertStringContainsString('layout: website', $page);
         self::assertFalse(phore_uri($this->dir . '/site/docs/_includes/nav.html.template')->exists());
         self::assertFalse(phore_uri($this->dir . '/site/pages/local.md')->exists());
@@ -96,7 +94,7 @@ final class ShillerAutomationTest extends TestCase
         exec($command . ' 2>&1', $output, $status);
 
         self::assertSame(0, $status, implode("\n", $output));
-        self::assertSame('Start', phore_file($this->dir . '/site/docs/index.md')->get_contents());
+        self::assertStringContainsString('source: _root/docs/index.md', phore_file($this->dir . '/site/docs/index.md')->get_contents());
     }
 
     public function testThemeJs2PackageConfigSupportsInitAndLaterInstall(): void

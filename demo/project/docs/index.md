@@ -1,7 +1,6 @@
 ---
 shiller:
-  tags: [demo]
-  target: index.md
+  source: pages/index.demo.md
 layout: website
 title: Beispielseite
 description: Unangepasste Demo-Startseite

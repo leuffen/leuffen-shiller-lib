@@ -32,7 +32,7 @@ final class ShillerContentAction
      * ergaenzt den gemeinsamen Rahmen, ersetzt jedoch keine Paket-Skills.
      *
      * @param string $documentRoot Document Root mit editierbaren Inhalten.
-     * @param string $templateDir Template-Verzeichnis fuer shiller.instructions.
+     * @param string $templateDir Template-Verzeichnis fuer Shiller-Vorlagen.
      * @param list<string> $contextFiles Projektkontext-Dateien.
      * @param string $skillFile Allgemeiner Shiller-Basis-Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
@@ -181,18 +181,6 @@ final class ShillerContentAction
                 ),
             ];
 
-            foreach ($this->templateInstructions($target, $relative) as $index => $instruction) {
-                $this->logger?->detail('Template-Anleitung: {}', [(string) $instruction]);
-                $filePrompts[] = new FilePrompt(
-                    (string) $instruction,
-                    $instruction->get_contents(),
-                    'text/markdown',
-                    alias: 'templateInstruction' . ($index + 1),
-                    instructions: 'Verbindliche Anweisungen aus shiller.instructions.',
-                    allowInstructions: true,
-                );
-            }
-
             $descriptorIndex = 0;
             foreach ($documentFiles as $candidateRelative => $candidate) {
                 if (!str_starts_with($candidateRelative, $relative . '.d.')) {
@@ -223,50 +211,4 @@ final class ShillerContentAction
         return array_keys($pending);
     }
 
-    /**
-     * Liest dateispezifische Template-Anweisungen vor der Bearbeitung.
-     *
-     * @param PhoreFile $target Die editierbare Zieldatei.
-     * @param string $relative Relativer Zieldateipfad.
-     * @return list<PhoreFile> Verifizierte Instruktionsdateien.
-     * @throws RuntimeException Bei fehlerhaftem Front Matter.
-     * @see ShillerAutomation::init()
-     * @example $instructions = $this->templateInstructions($file, 'index.md');
-     */
-    private function templateInstructions(PhoreFile $target, string $relative): array
-    {
-        if (!str_ends_with(strtolower($relative), '.md')) {
-            return [];
-        }
-        $header = $target->get_front_matter(required: false)?->header;
-        $shiller = is_array($header) ? ($header['shiller'] ?? null) : null;
-        if (!is_array($shiller)) {
-            return [];
-        }
-
-        $references = $shiller['instructions'] ?? [];
-        $references = is_string($references) ? [$references] : $references;
-        if (!is_array($references)) {
-            throw new RuntimeException('Invalid shiller.instructions for ' . $relative);
-        }
-        $instructions = [];
-        foreach ($references as $reference) {
-            if (!is_string($reference) || $reference === '') {
-                throw new RuntimeException('Invalid shiller.instructions reference in ' . $relative);
-            }
-            if (str_starts_with($reference, 'tpl:/')) {
-                $path = $this->templateDir->assertRelativePath(substr($reference, strlen('tpl:/')));
-                $instruction = $this->templateDir->withSubPath($path)->asFile();
-            } elseif (str_starts_with($reference, './')) {
-                $parent = $target->withParentDir()->assertDirectory();
-                $path = $parent->assertRelativePath(substr($reference, 2));
-                $instruction = $parent->withSubPath($path)->asFile();
-            } else {
-                throw new RuntimeException('Unsupported shiller.instructions reference: ' . $reference);
-            }
-            $instructions[] = $instruction->assertFile()->assertReadable();
-        }
-
-        return $instructions;
-    }
 }
