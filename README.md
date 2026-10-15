@@ -1,5 +1,77 @@
 # Shiller Library
 
+## CLI: Neue Website anlegen
+
+Vor dem ersten Shiller-Aufruf muss im neuen Website-Projekt das
+PHP-/Composer-Paket `leuffen/shiller-lib` installiert sein
+(`./vendor/bin/shiller` ist dann vorhanden). Das ThemeJS2-Paket
+muss unter `node_modules/@leuffen/themejs2/` liegen;
+es kann per npm bereitgestellt oder bewusst im Website-Repository
+mitversioniert werden. Die Befehle werden **im Website-Projektverzeichnis**
+ausgeführt, nicht im Theme-Paket.
+
+```sh
+# 1. Neues Website-Projektverzeichnis vorbereiten und hineinwechseln.
+mkdir meine-website
+cd meine-website
+
+# 2. Nach Bereitstellung von Composer-CLI und Theme: Startstruktur kopieren.
+./vendor/bin/shiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags base
+
+# 3. Optional: zusätzliche Theme-Variante installieren.
+./vendor/bin/shiller install --tags "theme:osman"
+
+# 4. Projektfakten in .shiller-context.d/project.md eintragen.
+#    Nur bei neuen Rohdaten in .shiller-context.d/raw/ zusätzlich:
+./vendor/bin/shiller context build
+
+# 5. Installierte Startseite aus dem Projektkontext anpassen.
+./vendor/bin/shiller adapt --select index.md
+```
+
+Nach `init` liegen die Website-Dateien in `docs/`
+(Standard-Document-Root). `_tpl/_root/docs/` wird dorthin kopiert;
+andere Dateien aus `_tpl/_root/` gehen in die Projektwurzel.
+`_tpl/_root/.shiller.yml` wird so zur Projektkonfiguration
+`.shiller.yml` mit `template_dir` und `skills_dir`.
+Die anderen Dateien unter `_tpl/` werden anhand ihrer
+`shiller.tags` installiert; `skills/` bleibt im npm-Paket.
+Die Reihenfolge lautet: **init → optional install → Kontext pflegen
+bzw. context build → adapt**. Installationsbefehle überschreiben
+vorhandene Zielinhalte, daher Varianten vor der AI-Anpassung wählen.
+
+## CLI: Eine bestehende Datei bearbeiten
+
+Bei bereits initialisierter Website aus der Projektwurzel ausführen:
+
+```sh
+# Eine Datei relativ zu docs/ bearbeiten:
+./vendor/bin/shiller adapt --select index.md
+
+# Mehrere Dateien aus derselben Website in einem Lauf:
+./vendor/bin/shiller adapt --select "index.md,_data/general.yml"
+
+# Eine Datei oder eine Template-Tag-Gruppe auswählen:
+./vendor/bin/shiller adapt --select "tag:base"
+
+# Eine geänderte Datei auf die installierte Vorlage zurücksetzen:
+./vendor/bin/shiller revert index.md
+```
+
+`adapt` nutzt die Projektfakten aus
+`.shiller-context.d/project.md` und die Skills des Theme-Pakets.
+Mit `--root public` kann der Document Root statt `docs/`
+`public/` sein; der Selektor bleibt relativ zu diesem Verzeichnis.
+`revert` verwirft individuelle Änderungen an der ausgewählten
+Datei und ist deshalb nur bewusst zu verwenden.
+
+Damit die Theme-Vorlagen und Skills **auch ohne erneutes `npm install`**
+bereitstehen, kann das Website-Repository ausschließlich
+`node_modules/@leuffen/themejs2/` vom sonst ignorierten
+`node_modules/` ausnehmen. Die konkrete `.gitignore`-Regel
+und Git-Prüfung zeigt der
+[Shiller Theme Setup Skill](skills/shiller-theme-setup/SKILL.md).
+
 Die Library enthält den Seitenzugriff über `ShillerDir` und getrennt davon die
 Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomation`.
 Projekt-, Document-Root- und Template-Konfiguration werden über
@@ -32,7 +104,7 @@ $written = $automation->init(['raven']);
 ```
 
 Wird `templateDir` weggelassen, liest die Factory `template_dir` aus
-`<document-root>/.shiller.yml`. Damit kann dieselbe Auflösung unabhängig vom
+`<projekt>/.shiller.yml`. Damit kann dieselbe Auflösung unabhängig vom
 CLI auch aus Anwendungen, Jobs oder Tests verwendet werden.
 
 Markdown-Dateien unter `_tpl` werden ausgewählt, wenn ihr YAML Front Matter
@@ -147,32 +219,18 @@ Keys und Strukturen.
 dorthin kopiert. Andere Dateien aus `_tpl/_root/` bleiben relativ zur
 Projektwurzel, zum Beispiel `package.json`.
 
-Die Konfiguration liegt als `.shiller.yml` **im Document Root**. Pfade in
-`template_dir` werden relativ zu diesem Verzeichnis aufgelöst; beim
-mitgelieferten ThemeJS2 ist das `../node_modules/@leuffen/themejs2/_tpl`.
+Die Installation nutzt `.shiller.yml` **in der Projektwurzel**. Pfade in
+`template_dir` werden relativ dazu aufgelöst; beim mitgelieferten ThemeJS2
+ist das `node_modules/@leuffen/themejs2/_tpl`.
 Ein expliziter relativer `templateDir`-Wert der Factory wird dagegen relativ
 zur Projektwurzel aufgelöst. So kann jede Website in einem eigenen
 Projektverzeichnis neben anderen Websites liegen.
 
-## Kommando
+## Weitere Aufrufe
 
-Composer stellt `bin/shiller` bereit. Das CLI ist nur ein Parameteradapter
-für `ShillerAutomationFactory` und verwendet das aktuelle Arbeitsverzeichnis
-als Startverzeichnis. Ohne `--template-dir` wird `template_dir` aus
-`.shiller.yml` im Document Root gelesen. Ohne `--root` wird `docs` im
-aktuellen Projekt verwendet; `--root` bezeichnet direkt ein anderes
-Document-Root-Verzeichnis. Der erste Aufruf kann dieses Verzeichnis über
-`_root/docs/` anlegen.
-
-```sh
-shiller init --template-dir ./node_modules/@leuffen/themejs2/_tpl --tags raven
-shiller install --tags raven
-shiller init --root /srv/site-a/public --template-dir /srv/site-a/node_modules/@leuffen/themejs2/_tpl --tags raven
-```
-
-Beim ersten Lauf wird der Paketpfad explizit übergeben. Danach enthält die kopierte
-`docs/.shiller.yml` den `template_dir` für weitere Aufrufe. Ein expliziter
-relativer `--template-dir`-Pfad bezieht sich auf die Projektwurzel.
+Die ausführliche CLI-Reihenfolge steht am Anfang dieser README; der
+verbindliche Template-Vertrag in [AGENTS.md](AGENTS.md) und die
+[AI Usage Info](.ai-usage-info.md) liefern Layout und Beispiele.
 
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-shiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
