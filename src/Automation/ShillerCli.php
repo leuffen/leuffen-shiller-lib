@@ -192,7 +192,7 @@ final class ShillerCli
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
         string $skill = '',
         #[CliParameter('model', 'AI-Modell')]
-        string $model = 'gpt-5-mini',
+        string $model = 'gpt-6.1-sol',
         #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
@@ -315,7 +315,7 @@ final class ShillerContextCli
         #[CliParameter('skill', 'Optionaler Context-Build-Skill')]
         string $skill = '',
         #[CliParameter('model', 'AI-Modell')]
-        string $model = 'gpt-5-mini',
+        string $model = 'gpt-6.1-sol',
     ): void {
         foreach ($argv as $source) {
             if (!is_string($source) || trim($source) === '') {
@@ -365,7 +365,7 @@ final class ShillerAiCli
         #[CliParameter('skill', 'Optionaler Basis-Skill')]
         string $skill = '',
         #[CliParameter('model', 'AI-Modell')]
-        string $model = 'gpt-5-mini',
+        string $model = 'gpt-6.1-sol',
         #[CliParameter('template-dir', 'Pfad zum _tpl-Verzeichnis')]
         string $templateDir = '',
         #[CliParameter('root', 'Document Root')]
