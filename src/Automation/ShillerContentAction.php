@@ -228,8 +228,9 @@ final class ShillerContentAction
                 $target->set_contents($content);
                 $written[] = $relative;
                 $task?->success();
-                $this->reportUsage('Datei', $beforeFile, $usage->getStats());
-                $this->reportUsage('Gesamt', $startStats, $usage->getStats());
+                $afterFile = $usage->getStats();
+                echo 'Datei: ' . $this->formatUsage($beforeFile, $afterFile)
+                    . ' | Gesamt: ' . $this->formatUsage($startStats, $afterFile) . PHP_EOL;
             } catch (Throwable $e) {
                 $task?->failure($e->getMessage());
                 throw $e;
@@ -240,16 +241,39 @@ final class ShillerContentAction
     }
 
     /** @param array<string, mixed> $before @param array<string, mixed> $after */
-    private function reportUsage(string $label, array $before, array $after): void
+    private function formatUsage(array $before, array $after): string
     {
-        $tokens = $after['totalTokens'] - $before['totalTokens'];
-        $missing = $after['missingUsageRequests'] - $before['missingUsageRequests'];
-        $unpriced = $after['unpricedRequests'] - $before['unpricedRequests'];
+        $input = $after['inputTokens'] - $before['inputTokens'];
+        $reasoning = $after['reasoningOutputTokens'] - $before['reasoningOutputTokens'];
+        $cached = $after['cachedInputTokens'] - $before['cachedInputTokens'];
+        $output = $after['outputTokens'] - $before['outputTokens'];
         $cost = $after['knownCostUsd'] - $before['knownCostUsd'];
-        $tokenText = $missing > 0 ? 'mindestens ' . $tokens : (string) $tokens;
-        $costText = $missing > 0 || $unpriced > 0
-            ? 'nicht vollstaendig bestimmbar (bekannt: ' . chr(36) . number_format($cost, 6, '.', '') . ')'
-            : chr(36) . number_format($cost, 6, '.', '');
-        echo sprintf('%s: %s Tokens, Kosten geschaetzt: %s', $label, $tokenText, $costText) . PHP_EOL;
+        $incomplete = $after['missingUsageRequests'] > $before['missingUsageRequests']
+            || $after['unpricedRequests'] > $before['unpricedRequests'];
+        $costText = '$' . number_format($cost, $cost < 0.01 ? 6 : 4, '.', '');
+        if ($incomplete) {
+            $costText .= '+ (unvollstaendig)';
+        }
+
+        return sprintf(
+            'In %s | Reasoning %s | Cache %s | Out %s | estimated %s%s',
+            $this->formatTokens($input),
+            $this->formatTokens($reasoning),
+            $this->formatTokens($cached),
+            $this->formatTokens($output),
+            $costText,
+            $incomplete ? ' (Tokens mindestens)' : '',
+        );
+    }
+
+    private function formatTokens(int $tokens): string
+    {
+        if ($tokens >= 1_000_000) {
+            return rtrim(rtrim(number_format($tokens / 1_000_000, 1, '.', ''), '0'), '.') . 'M';
+        }
+        if ($tokens >= 1_000) {
+            return rtrim(rtrim(number_format($tokens / 1_000, 1, '.', ''), '0'), '.') . 'k';
+        }
+        return (string) $tokens;
     }
 }
