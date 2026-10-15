@@ -53,6 +53,39 @@ Abweichungen von diesen Erhaltungsregeln sind ausschließlich
 zulässig, wenn die konkrete Bearbeitungsanweisung sie ausdrücklich
 fordert. Im Zweifel die betreffende Stelle unverändert lassen.
 
+## Keine neuen Sections bei bestehenden Seiten
+
+Bei `shiller ai adjust` ist die vorhandene Datei der verbindliche
+Strukturvertrag. Erstelle keine zusätzlichen H2-/H3-Sections, Infoboxen,
+Cards, Teaser, Hinweisbereiche, FAQs, Listenblöcke oder sonstigen
+Inhaltskomponenten. Dupliziere keine vorhandenen Sections und verschiebe
+keine Inhalte in neu geschaffene Bereiche. Bewahre Anzahl, Reihenfolge,
+Überschriften und Funktion jeder Section. Die Übernahme neuer
+Projektinformationen ist **keine** Erlaubnis zur Erweiterung der
+Seitenstruktur. Ein neuer Abschnitt ist nur bei einer ausdrücklichen,
+konkreten Anweisung im Projektkontext oder Bearbeitungsauftrag zulässig;
+die bloße Erwähnung neuer Fakten reicht nicht.
+
+Ordne belegte zusätzliche Informationen nur dann bestehenden Texten zu,
+wenn sie thematisch und semantisch wirklich passen, und halte den
+ursprünglichen Umfang annähernd ein. Nutzerfragen gehören, sofern eine
+passende FAQ-Section existiert, in deren **bereits vorhandene** Inhalte;
+ohne geeigneten Platz lass die Information weg und melde den Bedarf,
+statt eigenmächtig eine neue Section zu erzeugen. Füge keine
+Organisationsübersicht oder vergleichbare Sammel-Section ein.
+
+Vorhandene Hinweisboxen bleiben einschließlich ihrer konkreten
+Überschriften und Aussagen erhalten. Insbesondere „Aktuelle Hinweise
+zum Coronavirus“ darf nicht in „Aktuelle Hinweise“ oder „Keine aktuellen
+Hinweise“ umgewandelt werden. Ersetze solche Hinweise nur, wenn eine
+ausdrückliche und hinreichend konkrete Anweisung die Änderung verlangt.
+
+Prüfe vor `write_text` die ursprüngliche und die resultierende Datei:
+Anzahl und Reihenfolge der H2-/H3-Sections, Abschnittstitel, Layout-
+und Komponentenmarker sowie Hinweisbox-Inhalte müssen übereinstimmen,
+sofern keine ausdrücklich autorisierte Abweichung vorliegt. Bei
+Verstößen korrigiere die Anpassung vor dem Schreiben.
+
 ## Jekyll/Liquid unverändert erhalten
 
 Alle vorhandenen Jekyll-/Liquid-Anweisungen und -Ausdrücke sind
