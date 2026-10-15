@@ -157,7 +157,10 @@ final class ShillerContentAction
             $contextTask?->detail('Lade Skills und analysiere Projektinformationen');
             $context->do(
                 new TextPrompt(
-                    'Analysiere die Projektfakten und das Skill-Angebot. Lade ueber skill_load '
+                    'This is an AI Adjust session. The preloaded shiller-adapt-content base skill '
+                    . 'is mandatory for this entire session and all subsequent file edits, '
+                . 'including cloned contexts. Apply its rules before other skills. '
+                . 'Analysiere die Projektfakten und das Skill-Angebot. Lade ueber skill_load '
                 . 'den passenden ThemeJS2-Skill. Erarbeite den Bearbeitungsrahmen '
                 . 'ohne Dateiaenderungen; erfinde keine Fakten.',
                     alias: 'analyzeTask',
@@ -189,7 +192,9 @@ final class ShillerContentAction
                 $fileContext->rollback('project-analyzed');
                 $filePrompts = [
                     new TextPrompt(
-                        'Bearbeite ausschliesslich targetText fuer ' . $relative . ' anhand des '
+                        'The mandatory shiller-adapt-content base skill governs this file edit '
+                        . 'and allows structural changes only by explicit applicable exception. '
+                        . 'Bearbeite ausschliesslich targetText fuer ' . $relative . ' anhand des '
                         . 'Projektkontexts und der jeweils relevanten Skills und References. '
                         . 'Lade bei Bedarf weitere Skills/References. Erhalte technische '
                         . 'Struktur und YAML-Keys; erfinde keine Fakten. Aendere nur '
