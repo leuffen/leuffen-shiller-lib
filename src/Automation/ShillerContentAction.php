@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
+use Phore\AiHarness\Usage\GlobalUsage;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
@@ -52,9 +53,13 @@ final class ShillerContentAction
         private readonly ?PhoreLogger $logger = null,
         private readonly string $model = 'gpt-5-mini',
         string $skillsDirectory = '',
+        private readonly string $reasoningEffort = 'medium',
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
+        }
+        if (!in_array($reasoningEffort, ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'], true)) {
+            throw new RuntimeException('Invalid reasoning effort: ' . $reasoningEffort);
         }
         if ($contextFiles === []) {
             throw new RuntimeException('At least one Shiller context file is required.');
@@ -109,8 +114,7 @@ final class ShillerContentAction
     {
         $targets = (new ShillerContentSelector((string) $this->documentRoot))->select($selectors);
         if ($targets === []) {
-            $this->logger?->skip('Keine passenden Shiller-Inhalte gefunden.');
-            return [];
+            throw new RuntimeException('No files match the requested selectors.');
         }
 
         $prompts = [
@@ -134,7 +138,13 @@ final class ShillerContentAction
             );
         }
 
-        $context = new AiContext($prompts, ['model' => $this->model, 'debug_log' => $debug]);
+        $usage = GlobalUsage::instance();
+        $startStats = $usage->getStats();
+        $context = new AiContext($prompts, [
+            'model' => $this->model,
+            'reasoning' => ['effort' => $this->reasoningEffort],
+            'debug_log' => $debug,
+        ]);
         $skills = $context->skills()->addDirectory((string) $this->skillsDirectory);
         $available = array_column($skills->list(), 'name');
         if ($available === []) {
@@ -162,7 +172,7 @@ final class ShillerContentAction
             $documentFiles[$path] = $file;
         }
 
-        $pending = [];
+        $written = [];
         foreach ($targets as $target) {
             $relative = str_replace('\\', '/', (string) $target->getRelPath($this->documentRoot));
             $this->logger?->step('Bearbeite mit Skills: {}', [$relative]);
@@ -197,18 +207,30 @@ final class ShillerContentAction
                 );
             }
 
-            $pending[$relative] = [
-                'file' => $target,
-                'content' => $fileContext->text($filePrompts, input: $target->get_contents()),
-            ];
-        }
-
-        foreach ($pending as $relative => $result) {
-            $result['file']->set_contents($result['content']);
+            $beforeFile = $usage->getStats();
+            $content = $fileContext->text($filePrompts, input: $target->get_contents());
+            $target->set_contents($content);
+            $written[] = $relative;
             $this->logger?->success('Angepasst: {}', [$relative]);
+            echo 'Angepasst: ' . $relative . PHP_EOL;
+            $this->reportUsage('Datei', $beforeFile, $usage->getStats());
+            $this->reportUsage('Gesamt', $startStats, $usage->getStats());
         }
 
-        return array_keys($pending);
+        return $written;
     }
 
+    /** @param array<string, mixed> $before @param array<string, mixed> $after */
+    private function reportUsage(string $label, array $before, array $after): void
+    {
+        $tokens = $after['totalTokens'] - $before['totalTokens'];
+        $missing = $after['missingUsageRequests'] - $before['missingUsageRequests'];
+        $unpriced = $after['unpricedRequests'] - $before['unpricedRequests'];
+        $cost = $after['knownCostUsd'] - $before['knownCostUsd'];
+        $tokenText = $missing > 0 ? 'mindestens ' . $tokens : (string) $tokens;
+        $costText = $missing > 0 || $unpriced > 0
+            ? 'nicht vollstaendig bestimmbar (bekannt:  . number_format($cost, 6, '.', '') . ')'
+            : ' . number_format($cost, 6, '.', '');
+        echo sprintf('%s: %s Tokens, Kosten geschaetzt: %s', $label, $tokenText, $costText) . PHP_EOL;
+    }
 }
