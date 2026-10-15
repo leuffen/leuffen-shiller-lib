@@ -61,7 +61,7 @@ final class ShillerAutomationFactory
         array $additionalContextFiles = [],
         string $skillFile = '',
         ?PhoreLogger $logger = null,
-        string $model = 'gpt-5-mini',
+        string $model = 'gpt-6.1-sol',
         string $skillsDir = '',
     ): ShillerContentAction {
         $documentUri = str_starts_with($documentRoot, '/')
@@ -193,7 +193,7 @@ final class ShillerAutomationFactory
     public function createContextAction(
         string $skillFile = '',
         ?PhoreLogger $logger = null,
-        string $model = 'gpt-5-mini',
+        string $model = 'gpt-6.1-sol',
     ): ShillerContextAction {
         $projectRoot = $this->startDirectory;
 
