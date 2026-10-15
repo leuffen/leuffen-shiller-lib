@@ -154,6 +154,15 @@ shiller ai --debug --context "context/zusatz.md" adjust index.md
 shiller revert index.md "_data/*.yml"
 ```
 
+Internetrecherche ist bei `ai adjust` standardmaessig deaktiviert.
+In `.shiller.yml` kann sie gezielt aktiviert werden:
+
+```yaml
+ai:
+  reasoning_effort: medium
+  web_access: true
+```
+
 Die Factory liest `skills_dir` aus der `.shiller.yml`; ohne Angabe gilt
 `node_modules/@leuffen/themejs2/skills` relativ zur Projektwurzel.
 Konfigurierte relative Skill-Pfade beziehen sich auf die `.shiller.yml`.

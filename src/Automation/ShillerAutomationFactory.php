@@ -152,6 +152,16 @@ final class ShillerAutomationFactory
                 ->assertReadable();
         }
 
+        $reasoningEffort = $config['ai']['reasoning_effort'] ?? 'medium';
+        if (!is_string($reasoningEffort)) {
+            throw new RuntimeException("Invalid ai.reasoning_effort in $configFile");
+        }
+
+        $webAccess = $config['ai']['web_access'] ?? false;
+        if (!is_bool($webAccess)) {
+            throw new RuntimeException("Invalid ai.web_access in $configFile: expected boolean");
+        }
+
         return new ShillerContentAction(
             (string) $documentUri,
             (string) $templateUri,
@@ -160,6 +170,8 @@ final class ShillerAutomationFactory
             $logger,
             $model,
             (string) $skillsUri,
+            $reasoningEffort,
+            $webAccess,
         );
     }
 

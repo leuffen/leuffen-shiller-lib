@@ -55,6 +55,22 @@ final class ShillerContentSelectorTest extends TestCase
         self::assertCount(2, $selector->select(['tag:arzt', '_data/general.yml']));
     }
 
+    public function testExactFileSelectionNeverIncludesUnrelatedContent(): void
+    {
+        $selector = new ShillerContentSelector($this->dir . '/site/docs');
+        $root = phore_dir($this->dir . '/site/docs');
+
+        $paths = static fn(array $files): array => array_map(
+            static fn($file): string => (string) $file->getRelPath($root),
+            $files,
+        );
+
+        self::assertSame(['index.md'], $paths($selector->select(['index.md'])));
+        self::assertSame(['_data/general.yml'], $paths($selector->select(['_data/general.yml'])));
+        self::assertSame(['leistungen/index.md'], $paths($selector->select(['leistungen/*.md'])));
+        self::assertSame([], $selector->select(['missing.md']));
+    }
+
     public function testFactoryBuildsContentActionWithShillerContextDirectory(): void
     {
         phore_file($this->dir . '/site/.shiller.yml')->set_contents("doc_root: docs\ntemplate_dir: tpl\n");
