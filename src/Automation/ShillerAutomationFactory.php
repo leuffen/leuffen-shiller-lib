@@ -157,7 +157,7 @@ final class ShillerAutomationFactory
             throw new RuntimeException("Invalid ai.reasoning_effort in $configFile");
         }
 
-        $webAccess = $config['ai']['web_access'] ?? true;
+        $webAccess = $config['ai']['web_access'] ?? false;
         if (!is_bool($webAccess)) {
             throw new RuntimeException("Invalid ai.web_access in $configFile: expected boolean");
         }
