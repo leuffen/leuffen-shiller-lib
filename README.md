@@ -154,13 +154,13 @@ shiller ai --debug --context "context/zusatz.md" adjust index.md
 shiller revert index.md "_data/*.yml"
 ```
 
-Internetrecherche ist bei `ai adjust` standardmaessig eingeschaltet.
-In `.shiller.yml` kann sie gezielt deaktiviert werden:
+Internetrecherche ist bei `ai adjust` standardmaessig deaktiviert.
+In `.shiller.yml` kann sie gezielt aktiviert werden:
 
 ```yaml
 ai:
   reasoning_effort: medium
-  web_access: false
+  web_access: true
 ```
 
 Die Factory liest `skills_dir` aus der `.shiller.yml`; ohne Angabe gilt
