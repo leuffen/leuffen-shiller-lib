@@ -55,7 +55,7 @@ final class ShillerContentAction
         private readonly string $model = 'gpt-5-mini',
         string $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
-        private readonly bool $webAccess = true,
+        private readonly bool $webAccess = false,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
