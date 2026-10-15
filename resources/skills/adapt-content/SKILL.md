@@ -1,6 +1,6 @@
 ---
 name: shiller-adapt-content
-description: Verbindlicher Basis-Skill ausschließlich für Shiller AI Adjust. Steuert die textuelle Anpassung vorhandener Website-Dateien an den Projektkontext mit Struktur-Lock und ausdrücklich geregelten Skill-Ausnahmen.
+description: Verbindlicher Shiller-Basis-Skill und maßgebliche Regelquelle für alle weiteren Maßnahmen der Content-Anpassung. Seine Struktur- und Inhaltsschutzregeln gelten vorrangig; weitere Skills ergänzen sie nur im ausdrücklich erlaubten Umfang.
 ---
 
 # Shiller Content an Projektkontext anpassen
@@ -11,9 +11,7 @@ für jede Zieldatei und haben Vorrang vor allgemeinen Gestaltungs-,
 SEO- oder Textgenerierungsempfehlungen zusätzlich geladener Skills.
 Zusätzliche Skills konkretisieren die Bearbeitung; sie dürfen eine
 Strukturänderung ausschließlich im unten definierten expliziten
-Ausnahmefall freigeben. Der Skill wird nur von der AI-Adjust-Action
-geladen und darf nicht für Init, Install, Context Build oder Revert
-verwendet werden.
+Ausnahmefall freigeben.
 
 Bearbeite genau die bereitgestellte Zieldatei. Verwende ausschließlich die als Kontext gelieferten Fakten und erfinde keine Namen, Titel, Leistungen, Adressen, Kontaktdaten, Qualifikationen oder sonstigen Praxisangaben.
 
