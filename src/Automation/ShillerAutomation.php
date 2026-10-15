@@ -143,7 +143,7 @@ final class ShillerAutomation
         throw new RuntimeException("No shiller.source found for $targetRelative");
     }
 
-    /** Gibt kopierten Markdown-Dateien ausschliesslich die Herkunft im Shiller-Block. */
+    /** Ergaenzt bei kopierten Markdown-Dateien die Herkunft im bestehenden Shiller-Block. */
     private function installedContent(PhoreFile $source, string $content): string
     {
         $relative = str_replace('\\', '/', (string) $source->getRelPath($this->templateDir));
@@ -160,7 +160,12 @@ final class ShillerAutomation
         if (!is_array($header)) {
             throw new RuntimeException("Invalid YAML header: $source");
         }
-        $header['shiller'] = ['source' => $relative];
+        $shiller = $header['shiller'] ?? [];
+        if (!is_array($shiller)) {
+            throw new RuntimeException("Invalid shiller options: $source");
+        }
+        $shiller['source'] = $relative;
+        $header['shiller'] = $shiller;
         $frontMatter->header = $header;
         return $frontMatter->render();
     }
