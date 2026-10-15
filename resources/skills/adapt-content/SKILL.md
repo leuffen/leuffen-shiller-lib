@@ -13,6 +13,65 @@ Bei Markdown bleiben die vorhandenen Sections, Layout-Attribute, Komponenten, Li
 
 Die Meta-Description `description` soll den angepassten Seiteninhalt knapp und sachlich wiedergeben. Überschriften und bestehende Inhaltsbereiche dürfen textlich angepasst werden; die Seite soll aber nicht in ein neues Layout oder eine neue Informationsarchitektur umgebaut werden.
 
+## Verbindlicher Bestandsschutz
+
+Passe bestehende Seiten konservativ an: Der Auftrag ist eine inhaltliche
+Anpassung an den Projektkontext, kein Redesign. Erhalte die Anzahl,
+Reihenfolge, Art und Funktion der vorhandenen Sections und Komponenten
+sowie ihre innere Struktur, Spalten, Cards, Listen und Zuordnungen.
+Insbesondere bleibt ein Arzt-Statement eine Statement-Komponente und
+wird nicht in eine gewöhnliche Textspalte umgewandelt. Eine
+Leistungsübersicht behält ihre Einträge, Gruppierung und Darstellung.
+
+Bilder, Bildreferenzen, Alt-Texte und Bildpositionen dürfen nicht
+entfernt oder durch reine Textblöcke ersetzt werden. Bestehende Bilder
+bleiben erhalten, sofern der Auftrag keinen Austausch verlangt.
+Fehlt ein benötigtes Bild oder ist ein Bild ausdrücklich zu ersetzen,
+verwende ausschließlich ein zur Section passendes Bild aus dem
+bereitgestellten Projektkontext. Gibt es dort kein verlässliches
+Bild, erhalte ein vorhandenes Platzhalterbild beziehungsweise dessen
+Referenz; erfinde keine Bildpfade oder externen Bildquellen.
+
+Bewahre die fachliche Aussage, den Zweck und die inhaltliche
+Gewichtung jedes Abschnitts. Insbesondere medizinische Leistungen,
+Aussagen eines Arztes und vorhandene Hinweise dürfen weder
+sinnentstellend umgeschrieben noch ohne Auftrag gestrichen, ergänzt
+oder anders angeordnet werden. Halte Textlänge, Absatzanzahl,
+Überschriftenhierarchie und Umfang der Einträge möglichst nah an
+der Vorlage, damit die visuelle Größe der Sections stabil bleibt.
+Nutze neue Projektfakten nur dort, wo sie zu bestehenden Inhalten
+passen; fehlende Fakten sind kein Grund, den Abschnitt umzubauen.
+
+Hinweisbereiche wie „Aktuelle Hinweise“ bleiben als vorhandene
+Section bestehen. Veraltete oder beispielhafte Hinweise (etwa zu
+Corona) nicht eigenmächtig durch erfundene aktuelle Meldungen
+ersetzen und keinen neuen Hinweisblock ohne Auftrag hinzufügen.
+Wenn keine verifizierten aktuellen Hinweise vorliegen, vorhandene
+Platzhalter und Struktur erhalten.
+
+Abweichungen von diesen Erhaltungsregeln sind ausschließlich
+zulässig, wenn die konkrete Bearbeitungsanweisung sie ausdrücklich
+fordert. Im Zweifel die betreffende Stelle unverändert lassen.
+
+## Jekyll/Liquid unverändert erhalten
+
+Alle vorhandenen Jekyll-/Liquid-Anweisungen und -Ausdrücke sind
+unveränderliche Bestandteile des Templates. Dies betrifft sämtliche
+Tags der Form `{% ... %}` und Ausdrücke der Form `{{ ... }}`,
+einschließlich Varianten mit Whitespace-Steuerung (`{%- ... -%}`,
+`{{- ... -}}`). Erhalte diese Zeichenfolgen exakt, einschließlich
+Inhalt, Parametern, Filterketten, Anführungszeichen, Abständen und
+Reihenfolge. Weder ersetzen noch entfernen, umschreiben, verschieben
+oder in statischen Text umwandeln.
+
+Insbesondere `include`-, `include_relative`-, `render`- und
+sonstige Liquid-Tags sowie zugehörige öffnende und schließende
+Kontroll-Tags und Variablenreferenzen erhalten. Auch umgebende
+Template-Struktur und Einbettung in Markdown, HTML, Attribute oder
+Front Matter unverändert lassen. Bearbeite ausschließlich redaktionellen
+Text außerhalb solcher Ausdrücke; falls eine gewünschte Änderung
+einen Liquid-Ausdruck berühren würde, diesen unverändert lassen.
+
 ## YAML unter _data
 
 YAML-Dateien unter `_data/` sind editierbare strukturierte Website-Daten. Erhalte vorhandene Keys und die Grundstruktur. Passe Werte an den Projektkontext an. Eine Sidecar-Datei wie `general.yml.d.json` oder allgemein `<zieldatei>.d.*` beschreibt Felder, Schema oder Bedeutung und ist bei der Bearbeitung zu berücksichtigen. Keys duerfen nur dann hinzugefuegt oder entfernt werden, wenn die Sidecar-Beschreibung dies eindeutig verlangt.
