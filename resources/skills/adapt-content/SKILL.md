@@ -23,6 +23,7 @@ not page generation or redesign.
   Do not add, remove, duplicate, reorder or replace sections, elements
   or components. A doctor's statement remains a statement component;
   a services grid retains its entries and presentation.
+- **Never generate new HTML:** Do not introduce HTML tags, elements, wrappers, attributes, inline styles, scripts, or raw HTML blocks. In particular, never generate a new `<div class="team-grid">`, physician/team list or equivalent component. Existing HTML must remain intact and in place; only its already-present visible text may change. An explicit instruction naming the precise HTML change is required for an exception; generic content or page-specific guidance is not authorization.
 - Preserve images, their references, positions and alt text. If an
   image replacement is explicitly requested, use only a verified
   relevant image from project context; otherwise keep the original or
