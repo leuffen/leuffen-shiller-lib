@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
+use Phore\AiHarness\ToolType\WebAccessTool;
 use Phore\AiHarness\Usage\GlobalUsage;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -54,6 +55,7 @@ final class ShillerContentAction
         private readonly string $model = 'gpt-5-mini',
         string $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
+        private readonly bool $webAccess = true,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
@@ -136,6 +138,10 @@ final class ShillerContentAction
                 instructions: 'Verbindliche Projektfakten und Bearbeitungshinweise.',
                 allowInstructions: true,
             );
+        }
+
+        if ($this->webAccess) {
+            $prompts[] = new WebAccessTool();
         }
 
         $usage = GlobalUsage::instance();
