@@ -85,13 +85,9 @@ final class ShillerAutomationFactory
             if (!is_string($templateDir) || $templateDir === '') {
                 throw new RuntimeException("Missing template_dir in $configFile");
             }
-            $templateUri = str_starts_with($templateDir, '/')
-                ? phore_uri($templateDir)->abs()
-                : $configDir->withRelativePath($templateDir);
+            $templateUri = $this->resolveExternalPath($configDir, $templateDir);
         } else {
-            $templateUri = str_starts_with($templateDir, '/')
-                ? phore_uri($templateDir)->abs()
-                : $projectRoot->withRelativePath($templateDir);
+            $templateUri = $this->resolveExternalPath($projectRoot, $templateDir);
         }
         $templateUri->assertDirectory()->assertReadable();
 
@@ -104,9 +100,7 @@ final class ShillerAutomationFactory
         }
         $skillsUri = $skillsDir === ''
             ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
-            : (str_starts_with($skillsDir, '/')
-                ? phore_uri($skillsDir)->abs()
-                : $configDir->withRelativePath($skillsDir));
+            : $this->resolveExternalPath($configDir, $skillsDir);
         $skillsUri->assertDirectory()->assertReadable();
 
         $contextDirectory = $projectRoot
@@ -246,13 +240,9 @@ final class ShillerAutomationFactory
                 throw new RuntimeException("Missing template_dir in $configFile");
             }
 
-            $templateUri = str_starts_with($templateDir, '/')
-                ? phore_uri($templateDir)->abs()
-                : $projectRoot->withRelativePath($templateDir);
+            $templateUri = $this->resolveExternalPath($projectRoot, $templateDir);
         } else {
-            $templateUri = str_starts_with($templateDir, '/')
-                ? phore_uri($templateDir)->abs()
-                : $projectRoot->withRelativePath($templateDir);
+            $templateUri = $this->resolveExternalPath($projectRoot, $templateDir);
         }
 
         return new ShillerAutomation(
@@ -261,5 +251,18 @@ final class ShillerAutomationFactory
             $documentName,
             $logger,
         );
+    }
+
+    /**
+     * Loest einen vertrauenswuerdigen Konfigurationspfad ohne Projekt-Root-Grenze auf.
+     * Das Ziel wird von der jeweils erzeugten Automation als eigene Root gebunden.
+     */
+    private function resolveExternalPath(PhoreDirectory $baseDirectory, string $path): \Phore\FileSystem\PhoreUri
+    {
+        if (str_starts_with($path, '/')) {
+            return phore_uri($path)->abs();
+        }
+
+        return phore_dir((string) $baseDirectory)->withRelativePath($path);
     }
 }

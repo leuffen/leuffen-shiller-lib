@@ -83,6 +83,23 @@ final class ShillerAutomationTest extends TestCase
         );
     }
 
+    public function testFactoryAllowsConfiguredTemplateOutsideProjectRoot(): void
+    {
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("template_dir: ../tpl\n");
+        phore_file($this->dir . '/tpl/pages/outside.md')->set_contents(
+            "---\nshiller:\n  tags: [outside]\n  target: index.md\n---\nOutside\n",
+        );
+
+        $automation = (new ShillerAutomationFactory($this->dir . '/site'))->create();
+        $written = $automation->install(['outside']);
+
+        self::assertContains('docs/index.md', $written);
+        self::assertStringContainsString(
+            'Outside',
+            phore_file($this->dir . '/site/docs/index.md')->get_contents(),
+        );
+    }
+
     public function testCliInitializesFromTemplateDirectory(): void
     {
         phore_file($this->dir . '/tpl/_root/docs/index.md')->set_contents('Start');
