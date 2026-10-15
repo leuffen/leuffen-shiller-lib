@@ -392,9 +392,7 @@ final class ShillerAiCli
             )
             ->adapt($selectors, $debug);
 
-        if ($written !== []) {
-            echo implode("\\n", $written) . "\\n";
-        }
+        // Ergebnisse werden bereits unmittelbar nach jeder Datei ausgegeben.
     }
 
     /** @param array<int, string> $argv @return list<string> */
