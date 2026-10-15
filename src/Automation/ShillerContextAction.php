@@ -41,7 +41,7 @@ final class ShillerContextAction
         string $projectRoot,
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
-        private readonly string $model = 'gpt-5-mini',
+        private readonly string $model = ShillerAiDefaults::MODEL,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
@@ -181,6 +181,7 @@ final class ShillerContextAction
         );
 
         // Text-Edits nutzen dieselbe Cursor- und Callback-API wie adapt.
+        $this->logger?->step('AI-Modell: {}', [$this->model]);
         $context = new AiContext(options: ['model' => $this->model]);
         $result = $context->text($prompts, input: $this->projectFile->get_contents());
         $this->projectFile->set_contents($result);
