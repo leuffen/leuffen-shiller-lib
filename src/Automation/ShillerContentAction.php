@@ -102,7 +102,7 @@ final class ShillerContentAction
      * Analysiert den Kontext einmal und bearbeitet die Zieldateien einzeln.
      *
      * Ein Checkpoint nach der gemeinsamen Analyse trennt die Dateianpassungen.
-     * Erst wenn alle AI-Aufrufe erfolgreich waren, werden Dateien geschrieben.
+     * Jede Datei wird direkt nach ihrer erfolgreichen Anpassung geschrieben.
      *
      * @param string|list<string>|null $selectors Exakte Pfade, Globs oder Tags.
      * @param bool $debug Skill- und Datei-Debugging aktivieren.
@@ -157,10 +157,12 @@ final class ShillerContentAction
             throw new RuntimeException('No SKILL.md found in skill directory: ' . $this->skillsDirectory);
         }
         $this->logger?->step('Verfuegbare Skills: {}', [implode(', ', $available)]);
-        $this->logger?->step('Analysiere Kontext fuer {} Dateien.', [count($targets)]);
+        $contextTask = $this->logger?->start('Analysiere Projektkontext');
 
         // Alle Dateien zweigen vom selben analysierten Ausgangszustand ab.
-        $context->do(
+        try {
+            $contextTask?->detail('Lade Skills und analysiere Projektinformationen');
+            $context->do(
             new TextPrompt(
                 'Analysiere die Projektfakten und das Skill-Angebot. Lade ueber skill_load '
                 . 'den passenden ThemeJS2-Skill. Erarbeite den Bearbeitungsrahmen '
@@ -170,7 +172,12 @@ final class ShillerContentAction
             ),
             throw: true,
         );
-        $context->setCheckpoint('project-analyzed');
+            $context->setCheckpoint('project-analyzed');
+            $contextTask?->success();
+        } catch (Throwable $e) {
+            $contextTask?->failure($e->getMessage());
+            throw $e;
+        }
 
         $documentFiles = [];
         foreach ($this->documentRoot->listFiles(recursive: true, sort: 'path') as $file) {
@@ -181,7 +188,9 @@ final class ShillerContentAction
         $written = [];
         foreach ($targets as $target) {
             $relative = str_replace('\\', '/', (string) $target->getRelPath($this->documentRoot));
-            $this->logger?->step('Bearbeite mit Skills: {}', [$relative]);
+            $task = $this->logger?->start('Bearbeite {}', [$relative]);
+            try {
+                $task?->detail('Lade passende Skills');
 
             $fileContext = clone $context;
             $fileContext->rollback('project-analyzed');
@@ -214,13 +223,18 @@ final class ShillerContentAction
             }
 
             $beforeFile = $usage->getStats();
+            $task?->detail('Generiere angepassten Inhalt');
             $content = $fileContext->text($filePrompts, input: $target->get_contents());
+            $task?->detail('Schreibe Datei ins Filesystem');
             $target->set_contents($content);
             $written[] = $relative;
-            $this->logger?->success('Angepasst: {}', [$relative]);
-            echo 'Angepasst: ' . $relative . PHP_EOL;
+            $task?->success();
             $this->reportUsage('Datei', $beforeFile, $usage->getStats());
             $this->reportUsage('Gesamt', $startStats, $usage->getStats());
+            } catch (Throwable $e) {
+                $task?->failure($e->getMessage());
+                throw $e;
+            }
         }
 
         return $written;
