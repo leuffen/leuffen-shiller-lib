@@ -54,7 +54,10 @@ final class ShillerContentSelector
             $selectors = [$selectors];
         }
         $selectors = array_values(array_filter(
-            array_map(static fn(mixed $selector): string => is_string($selector) ? trim($selector) : '', $selectors ?? []),
+            array_map(
+                fn(mixed $selector): string => is_string($selector) ? $this->normalizeSelector($selector) : '',
+                $selectors ?? [],
+            ),
             static fn(string $selector): bool => $selector !== '',
         ));
         if ($selectors === []) {
@@ -134,5 +137,21 @@ final class ShillerContentSelector
         }
 
         return array_values($selected);
+    }
+
+    /** Accept selectors relative to either the project root or the document root. */
+    private function normalizeSelector(string $selector): string
+    {
+        $selector = ltrim(str_replace('\\', '/', trim($selector)), './');
+        if (str_starts_with($selector, 'tag:')) {
+            return $selector;
+        }
+
+        $documentRootPrefix = $this->documentRoot->getBasename() . '/';
+        if (str_starts_with($selector, $documentRootPrefix)) {
+            return substr($selector, strlen($documentRootPrefix));
+        }
+
+        return $selector;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Leuffen\Shiller\Automation\ShillerAutomation;
 use Leuffen\Shiller\Automation\ShillerAutomationFactory;
+use Leuffen\Shiller\Automation\ShillerCli;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerAutomationTest extends TestCase
@@ -22,6 +23,15 @@ final class ShillerAutomationTest extends TestCase
     protected function tearDown(): void
     {
         phore_dir($this->dir)->rmDir(true);
+    }
+
+    public function testAdaptAcceptsPositionalSelectors(): void
+    {
+        $parameters = (new ReflectionMethod(ShillerCli::class, 'adapt'))->getParameters();
+
+        self::assertSame('argv', $parameters[0]->getName());
+        self::assertSame('array', (string) $parameters[0]->getType());
+        self::assertSame('select', $parameters[1]->getName());
     }
 
     public function testInitKeepsMarkdownMetadataAndStripsWrappedIncludeHeader(): void

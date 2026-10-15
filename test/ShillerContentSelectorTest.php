@@ -66,8 +66,11 @@ final class ShillerContentSelectorTest extends TestCase
         );
 
         self::assertSame(['index.md'], $paths($selector->select(['index.md'])));
+        self::assertSame(['index.md'], $paths($selector->select(['docs/index.md'])));
         self::assertSame(['_data/general.yml'], $paths($selector->select(['_data/general.yml'])));
+        self::assertSame(['_data/general.yml'], $paths($selector->select(['docs/_data/general.yml'])));
         self::assertSame(['leistungen/index.md'], $paths($selector->select(['leistungen/*.md'])));
+        self::assertSame(['leistungen/index.md'], $paths($selector->select(['docs/leistungen/*.md'])));
         self::assertSame([], $selector->select(['missing.md']));
     }
 

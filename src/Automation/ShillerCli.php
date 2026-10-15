@@ -170,7 +170,8 @@ final class ShillerCli
     /**
      * Passt ausgewaehlte installierte Website-Inhalte direkt mit phore/ai-harness an den Projektkontext an.
      *
-     * @param string $select Kommagetrennte Dateipfade, Globs oder tag:<name>.
+     * @param array<int, string> $argv Dateipfade, Globs oder tag:<name>.
+     * @param string $select Zusaetzliche kommagetrennte Dateipfade, Globs oder tag:<name>.
      * @param string $context Zusaetzliche Kontextdateien relativ zur Projektwurzel.
      * @param string $skill Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param string $model AI-Modell fuer phore/ai-harness.
@@ -179,11 +180,12 @@ final class ShillerCli
      * @param bool $debug Aktiviert Skill- und Dateilogging.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder Anpassungsfehlern.
      * @see ShillerAutomationFactory::createContentAction()
-     * @example shiller adapt --select "index.md,_data/general.yml" --debug
+     * @example shiller adapt index.md "_data/*.yml" --debug
      */
     #[CliCommand('adapt', 'Passt installierte Inhalte per AI an.', 'Passt installierte Website-Inhalte mit AiContext und ThemeJS2-Skills an. Die Auswahl kann ueber Pfade, Globs oder Tags erfolgen.')]
     public function adapt(
-        #[CliParameter('select', 'Kommagetrennte Dateipfade, Globs oder tag:<name>')]
+        array $argv,
+        #[CliParameter('select', 'Zusaetzliche kommagetrennte Dateipfade, Globs oder tag:<name>')]
         string $select = '',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
@@ -213,7 +215,7 @@ final class ShillerCli
                 $this->logger(),
                 $model,
             )
-            ->adapt($this->csv($select), $debug);
+            ->adapt([...$this->selectors($argv), ...$this->csv($select)], $debug);
 
         if ($written !== []) {
             echo implode("\n", $written) . "\n";
