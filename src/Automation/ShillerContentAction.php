@@ -119,16 +119,7 @@ final class ShillerContentAction
             throw new RuntimeException('No files match the requested selectors.');
         }
 
-        $prompts = [
-            new FilePrompt(
-                (string) $this->skillFile,
-                $this->skillFile->get_contents(),
-                'text/markdown',
-                alias: 'baseSkill',
-                instructions: 'Verbindlicher allgemeiner Rahmen fuer die Content-Anpassung.',
-                allowInstructions: true,
-            ),
-        ];
+        $prompts = [];
         foreach ($this->contextFiles as $index => $file) {
             $prompts[] = new FilePrompt(
                 (string) $file,
@@ -151,7 +142,9 @@ final class ShillerContentAction
             'reasoning' => ['effort' => $this->reasoningEffort],
             'debug_log' => $debug,
         ]);
-        $skills = $context->skills()->addDirectory((string) $this->skillsDirectory);
+        $skills = $context->skills()
+            ->add((string) $this->skillFile->withParentDir(), ['initialLoad' => true])
+            ->addDirectory((string) $this->skillsDirectory);
         $available = array_column($skills->list(), 'name');
         if ($available === []) {
             throw new RuntimeException('No SKILL.md found in skill directory: ' . $this->skillsDirectory);

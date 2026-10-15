@@ -6,6 +6,7 @@ use Leuffen\Shiller\Automation\ShillerAutomationFactory;
 use Leuffen\Shiller\Automation\ShillerContentAction;
 use Leuffen\Shiller\Automation\ShillerContextAction;
 use Leuffen\Shiller\Automation\ShillerContentSelector;
+use Phore\AiHarness\Skill\SkillCollection;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerContentSelectorTest extends TestCase
@@ -29,6 +30,14 @@ final class ShillerContentSelectorTest extends TestCase
     protected function tearDown(): void
     {
         phore_dir($this->dir)->rmDir(true);
+    }
+
+    public function testContentBaseSkillIsRegisteredAndInitiallyLoaded(): void
+    {
+        $skills = (new SkillCollection())
+            ->add(__DIR__ . '/../resources/skills/adapt-content', ['initialLoad' => true]);
+
+        self::assertTrue($skills->get('shiller-adapt-content')->initialLoad);
     }
 
     public function testDefaultSelectsMarkdownAndOnlyDataYaml(): void
