@@ -24,8 +24,9 @@ not page generation or redesign.
   or components. A doctor's statement remains a statement component;
   a services grid retains its entries and presentation.
 - Preserve the number, positions, element types and Markdown/HTML
-  syntax of all existing images: never remove image elements or add
-  images at new positions during AI Adjust. For each existing image,
+  syntax of all existing images by default: do not remove image
+  elements or add images at new positions unless an applicable,
+  explicitly loaded subsequent skill permits this operation. For each existing image,
   compare its purpose with the supplied project context and update its
   image URL/reference to a verified, context-appropriate image when
   available. Do not keep an unrelated template image merely to preserve
@@ -63,6 +64,15 @@ expressly identifies the affected element, allowed operation and
 conditions. General layout suggestions, newly available facts or
 example page structures are **not** permission. For all other
 elements this baseline prevails. When uncertain, preserve the original.
+
+For image changes, explicitly check and follow additional applicable
+image-specific rules in subsequently loaded skills and references.
+Such rules may authorize replacing image URLs, adding new image
+positions or removing existing images, but only when they clearly
+specify the affected image or section, allowed operation and conditions.
+Without such explicit permission, preserve the existing image positions
+and count; adapting a URL in place does not itself authorize adding
+or removing an image.
 
 ## Jekyll, Liquid and Markdown
 
