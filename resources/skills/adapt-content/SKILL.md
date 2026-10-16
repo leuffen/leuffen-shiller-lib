@@ -23,10 +23,20 @@ not page generation or redesign.
   Do not add, remove, duplicate, reorder or replace sections, elements
   or components. A doctor's statement remains a statement component;
   a services grid retains its entries and presentation.
-- Preserve images, their references, positions and alt text. If an
-  image replacement is explicitly requested, use only a verified
-  relevant image from project context; otherwise keep the original or
-  placeholder. Never fabricate image paths.
+- Preserve the number, positions, element types and Markdown/HTML
+  syntax of all existing images by default: do not remove image
+  elements or add images at new positions unless an applicable,
+  explicitly loaded subsequent skill permits this operation. For each existing image,
+  compare its purpose with the supplied project context and update its
+  image URL/reference to a verified, context-appropriate image when
+  available. Do not keep an unrelated template image merely to preserve
+  its old URL. Keep the current reference only when no suitable verified
+  replacement is available; report unresolved image positions instead
+  of inventing paths. For portraits and identifiable teams, require an
+  explicit context-to-person/team mapping; never imply an unrelated
+  stock photo depicts an actual staff member. Keep alt text unless it
+  becomes inaccurate after an authorized image change; then adjust
+  only the descriptive alt-text value, retaining image syntax.
 - Preserve each section's purpose, factual meaning, professional
   claims and approximate text length, paragraph count and visual
   footprint. Do not invent names, medical services, qualifications,
@@ -54,6 +64,15 @@ expressly identifies the affected element, allowed operation and
 conditions. General layout suggestions, newly available facts or
 example page structures are **not** permission. For all other
 elements this baseline prevails. When uncertain, preserve the original.
+
+For image changes, explicitly check and follow additional applicable
+image-specific rules in subsequently loaded skills and references.
+Such rules may authorize replacing image URLs, adding new image
+positions or removing existing images, but only when they clearly
+specify the affected image or section, allowed operation and conditions.
+Without such explicit permission, preserve the existing image positions
+and count; adapting a URL in place does not itself authorize adding
+or removing an image.
 
 ## Jekyll, Liquid and Markdown
 
