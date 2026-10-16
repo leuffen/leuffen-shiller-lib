@@ -23,10 +23,19 @@ not page generation or redesign.
   Do not add, remove, duplicate, reorder or replace sections, elements
   or components. A doctor's statement remains a statement component;
   a services grid retains its entries and presentation.
-- Preserve images, their references, positions and alt text. If an
-  image replacement is explicitly requested, use only a verified
-  relevant image from project context; otherwise keep the original or
-  placeholder. Never fabricate image paths.
+- Preserve the number, positions, element types and Markdown/HTML
+  syntax of all existing images: never remove image elements or add
+  images at new positions during AI Adjust. For each existing image,
+  compare its purpose with the supplied project context and update its
+  image URL/reference to a verified, context-appropriate image when
+  available. Do not keep an unrelated template image merely to preserve
+  its old URL. Keep the current reference only when no suitable verified
+  replacement is available; report unresolved image positions instead
+  of inventing paths. For portraits and identifiable teams, require an
+  explicit context-to-person/team mapping; never imply an unrelated
+  stock photo depicts an actual staff member. Keep alt text unless it
+  becomes inaccurate after an authorized image change; then adjust
+  only the descriptive alt-text value, retaining image syntax.
 - Preserve each section's purpose, factual meaning, professional
   claims and approximate text length, paragraph count and visual
   footprint. Do not invent names, medical services, qualifications,
