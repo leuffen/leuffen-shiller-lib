@@ -7,28 +7,34 @@ namespace Leuffen\Shiller\Types;
 /** Wurzel-DTO des Change Requests fuer AiContext::struct(). */
 final class T_Changes
 {
-    /** Textbloecke und Assetnamen mit Task-Referenzen.
-     * @var list<T_Quote>
+    /**
+     * Quelldateien mit lueckenlosen Quotes, nach Dateiname sortiert.
+     *
+     * @var list<T_QuoteFile>
      */
     public array $quotes;
 
-    /** Noch nicht geloeste Aenderungswuensche.
+    /**
+     * Aenderungswuensche ohne Loesung.
+     *
      * @var list<T_Task>
      */
     public array $tasks;
 
-    /** In Phase 1 leer, spaeter gruppierte Loesungsplaene.
+    /**
+     * Gruppierte Umsetzungsplaene; bei shiller edit leer.
+     *
      * @var list<T_Resolution>
      */
     public array $resolutions;
 
     /**
-     * @param list<T_Quote> $quotes Originaltext und Task-Referenzen.
-     * @param list<T_Task> $tasks Aenderungswuensche.
-     * @param list<T_Resolution> $resolutions Im Edit-Intake zwingend leer.
-     * @see T_Resolution
+     * @param list<T_QuoteFile> $quotes Vollstaendige Quelldateien.
+     * @param list<T_Task> $tasks Identifizierte Aenderungswuensche.
+     * @param list<T_Resolution> $resolutions In der Intake-Phase zwingend [].
+     * @see T_QuoteFile
      *
-     * Beispiel: new T_Changes([new T_Quote('Text', ['T-0001'])], [new T_Task('T-0001', 'Text bearbeiten')], []).
+     * Beispiel: new T_Changes([new T_QuoteFile('feedback.txt', [new T_Quote('Text', ['T-0001'])])], [new T_Task('T-0001', 'Text bearbeiten')], []).
      */
     public function __construct(array $quotes, array $tasks, array $resolutions)
     {
@@ -38,7 +44,7 @@ final class T_Changes
     }
 
     /**
-     * Nur YAML-Serialisierung; keine IDs oder Inhalte werden nachbearbeitet.
+     * Serialisiert den unveraenderten DTO-Baum fuer YAML ohne ID-Umschreibung.
      *
      * @return array{quotes:list<array>,tasks:list<array>,resolutions:list<array>}
      * @see \Leuffen\Shiller\Codec::emitYaml()
@@ -48,7 +54,16 @@ final class T_Changes
     public function toArray(): array
     {
         return [
-            'quotes' => array_map(static fn(T_Quote $quote): array => get_object_vars($quote), $this->quotes),
+            'quotes' => array_map(
+                static fn(T_QuoteFile $file): array => [
+                    'fileName' => $file->fileName,
+                    'quotes' => array_map(
+                        static fn(T_Quote $quote): array => get_object_vars($quote),
+                        $file->quotes,
+                    ),
+                ],
+                $this->quotes,
+            ),
             'tasks' => array_map(static fn(T_Task $task): array => get_object_vars($task), $this->tasks),
             'resolutions' => array_map(
                 static fn(T_Resolution $resolution): array => get_object_vars($resolution),

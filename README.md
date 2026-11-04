@@ -79,47 +79,55 @@ Projekt-, Document-Root- und Template-Konfiguration werden über
 
 ## CLI: Kundenänderungen als Change Request erfassen
 
-`shiller edit` analysiert Änderungswünsche und schreibt eine YAML-Datei,
-ohne die Website zu ändern. Ohne Argumente liest er mehrzeiligen Text von
-stdin (interaktiv mit Strg+D abschließen). Dateien und Verzeichnisse werden
-rekursiv eingelesen. Die AI zerlegt die Texte in Original-Quotes und Tasks;
-für Bilder oder andere Binärdateien verwendet sie nur den Dateinamen.
+`shiller edit` analysiert Änderungswünsche und erzeugt YAML ohne
+Änderungen an Website-Dateien. Ohne Quellen liest der Befehl stdin bis EOF
+(interaktiv mit Strg+D). Mehrere Dateien und Verzeichnisse werden gemeinsam
+eingelesen; Quelldateien erscheinen sortiert nach Dateiname.
 
 ```sh
 shiller edit
-shiller edit feedback.txt weiteres-feedback.md
+shiller edit feedback.txt kunden-gespraech.pdf
 shiller edit kundenfeedback/ --output .shiller-edit/kunde.yml
 shiller edit feedback/ --context briefing.md --skills-dir skills
 ```
 
-Der Standard-Ausgabepfad ist `.shiller-edit/change-request.yml` in der
-Projektwurzel. Bereits vorhandene Zieldateien werden nicht überschrieben.
-Die Extraktion verwendet direkt `AiContext::struct()` des
-`phore/ai-harness` mit dem DTO `Leuffen\Shiller\Types\\T_Changes`;
-es gibt keine JSON-Textantwort und keine nachträgliche ID-Umschreibung.
-Das AI-Modell lässt sich über `--model` auswählen.
+Der Standard-Ausgabepfad ist `.shiller-edit/change-request.yml`;
+bereits vorhandene YAML-Dateien werden nicht überschrieben. Die Analyse
+verwendet `AiContext::struct(..., T_Changes::class)` direkt, ohne
+zusätzliche JSON-Textausgabe oder Umschreibung der Task-IDs.
 
-Der Context umfasst automatisch `.shiller-context.d/project.md` und
-weitere Markdown-Dateien direkt im gleichen Verzeichnis. `--context`
-ergänzt zusätzliche Projektdateien. Skills werden über die
-`AiContext`-SkillCollection aus `skills_dir` in `.shiller.yml`
-geladen (alternativ `--skills-dir` oder das ThemeJS2-Standardverzeichnis).
-Ist kein Skill-Verzeichnis konfiguriert und das Standardverzeichnis nicht
-vorhanden, bleibt eine Analyse ohne Skills möglich. Der interne
-Edit-Instruktionsrahmen liegt in der Action, nicht in einem externen Skill.
+Die fünf Typen liegen in `Leuffen\Shiller\Types`:
 
-Die vier eigenständigen Typen liegen in `Leuffen\Shiller\Types`:
-
-- `T_Quote`: `text` (Originalabsatz bzw. Asset-Dateiname) und `taskIds`.
+- `T_Changes`: `quotes` (Liste von `T_QuoteFile`), `tasks`, `resolutions`.
+- `T_QuoteFile`: `fileName` (Quelldateiname oder `stdin`), `quotes`.
+- `T_Quote`: `text` (unveränderter Originaltext), `taskIds` (auch `[]`).
 - `T_Task`: `id` (z. B. `T-0001`) und `summary`.
-- `T_Resolution`: `id`, `taskIds`, `description`, `files` und `changes`.
-- `T_Changes`: `quotes`, `tasks` und `resolutions`.
+- `T_Resolution`: `id`, `taskIds`, `description`, `files`, `changes`.
 
-Eine Quote kann auf mehrere Tasks verweisen, und ein Task kann in mehreren
-Quotes vorkommen. `resolutions` muss in dieser Phase leer sein. Die
-spätere `solve`-Phase und die Ausführung von Dateiänderungen sind noch
-nicht implementiert.
+Jede Quelldatei enthält in ihrem `T_QuoteFile` alle Textstellen in der
+Originalreihenfolge, einschließlich Begrüßungen, Leerzeilen, Fülltext
+und Schlussformeln. Text ohne Änderungswunsch bekommt `taskIds: []`.
+Bei UTF-8-Textdateien und stdin prüft die Action, dass die Verkettung
+aller `T_Quote.text` den Originalinhalt exakt reproduziert. Auslassungen
+oder Paraphrasen verhindern die Speicherung.
 
+PDFs sowie DOC/DOCX-, XLS/XLSX- und PPT/PPTX-Dateien werden dem Harness
+als vollständige `FilePrompt`-Dokumente mit passendem MIME-Typ übergeben.
+Die AI soll den gesamten sichtbaren Dokumenttext einschließlich
+nicht zugeordneter Passagen extrahieren. Anders als bei Textdateien lässt
+sich bei diesen Binärformaten keine bytegenaue Textwiedergabe prüfen.
+Bilder und sonstige Binärdateien werden nur über ihren Namen erfasst.
+
+Die wiederverwendbare `Leuffen\Shiller\Ai\ShillerAiContextFactory`
+konfiguriert `AiContext` aus `.shiller.yml` (z. B. `ai.model`,
+`ai.reasoning_effort`, `ai.web_access`), dem Projektkontext in
+`.shiller-context.d/` und den Theme-Skills aus `skills_dir`.
+`--context`, `--skills-dir` und `--model` überschreiben Einstellungen.
+Die Factory wird von Edit und Content-Adjust genutzt; workflow-interne
+Skills werden nur ausdrücklich für ihren jeweiligen Workflow geladen.
+
+`resolutions` bleibt beim Edit-Intake leer. Die spätere Analyse,
+Task-Gruppierung und Ausführung ist noch nicht implementiert.
 ## Website aus `_tpl` anlegen
 
 Das Theme-Paket liefert `_tpl/_root/` für die bedingungslose Grundstruktur und

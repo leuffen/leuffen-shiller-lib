@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Automation;
 
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
@@ -39,7 +40,7 @@ final class ShillerEditCli
         #[CliParameter('skills-dir', 'Optionaler Theme-Skills-Pfad')]
         string $skillsDir = '',
         #[CliParameter('model', 'AI-Modell fuer die Task-Extraktion')]
-        string $model = ShillerAiDefaults::MODEL,
+        string $model = '',
     ): void {
         $stdinText = null;
         if ($argv === []) {
@@ -61,11 +62,14 @@ final class ShillerEditCli
             array_map('trim', explode(',', $context)),
             static fn(string $path): bool => $path !== '',
         ));
+        $aiContext = (new ShillerAiContextFactory($startDirectory))->create(
+            additionalContextFiles: $contextFiles,
+            model: $model,
+            skillsDir: $skillsDir,
+        );
         $written = (new ShillerEditAction(
             $startDirectory,
-            model: $model,
-            additionalContextFiles: $contextFiles,
-            skillsDir: $skillsDir,
+            context: $aiContext,
         ))->analyze($argv, $stdinText, $output);
 
         echo $written . PHP_EOL;

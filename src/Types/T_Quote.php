@@ -4,23 +4,25 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Types;
 
-/** Originaltextblock oder Dateiname eines referenzierten Assets. */
+/** Vollstaendiger Abschnitt aus der Originaldatei, einschliesslich Leertext. */
 final class T_Quote
 {
-    /** Originalwortlaut des Absatzes oder Asset-Dateiname. */
+    /** Originaltextblock ohne Paraphrase, Normalisierung oder Auslassung. */
     public string $text;
 
-    /** Task-IDs fuer alle Aenderungswuensche dieser Textstelle.
+    /**
+     * Verknuepfte Task-IDs. Leer, wenn der Text keine Aenderung beschreibt.
+     *
      * @var list<string>
      */
     public array $taskIds;
 
     /**
-     * @param string $text Originaltext oder Asset-Dateiname.
-     * @param list<string> $taskIds Zugeordnete Tasks.
-     * @see T_Task
+     * @param string $text Exakter Abschnitt des Originaltexts.
+     * @param list<string> $taskIds Zugeordnete Tasks; [] fuer Fuellelemente.
+     * @see T_QuoteFile
      *
-     * Beispiel: new T_Quote('Logo austauschen', ['T-0001']).
+     * Beispiel: new T_Quote("Vielen Dank.\n", []).
      */
     public function __construct(string $text, array $taskIds)
     {

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Automation\ShillerEditAction;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_Quote;
+use Leuffen\Shiller\Types\T_QuoteFile;
 use Leuffen\Shiller\Types\T_Resolution;
 use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
@@ -31,7 +33,7 @@ final class ShillerEditActionTest extends TestCase
         phore_dir($this->dir)->rmDir(true);
     }
 
-    public function testStructDTOsAreSerializedWithoutIntermediateSchema(): void
+    public function testSourceFilesAreSortedAndCompleteWithAssets(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
@@ -42,37 +44,115 @@ final class ShillerEditActionTest extends TestCase
                     static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
                 ));
                 self::assertCount(1, $files);
-                self::assertStringContainsString('Logo austauschen', $files[0]->content);
+                self::assertSame('feedback/request.txt', $files[0]->fileName);
                 return new T_Changes(
-                    quotes: [
-                        new T_Quote('Adresse korrigieren.', ['T-0001']),
-                        new T_Quote('feedback/nested/logo.png', ['T-0002']),
+                    [
+                        new T_QuoteFile('feedback/nested/logo.png', [
+                            new T_Quote('feedback/nested/logo.png', ['T-0002']),
+                        ]),
+                        new T_QuoteFile('feedback/request.txt', [
+                            new T_Quote("Logo austauschen und Adresse korrigieren.\n\n", ['T-0001', 'T-0002']),
+                            new T_Quote("Auch auf der Startseite die Adresse korrigieren.\n", ['T-0001']),
+                        ]),
                     ],
-                    tasks: [
+                    [
                         new T_Task('T-0001', 'Adresse korrigieren'),
                         new T_Task('T-0002', 'Logo austauschen'),
                     ],
-                    resolutions: [],
+                    [],
                 );
             },
         );
 
         $path = $action->analyze(['feedback']);
-        self::assertSame('.shiller-edit/change-request.yml', $path);
         $data = phore_file($this->dir . '/' . $path)->get_yaml();
-
-        self::assertSame(
-            ['quotes', 'tasks', 'resolutions'],
-            array_keys($data),
-        );
-        self::assertSame(['text', 'taskIds'], array_keys($data['quotes'][0]));
-        self::assertSame('Adresse korrigieren.', $data['quotes'][0]['text']);
-        self::assertSame(['T-0002'], $data['quotes'][1]['taskIds']);
-        self::assertSame('T-0002', $data['tasks'][1]['id']);
+        self::assertSame(['quotes', 'tasks', 'resolutions'], array_keys($data));
+        self::assertSame('feedback/nested/logo.png', $data['quotes'][0]['fileName']);
+        self::assertSame('feedback/request.txt', $data['quotes'][1]['fileName']);
+        self::assertSame(['text', 'taskIds'], array_keys($data['quotes'][1]['quotes'][0]));
+        self::assertSame(['T-0001', 'T-0002'], $data['quotes'][1]['quotes'][0]['taskIds']);
         self::assertSame([], $data['resolutions']);
+        self::assertSame(
+            phore_file($this->dir . '/feedback/request.txt')->get_contents(),
+            implode('', array_column($data['quotes'][1]['quotes'], 'text')),
+        );
     }
 
-    public function testStdinAcceptsExtraContextAndConfiguredSkills(): void
+    public function testStdinPreservesFillerAndWhitespaceWithoutTaskAssignments(): void
+    {
+        $original = "Guten Tag,\r\n\r\nBitte Telefonnummer aendern.\r\n\r\nVielen Dank!\r\n";
+        $action = new ShillerEditAction(
+            $this->dir,
+            static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
+                [new T_QuoteFile('stdin', [
+                    new T_Quote("Guten Tag,\r\n\r\n", []),
+                    new T_Quote("Bitte Telefonnummer aendern.\r\n\r\n", ['T-0001']),
+                    new T_Quote("Vielen Dank!\r\n", []),
+                ])],
+                [new T_Task('T-0001', 'Telefonnummer aktualisieren')],
+                [],
+            ),
+        );
+
+        $path = $action->analyze(stdinText: $original, output: 'requests/kunde.yml');
+        $data = phore_file($this->dir . '/' . $path)->get_yaml();
+        self::assertSame([], $data['quotes'][0]['quotes'][0]['taskIds']);
+        self::assertSame([], $data['quotes'][0]['quotes'][2]['taskIds']);
+        self::assertSame($original, implode('', array_column($data['quotes'][0]['quotes'], 'text')));
+    }
+
+    public function testRejectsIncompleteQuotesWithoutWritingOutput(): void
+    {
+        $action = new ShillerEditAction(
+            $this->dir,
+            static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
+                [new T_QuoteFile('stdin', [new T_Quote('Nur eine Anforderung', ['T-0001'])])],
+                [new T_Task('T-0001', 'Aenderung')],
+                [],
+            ),
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('exact original text');
+        try {
+            $action->analyze(stdinText: "Einleitung.\nNur eine Anforderung\nSchluss.");
+        } finally {
+            self::assertFalse(phore_uri($this->dir . '/.shiller-edit/change-request.yml')->exists());
+        }
+    }
+
+    public function testPdfIsAttachedAsDocumentInsteadOfFilenameOnly(): void
+    {
+        phore_file($this->dir . '/feedback/besprechung.pdf')->set_contents("%PDF-1.4\n" . "\0binary");
+        $action = new ShillerEditAction(
+            $this->dir,
+            static function (AiContext $context, array $prompts): T_Changes {
+                $files = array_values(array_filter(
+                    $prompts,
+                    static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
+                ));
+                self::assertCount(1, $files);
+                self::assertSame('application/pdf', $files[0]->contentType);
+                self::assertSame('feedback/besprechung.pdf', $files[0]->fileName);
+                self::assertStringStartsWith('%PDF-1.4', $files[0]->content);
+
+                return new T_Changes(
+                    [new T_QuoteFile('feedback/besprechung.pdf', [
+                        new T_Quote('Hallo und willkommen.', []),
+                        new T_Quote('Die Adresse muss neu.', ['T-0001']),
+                    ])],
+                    [new T_Task('T-0001', 'Adresse im PDF-Feedback beachten')],
+                    [],
+                );
+            },
+        );
+        $path = $action->analyze(['feedback/besprechung.pdf']);
+        $data = phore_file($this->dir . '/' . $path)->get_yaml();
+        self::assertSame('Hallo und willkommen.', $data['quotes'][0]['quotes'][0]['text']);
+        self::assertSame([], $data['quotes'][0]['quotes'][0]['taskIds']);
+    }
+
+    public function testFactoryProvidesConfigProjectFilesSkillsAndInjectedContext(): void
     {
         phore_dir($this->dir . '/.shiller-context.d')->mkdir();
         phore_file($this->dir . '/.shiller-context.d/project.md')->set_contents('Projektinfos');
@@ -81,41 +161,45 @@ final class ShillerEditActionTest extends TestCase
         phore_file($this->dir . '/skills/feedback/SKILL.md')->set_contents(
             "---\nname: feedback\ndescription: Bearbeitet Kundenfeedback\n---\n# Feedback\n",
         );
-        phore_file($this->dir . '/.shiller.yml')->set_contents("skills_dir: skills\n");
+        phore_file($this->dir . '/.shiller.yml')->set_contents(
+            "skills_dir: skills\nai:\n  model: gpt-5-mini\n  reasoning_effort: low\n",
+        );
+
+        $context = (new ShillerAiContextFactory($this->dir))->create(
+            additionalContextFiles: ['briefing.md'],
+        );
+        self::assertSame('feedback', $context->skills()->list()[0]['name']);
+        $reflection = new ReflectionProperty(AiContext::class, 'prompts');
+        $prepared = array_values(array_filter(
+            $reflection->getValue($context),
+            static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
+        ));
+        self::assertCount(2, $prepared);
+        self::assertSame('Projektinfos', $prepared[0]->content);
+        self::assertSame('Kundeninfos', $prepared[1]->content);
 
         $action = new ShillerEditAction(
             $this->dir,
-            static function (AiContext $context, array $prompts): T_Changes {
-                self::assertSame('feedback', $context->skills()->list()[0]['name']);
-                $reflection = new ReflectionProperty(AiContext::class, 'prompts');
-                $prepared = $reflection->getValue($context);
-                $contextFiles = array_values(array_filter(
-                    $prepared,
-                    static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
-                ));
-                self::assertCount(2, $contextFiles);
-                self::assertSame('Projektinfos', $contextFiles[0]->content);
-                self::assertSame('Kundeninfos', $contextFiles[1]->content);
+            static function (AiContext $received, array $prompts) use ($context): T_Changes {
+                self::assertSame($context, $received);
                 return new T_Changes(
-                    [new T_Quote('Telefon aendern.', ['T-0001'])],
+                    [new T_QuoteFile('stdin', [new T_Quote('Telefon aendern.', ['T-0001'])])],
                     [new T_Task('T-0001', 'Telefon aktualisieren')],
                     [],
                 );
             },
-            additionalContextFiles: ['briefing.md'],
+            context: $context,
         );
-
-        $path = $action->analyze(stdinText: 'Telefon aendern.', output: 'requests/kunde.yml');
-        $data = phore_file($this->dir . '/' . $path)->get_yaml();
-        self::assertSame(['T-0001'], $data['quotes'][0]['taskIds']);
+        $path = $action->analyze(stdinText: 'Telefon aendern.');
+        self::assertSame('.shiller-edit/change-request.yml', $path);
     }
 
-    public function testRejectsUnknownTaskReferenceWithoutRewriting(): void
+    public function testRejectsUnknownTaskReference(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
-                [new T_Quote('Text', ['T-9999'])],
+                [new T_QuoteFile('stdin', [new T_Quote('Text', ['T-9999'])])],
                 [new T_Task('T-0001', 'Aenderung')],
                 [],
             ),
@@ -131,7 +215,7 @@ final class ShillerEditActionTest extends TestCase
         $action = new ShillerEditAction(
             $this->dir,
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
-                [new T_Quote('Text', ['T-0001'])],
+                [new T_QuoteFile('stdin', [new T_Quote('Text', ['T-0001'])])],
                 [new T_Task('T-0001', 'Aenderung')],
                 [new T_Resolution('R-0001', ['T-0001'], 'Spaeter', ['docs/index.md'], ['Text ersetzen'])],
             ),
@@ -146,8 +230,8 @@ final class ShillerEditActionTest extends TestCase
         $action = new ShillerEditAction(
             $this->dir,
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
-                [new T_Quote('Text', ['T-0001'])],
-                [new T_Task('T-0001', 'Aenderung')],
+                [new T_QuoteFile('stdin', [new T_Quote('Text', [])])],
+                [],
                 [],
             ),
         );
