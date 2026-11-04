@@ -14,13 +14,13 @@ use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** CLI-Einstieg fuer typisierte Change-Request-Erfassung. */
-#[CliScope('shiller')]
+#[CliScope('edit')]
 final class ShillerEditCli
 {
     /**
      * Erstellt mit AiContext::struct() eine T_Changes-YAML.
      *
-     * Ohne Pfade wird .schiller-edit.d/ als Quelle vorbereitet. Ein neu
+     * Ohne Pfade wird .shiller-edit.d/ als Quelle vorbereitet. Ein neu
      * angelegtes Verzeichnis wird erst nach Y-Bestaetigung analysiert.
      * Projektkontext, --context-Dateien und Skills kommen aus der Factory.
      *
@@ -32,13 +32,13 @@ final class ShillerEditCli
      * @throws RuntimeException Bei fehlender Eingabe oder Analysefehlern.
      * @see ShillerEditAction::analyze()
      *
-     * Beispiel: shiller edit --context briefing.md
+     * Beispiel: shiller edit create --context briefing.md
      */
-    #[CliCommand('edit', 'Extrahiert Quotes und Tasks aus Kundenfeedback.', 'Liest standardmaessig .schiller-edit.d/ oder explizite Dateien und Verzeichnisse und erzeugt eine T_Changes-YAML.')]
-    public function edit(
+    #[CliCommand('create', 'Extrahiert Quotes und Tasks aus Kundenfeedback.', 'Liest standardmaessig .shiller-edit.d/ oder explizite Dateien und Verzeichnisse und erzeugt eine T_Changes-YAML.')]
+    public function create(
         array $argv,
         #[CliParameter('output', 'Relativer YAML-Zielpfad')]
-        string $output = '.schiller-edit.d/shiller-edit.yml',
+        string $output = '.shiller-edit.d/shiller-edit.yml',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skills-dir', 'Optionaler Theme-Skills-Pfad')]
@@ -76,9 +76,60 @@ final class ShillerEditCli
     }
 
     /**
-     * Bereitet den Standard-Eingabeordner fuer einen parameterlosen Edit-Aufruf vor.
+     * Plant die Umsetzung bestehender Tasks, ohne Website-Dateien zu veraendern.
      *
-     * Existiert .schiller-edit.d/ bereits, wird sein Inhalt direkt verarbeitet.
+     * Verwendet den Projektkontext und die Theme-Skills aus .shiller.yml.
+     * Gibt die aktualisierte YAML-Datei mit Resolutions und offenen Fragen aus.
+     *
+     * @param string $input Relative Change-Request-YAML aus der Create-Phase.
+     * @param string $projectDir Projektwurzel; leer nutzt das aktuelle Verzeichnis.
+     * @param string $documentRoot Document Root relativ zur Projektwurzel.
+     * @param string $context Weitere Kontextdateien, kommagetrennt.
+     * @param string $skillsDir Optionaler Theme-Skills-Pfad.
+     * @param string $model Optionaler Modell-Override aus .shiller.yml.
+     * @throws RuntimeException Bei ungueltigen Tasks oder fehlenden Quellen.
+     * @see ShillerResolveAction::resolve()
+     *
+     * Beispiel: shiller edit resolve --input .shiller-edit.d/shiller-edit.yml
+     */
+    #[CliCommand('resolve', 'Plant Loesungen fuer vorhandene Tasks.', 'Erzeugt Resolutions oder offene Fragen pro Task ohne Website-Dateien zu bearbeiten.')]
+    public function resolve(
+        #[CliParameter('input', 'Relative Shiller-Edit-YAML')]
+        string $input = '.shiller-edit.d/shiller-edit.yml',
+        #[CliParameter('project-dir', 'Projektwurzel; standardmaessig aktuelles Verzeichnis')]
+        string $projectDir = '',
+        #[CliParameter('document-root', 'Document Root relativ zum Projekt')]
+        string $documentRoot = 'docs',
+        #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
+        string $context = '',
+        #[CliParameter('skills-dir', 'Optionaler Theme-Skills-Pfad')]
+        string $skillsDir = '',
+        #[CliParameter('model', 'AI-Modell fuer die Resolution-Planung')]
+        string $model = '',
+    ): void {
+        $root = $projectDir !== '' ? $projectDir : getcwd();
+        if ($root === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $contextFiles = array_values(array_filter(
+            array_map('trim', explode(',', $context)),
+            static fn(string $path): bool => $path !== '',
+        ));
+        $aiContext = (new ShillerAiContextFactory($root))->create(
+            additionalContextFiles: $contextFiles,
+            model: $model,
+            skillsDir: $skillsDir,
+        );
+        $written = (new ShillerResolveAction($root, context: $aiContext))->resolve($input, $documentRoot);
+
+        echo $written . PHP_EOL;
+    }
+
+    /**
+     * Bereitet den Standard-Eingabeordner fuer einen parameterlosen Create-Aufruf vor.
+     *
+     * Existiert .shiller-edit.d/ bereits, wird sein Inhalt direkt verarbeitet.
      * Andernfalls wird der Ordner angelegt und der Aufruf bis zur expliziten
      * Eingabe von Y unterbrochen. Bei Abbruch erfolgt keine AI-Anfrage.
      *
@@ -98,19 +149,19 @@ final class ShillerEditCli
     ): array {
         $path = (string) phore_uri($startDirectory)->abs();
         $root = phore_dir($path, ['rootDir' => $path])->assertDirectory()->assertReadable();
-        $directory = $root->withSubPath('.schiller-edit.d');
+        $directory = $root->withSubPath('.shiller-edit.d');
 
         $emit = $notify ?? static fn(string $text): int => fwrite(STDOUT, $text);
         if ($directory->exists()) {
             $directory->assertDirectory()->assertReadable();
-            $emit("Lade Aenderungsinformationen aus .schiller-edit.d/.\n");
-            return ['.schiller-edit.d'];
+            $emit("Lade Aenderungsinformationen aus .shiller-edit.d/.\n");
+            return ['.shiller-edit.d'];
         }
 
         // Nach dem ersten Anlegen erhaelt der Nutzer Gelegenheit, die Quellen
         // hineinzukopieren. Ohne ein ausdrueckliches Y wird nicht analysiert.
         $directory->asDirectory()->mkdir();
-        $emit("Das Verzeichnis .schiller-edit.d/ wurde angelegt.\n");
+        $emit("Das Verzeichnis .shiller-edit.d/ wurde angelegt.\n");
         $emit("Kopiere die Aenderungsinformationen (.md, .txt, .pdf, .jpg, .jpeg, .png) dorthin.\n");
         $emit("Wenn alle Dateien bereitliegen, Y eingeben und mit Enter bestaetigen: ");
         $answer = $readConfirmation !== null ? $readConfirmation() : fgets(STDIN);
@@ -118,7 +169,7 @@ final class ShillerEditCli
             throw new RuntimeException('Edit abgebrochen: keine Bestaetigung mit Y.');
         }
 
-        return ['.schiller-edit.d'];
+        return ['.shiller-edit.d'];
     }
 
 }

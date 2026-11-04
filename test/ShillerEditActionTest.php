@@ -68,6 +68,8 @@ final class ShillerEditActionTest extends TestCase
         $path = $action->analyze(['feedback']);
         $data = phore_file($this->dir . '/' . $path)->get_yaml();
         self::assertSame(['quotes', 'tasks', 'resolutions'], array_keys($data));
+        self::assertSame([], $data['tasks'][0]['questions']);
+        self::assertSame('', $data['tasks'][0]['adminInformation']);
         self::assertSame('feedback/nested/logo.png', $data['quotes'][0]['fileName']);
         self::assertSame('feedback/request.txt', $data['quotes'][1]['fileName']);
         self::assertSame(['text', 'taskIds'], array_keys($data['quotes'][1]['quotes'][0]));
@@ -188,7 +190,7 @@ final class ShillerEditActionTest extends TestCase
             context: $context,
         );
         $path = $action->analyze(stdinText: 'Telefon aendern.');
-        self::assertSame('.schiller-edit.d/shiller-edit.yml', $path);
+        self::assertSame('.shiller-edit.d/shiller-edit.yml', $path);
     }
 
     public function testRejectsUnknownTaskReference(): void
@@ -261,12 +263,12 @@ final class ShillerEditActionTest extends TestCase
 
     public function testDefaultEditDirectoryAcceptsOnlyMdTxtPdfJpegAndPng(): void
     {
-        phore_dir($this->dir . '/.schiller-edit.d')->mkdir();
-        phore_file($this->dir . '/.schiller-edit.d/brief.md')->set_contents("Einleitung\n");
-        phore_file($this->dir . '/.schiller-edit.d/diagram.png')->set_contents("\x89PNG\r\n\x1a\n");
-        phore_file($this->dir . '/.schiller-edit.d/foto.jpeg')->set_contents("\xff\xd8\xff");
-        phore_file($this->dir . '/.schiller-edit.d/message.txt')->set_contents("Bitte Logo neu.\n");
-        phore_file($this->dir . '/.schiller-edit.d/scan.pdf')->set_contents("%PDF-1.4\n");
+        phore_dir($this->dir . '/.shiller-edit.d')->mkdir();
+        phore_file($this->dir . '/.shiller-edit.d/brief.md')->set_contents("Einleitung\n");
+        phore_file($this->dir . '/.shiller-edit.d/diagram.png')->set_contents("\x89PNG\r\n\x1a\n");
+        phore_file($this->dir . '/.shiller-edit.d/foto.jpeg')->set_contents("\xff\xd8\xff");
+        phore_file($this->dir . '/.shiller-edit.d/message.txt')->set_contents("Bitte Logo neu.\n");
+        phore_file($this->dir . '/.shiller-edit.d/scan.pdf')->set_contents("%PDF-1.4\n");
 
         $action = new ShillerEditAction(
             $this->dir,
@@ -287,11 +289,11 @@ final class ShillerEditActionTest extends TestCase
 
                 return new T_Changes(
                     [
-                        new T_QuoteFile('.schiller-edit.d/brief.md', [new T_Quote("Einleitung\n", [])]),
-                        new T_QuoteFile('.schiller-edit.d/diagram.png', [new T_Quote('.schiller-edit.d/diagram.png', [])]),
-                        new T_QuoteFile('.schiller-edit.d/foto.jpeg', [new T_Quote('.schiller-edit.d/foto.jpeg', [])]),
-                        new T_QuoteFile('.schiller-edit.d/message.txt', [new T_Quote("Bitte Logo neu.\n", ['T-0001'])]),
-                        new T_QuoteFile('.schiller-edit.d/scan.pdf', [new T_Quote('Text aus PDF', [])]),
+                        new T_QuoteFile('.shiller-edit.d/brief.md', [new T_Quote("Einleitung\n", [])]),
+                        new T_QuoteFile('.shiller-edit.d/diagram.png', [new T_Quote('.shiller-edit.d/diagram.png', [])]),
+                        new T_QuoteFile('.shiller-edit.d/foto.jpeg', [new T_Quote('.shiller-edit.d/foto.jpeg', [])]),
+                        new T_QuoteFile('.shiller-edit.d/message.txt', [new T_Quote("Bitte Logo neu.\n", ['T-0001'])]),
+                        new T_QuoteFile('.shiller-edit.d/scan.pdf', [new T_Quote('Text aus PDF', [])]),
                     ],
                     [new T_Task('T-0001', 'Logo aktualisieren')],
                     [],
@@ -299,20 +301,20 @@ final class ShillerEditActionTest extends TestCase
             },
         );
         $path = $action->analyze();
-        self::assertSame('.schiller-edit.d/shiller-edit.yml', $path);
+        self::assertSame('.shiller-edit.d/shiller-edit.yml', $path);
         $result = phore_file($this->dir . '/' . $path)->get_yaml();
         self::assertCount(5, $result['quotes']);
         self::assertSame([], $result['quotes'][0]['quotes'][0]['taskIds']);
-        self::assertSame('.schiller-edit.d/scan.pdf', $result['quotes'][4]['fileName']);
+        self::assertSame('.shiller-edit.d/scan.pdf', $result['quotes'][4]['fileName']);
     }
 
     public function testRejectsUnsupportedEditDirectoryFiles(): void
     {
-        phore_dir($this->dir . '/.schiller-edit.d')->mkdir();
-        phore_file($this->dir . '/.schiller-edit.d/report.docx')->set_contents('binary');
+        phore_dir($this->dir . '/.shiller-edit.d')->mkdir();
+        phore_file($this->dir . '/.shiller-edit.d/report.docx')->set_contents('binary');
         $action = new ShillerEditAction($this->dir);
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Unsupported change source type: .schiller-edit.d/report.docx');
+        $this->expectExceptionMessage('Unsupported change source type: .shiller-edit.d/report.docx');
         $action->analyze();
     }
 
@@ -338,25 +340,25 @@ final class ShillerEditActionTest extends TestCase
             },
         );
         $path = $action->analyze(['feedback/nested/logo.png']);
-        self::assertSame('.schiller-edit.d/shiller-edit.yml', $path);
+        self::assertSame('.shiller-edit.d/shiller-edit.yml', $path);
     }
 
 
     public function testEditYamlIsExcludedFromSourcePrompts(): void
     {
-        phore_dir($this->dir . '/.schiller-edit.d')->mkdir();
-        phore_file($this->dir . '/.schiller-edit.d/feedback.md')->set_contents("Bitte Titel aendern.\n");
-        phore_file($this->dir . '/.schiller-edit.d/shiller-edit.yml')->set_contents("old: result\n");
-        phore_file($this->dir . '/.schiller-edit.d/metadata.yaml')->set_contents("note: ignore\n");
+        phore_dir($this->dir . '/.shiller-edit.d')->mkdir();
+        phore_file($this->dir . '/.shiller-edit.d/feedback.md')->set_contents("Bitte Titel aendern.\n");
+        phore_file($this->dir . '/.shiller-edit.d/shiller-edit.yml')->set_contents("old: result\n");
+        phore_file($this->dir . '/.shiller-edit.d/metadata.yaml')->set_contents("note: ignore\n");
 
         $action = new ShillerEditAction(
             $this->dir,
             static function (AiContext $context, array $prompts): T_Changes {
                 self::assertCount(2, $prompts);
                 self::assertInstanceOf(FilePrompt::class, $prompts[1]);
-                self::assertSame('.schiller-edit.d/feedback.md', $prompts[1]->fileName);
+                self::assertSame('.shiller-edit.d/feedback.md', $prompts[1]->fileName);
                 return new T_Changes(
-                    [new T_QuoteFile('.schiller-edit.d/feedback.md', [
+                    [new T_QuoteFile('.shiller-edit.d/feedback.md', [
                         new T_Quote("Bitte Titel aendern.\n", ['T-0001']),
                     ])],
                     [new T_Task('T-0001', 'Titel aktualisieren')],
@@ -365,17 +367,17 @@ final class ShillerEditActionTest extends TestCase
             },
         );
 
-        $path = $action->analyze(output: '.schiller-edit.d/new-result.yml');
-        self::assertSame('.schiller-edit.d/new-result.yml', $path);
-        self::assertSame("old: result\n", phore_file($this->dir . '/.schiller-edit.d/shiller-edit.yml')->get_contents());
+        $path = $action->analyze(output: '.shiller-edit.d/new-result.yml');
+        self::assertSame('.shiller-edit.d/new-result.yml', $path);
+        self::assertSame("old: result\n", phore_file($this->dir . '/.shiller-edit.d/shiller-edit.yml')->get_contents());
         $result = phore_file($this->dir . '/' . $path)->get_yaml();
         self::assertCount(1, $result['quotes']);
     }
 
     public function testEditDirectoryWithOnlyOutputYamlDoesNotRequestAi(): void
     {
-        phore_dir($this->dir . '/.schiller-edit.d')->mkdir();
-        phore_file($this->dir . '/.schiller-edit.d/shiller-edit.yml')->set_contents('not an input');
+        phore_dir($this->dir . '/.shiller-edit.d')->mkdir();
+        phore_file($this->dir . '/.shiller-edit.d/shiller-edit.yml')->set_contents('not an input');
         $action = new ShillerEditAction(
             $this->dir,
             static function (): never {
@@ -385,7 +387,7 @@ final class ShillerEditActionTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No change sources found');
-        $action->analyze(output: '.schiller-edit.d/other.yml');
+        $action->analyze(output: '.shiller-edit.d/other.yml');
     }
 
 }

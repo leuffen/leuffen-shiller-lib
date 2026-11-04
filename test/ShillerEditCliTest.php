@@ -36,8 +36,8 @@ final class ShillerEditCliTest extends TestCase
         );
 
         self::assertTrue($confirmed);
-        self::assertTrue(phore_dir($this->root . '/.schiller-edit.d')->isDirectory());
-        self::assertSame(['.schiller-edit.d'], $paths);
+        self::assertTrue(phore_dir($this->root . '/.shiller-edit.d')->isDirectory());
+        self::assertSame(['.shiller-edit.d'], $paths);
         self::assertStringContainsString('wurde angelegt', implode('', $messages));
         self::assertStringContainsString('Kopiere die Aenderungsinformationen', implode('', $messages));
         self::assertStringContainsString('Y eingeben', implode('', $messages));
@@ -45,8 +45,8 @@ final class ShillerEditCliTest extends TestCase
 
     public function testExistingDirectoryIsLoadedWithoutConfirmation(): void
     {
-        phore_dir($this->root . '/.schiller-edit.d')->mkdir();
-        phore_file($this->root . '/.schiller-edit.d/feedback.md')->set_contents("Bitte aktualisieren.\n");
+        phore_dir($this->root . '/.shiller-edit.d')->mkdir();
+        phore_file($this->root . '/.shiller-edit.d/feedback.md')->set_contents("Bitte aktualisieren.\n");
         $messages = [];
 
         $paths = (new ShillerEditCli())->prepareDefaultSources(
@@ -59,9 +59,9 @@ final class ShillerEditCliTest extends TestCase
             },
         );
 
-        self::assertSame(['.schiller-edit.d'], $paths);
-        self::assertSame("Lade Aenderungsinformationen aus .schiller-edit.d/.\n", implode('', $messages));
-        self::assertSame("Bitte aktualisieren.\n", phore_file($this->root . '/.schiller-edit.d/feedback.md')->get_contents());
+        self::assertSame(['.shiller-edit.d'], $paths);
+        self::assertSame("Lade Aenderungsinformationen aus .shiller-edit.d/.\n", implode('', $messages));
+        self::assertSame("Bitte aktualisieren.\n", phore_file($this->root . '/.shiller-edit.d/feedback.md')->get_contents());
     }
 
     public function testNoConfirmationStopsBeforeAnalysis(): void
@@ -81,7 +81,7 @@ final class ShillerEditCliTest extends TestCase
                 },
             );
         } finally {
-            self::assertTrue(phore_dir($this->root . '/.schiller-edit.d')->isDirectory());
+            self::assertTrue(phore_dir($this->root . '/.shiller-edit.d')->isDirectory());
             self::assertStringContainsString('Y eingeben', implode('', $messages));
         }
     }
@@ -99,4 +99,60 @@ final class ShillerEditCliTest extends TestCase
             },
         );
     }
+
+    public function testEditCommandsAreRegisteredUnderExecutable(): void
+    {
+        $scope = (new ReflectionClass(ShillerEditCli::class))
+            ->getAttributes(\Phore\Cli\Annotation\CliScope::class);
+        self::assertCount(1, $scope);
+        self::assertSame('edit', $scope[0]->getArguments()[0]);
+
+        $create = (new ReflectionMethod(ShillerEditCli::class, 'create'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        $resolve = (new ReflectionMethod(ShillerEditCli::class, 'resolve'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        self::assertSame('create', $create[0]->getArguments()[0]);
+        self::assertSame('resolve', $resolve[0]->getArguments()[0]);
+
+        $project = phore_dir(__DIR__ . '/..')->assertDirectory()->assertReadable();
+        $launcher = $project->withSubPath('bin/shiller')->asFile()->get_contents();
+        $composer = json_decode(
+            $project->withSubPath('composer.json')->asFile()->get_contents(),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertStringContainsString('ShillerEditCli::class', $launcher);
+        self::assertSame(['bin/shiller'], $composer['bin']);
+        self::assertStringContainsString('$app->run($argv);', $launcher);
+        self::assertStringNotContainsString('array_slice($argv', $launcher);
+
+        // Die erste CLI-Ebene ist der Programmname, nicht ein zusaetzlicher
+        // CliScope. Beide Edit-Subcommands sind dadurch direkt erreichbar.
+        $app = new \Phore\Cli\CliApplication();
+        $app->addClass(ShillerEditCli::class);
+        $app->addClass(\Leuffen\Shiller\Automation\ShillerInitCli::class);
+        ob_start();
+        try {
+            $app->run(['shiller', 'edit', '-h']);
+            $help = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        self::assertIsString($help);
+        self::assertStringContainsString('create', $help);
+        self::assertStringContainsString('resolve', $help);
+
+        // Der nach dem Executable benannte Scope wird von phore/cli2
+        // automatisch auf die Programmebene abgebildet.
+        ob_start();
+        try {
+            $app->run(['shiller', 'init', '-h']);
+            $initHelp = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        self::assertIsString($initHelp);
+        self::assertStringContainsString('--template-dir', $initHelp);
+    }
+
 }
