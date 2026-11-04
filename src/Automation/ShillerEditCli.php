@@ -17,8 +17,8 @@ final class ShillerEditCli
     /**
      * Erstellt mit AiContext::struct() eine T_Changes-YAML.
      *
-     * Ohne Pfade liest edit bis EOF von stdin. Projektkontext, optionale
-     * --context-Dateien sowie Theme-Skills werden von der Action geladen.
+     * Ohne Pfade wird scanner/ genutzt, sofern vorhanden; sonst stdin bis EOF.
+     * Projektkontext, --context-Dateien und Skills kommen aus der Factory.
      *
      * @param list<string> $argv Relative Datei- oder Verzeichnispfade.
      * @param string $output YAML-Ziel relativ zur Projektwurzel.
@@ -42,7 +42,16 @@ final class ShillerEditCli
         #[CliParameter('model', 'AI-Modell fuer die Task-Extraktion')]
         string $model = '',
     ): void {
+        $startDirectory = getcwd();
+        if ($startDirectory === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
         $stdinText = null;
+        if ($argv === [] && phore_dir($startDirectory, ['rootDir' => $startDirectory])
+            ->withSubPath('scanner')->isDirectory()) {
+            $argv = ['scanner'];
+        }
         if ($argv === []) {
             if (function_exists('stream_isatty') && stream_isatty(STDIN)) {
                 fwrite(STDERR, "Aenderungswuensche eingeben; mit Strg+D abschliessen:\n");
@@ -51,11 +60,6 @@ final class ShillerEditCli
             if (!is_string($stdinText) || trim($stdinText) === '') {
                 throw new RuntimeException('No changes provided via stdin.');
             }
-        }
-
-        $startDirectory = getcwd();
-        if ($startDirectory === false) {
-            throw new RuntimeException('Cannot determine current directory.');
         }
 
         $contextFiles = array_values(array_filter(

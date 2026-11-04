@@ -7,7 +7,6 @@ namespace Leuffen\Shiller\Ai;
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
-use Phore\AiHarness\PromptType\PromptDirectory;
 use Phore\AiHarness\ToolType\WebAccessTool;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -60,8 +59,8 @@ final class ShillerAiContextFactory
      * @param bool $debug Debug-Logging des Harness aktivieren.
      * @param bool $requireContext Fehlt Projektkontext, eine Exception werfen.
      * @param bool $requireSkills Fehlt das Skill-Verzeichnis, eine Exception werfen.
-     * Eingabeverzeichnisse und Runtime-Defaults werden aus ai.input_dirs,
-     * ai.client, ai.timeout und ai.connect_timeout der .shiller.yml gelesen.
+     * Runtime-Defaults werden aus ai.client, ai.timeout und
+     * ai.connect_timeout der .shiller.yml gelesen.
      * @return AiContext Konfigurierter AI-Harness-Kontext.
      * @throws FilesystemException Bei unlesbaren Konfigurations- oder Kontextdateien.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder fehlenden Pflichtquellen.
@@ -114,32 +113,6 @@ final class ShillerAiContextFactory
                 'text/markdown',
                 instructions: 'Verbindlicher Shiller-Projektkontext; nicht als Quelldatei bearbeiten.',
                 allowInstructions: true,
-            );
-        }
-        // Zusätzliche Quellen sind rein deklarativ in der Shiller-YAML
-        // konfigurierbar: ai.input_dirs enthält Pfad und optionale Beschreibung.
-        $inputDirectories = $ai['input_dirs'] ?? [];
-        if (!is_array($inputDirectories) || !array_is_list($inputDirectories)) {
-            throw new RuntimeException('Invalid ai.input_dirs in ' . $configFile);
-        }
-        foreach ($inputDirectories as $entry) {
-            $source = is_string($entry) ? ['path' => $entry] : $entry;
-            if (!is_array($source) || !is_string($source['path'] ?? null)
-                || trim($source['path']) === ''
-                || array_diff(array_keys($source), ['path', 'description', 'recursive']) !== []) {
-                throw new RuntimeException('Invalid ai.input_dirs entry in ' . $configFile);
-            }
-            $description = $source['description'] ?? null;
-            $recursive = $source['recursive'] ?? true;
-            if (($description !== null && (!is_string($description) || trim($description) === ''))
-                || !is_bool($recursive)) {
-                throw new RuntimeException('Invalid ai.input_dirs metadata in ' . $configFile);
-            }
-            $uri = $this->resolvePath($source['path']);
-            $prompts[] = new PromptDirectory(
-                (string) $uri,
-                description: $description,
-                recursive: $recursive,
             );
         }
         if ($selectedWebAccess) {

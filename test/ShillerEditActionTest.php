@@ -12,7 +12,6 @@ use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\ImagePrompt;
-use Phore\AiHarness\PromptType\PromptDirectory;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerEditActionTest extends TestCase
@@ -242,22 +241,15 @@ final class ShillerEditActionTest extends TestCase
         $this->expectExceptionMessage('already exists');
         $action->analyze(stdinText: 'Text');
     }
-    public function testFactoryBuildsInputsAndDefaultsFromShillerYaml(): void
+    public function testFactoryBuildsInputsAndDe    public function testFactoryBuildsDefaultsFromShillerYamlWithoutHarnessExtension(): void
     {
-        phore_dir($this->dir . '/attachments')->mkdir();
-        phore_file($this->dir . '/attachments/brief.md')->set_contents("Project details\n");
-        phore_file($this->dir . '/attachments/logo.png')->set_contents("\x89PNG\r\n\x1a\n");
         phore_file($this->dir . '/.shiller.yml')->set_contents(
             "ai:\n"
             . "  model: gpt-5-mini\n"
             . "  client: 'openai:'\n"
             . "  reasoning_effort: high\n"
             . "  timeout: 90\n"
-            . "  connect_timeout: 12\n"
-            . "  input_dirs:\n"
-            . "    - path: attachments\n"
-            . "      description: Kundenunterlagen\n"
-            . "      recursive: false\n",
+            . "  connect_timeout: 12\n",
         );
 
         $context = (new ShillerAiContextFactory($this->dir))->create();
@@ -268,21 +260,66 @@ final class ShillerEditActionTest extends TestCase
         self::assertSame(['effort' => 'high'], $options['reasoning']);
         self::assertSame(90, $options['timeout']);
         self::assertSame(12, $options['connect_timeout']);
-
-        $prompts = (new ReflectionProperty(AiContext::class, 'prompts'))->getValue($context);
-        $directories = array_values(array_filter(
-            $prompts,
-            static fn(mixed $prompt): bool => $prompt instanceof PromptDirectory,
-        ));
-        self::assertCount(1, $directories);
-        self::assertSame('Kundenunterlagen', $directories[0]->description);
-        self::assertFalse($directories[0]->recursive);
-        self::assertCount(2, $directories[0]->segments());
-        self::assertInstanceOf(FilePrompt::class, $directories[0]->segments()[0]);
-        self::assertInstanceOf(ImagePrompt::class, $directories[0]->segments()[1]);
     }
 
-    public function testImageInputUsesImagePromptWithoutShillerMimeMapping(): void
+    public function testScannerDirectoryAcceptsOnlyMdTxtPdfJpegAndPng(): void
+    {
+        phore_dir($this->dir . '/scanner')->mkdir();
+        phore_file($this->dir . '/scanner/brief.md')->set_contents("Einleitung\n");
+        phore_file($this->dir . '/scanner/diagram.png')->set_contents("\x89PNG\r\n\x1a\n");
+        phore_file($this->dir . '/scanner/foto.jpeg')->set_contents("\xff\xd8\xff");
+        phore_file($this->dir . '/scanner/message.txt')->set_contents("Bitte Logo neu.\n");
+        phore_file($this->dir . '/scanner/scan.pdf')->set_contents("%PDF-1.4\n");
+
+        $action = new ShillerEditAction(
+            $this->dir,
+            static function (AiContext $context, array $prompts): T_Changes {
+                self::assertCount(6, $prompts);
+                self::assertInstanceOf(FilePrompt::class, $prompts[1]);
+                self::assertSame('text/markdown', $prompts[1]->contentType);
+                self::assertSame("Einleitung\n", $prompts[1]->content);
+                self::assertInstanceOf(ImagePrompt::class, $prompts[2]);
+                self::assertSame('image/png', $prompts[2]->mimeType);
+                self::assertInstanceOf(ImagePrompt::class, $prompts[3]);
+                self::assertSame('image/jpeg', $prompts[3]->mimeType);
+                self::assertStringStartsWith('data:image/jpeg;base64,', $prompts[3]->imageUrl);
+                self::assertInstanceOf(FilePrompt::class, $prompts[4]);
+                self::assertSame('text/plain', $prompts[4]->contentType);
+                self::assertInstanceOf(FilePrompt::class, $prompts[5]);
+                self::assertSame('application/pdf', $prompts[5]->contentType);
+
+                return new T_Changes(
+                    [
+                        new T_QuoteFile('scanner/brief.md', [new T_Quote("Einleitung\n", [])]),
+                        new T_QuoteFile('scanner/diagram.png', [new T_Quote('scanner/diagram.png', [])]),
+                        new T_QuoteFile('scanner/foto.jpeg', [new T_Quote('scanner/foto.jpeg', [])]),
+                        new T_QuoteFile('scanner/message.txt', [new T_Quote("Bitte Logo neu.\n", ['T-0001'])]),
+                        new T_QuoteFile('scanner/scan.pdf', [new T_Quote('Text aus PDF', [])]),
+                    ],
+                    [new T_Task('T-0001', 'Logo aktualisieren')],
+                    [],
+                );
+            },
+        );
+        $path = $action->analyze();
+        self::assertSame('.shiller-edit/change-request.yml', $path);
+        $result = phore_file($this->dir . '/' . $path)->get_yaml();
+        self::assertCount(5, $result['quotes']);
+        self::assertSame([], $result['quotes'][0]['quotes'][0]['taskIds']);
+        self::assertSame('scanner/scan.pdf', $result['quotes'][4]['fileName']);
+    }
+
+    public function testRejectsUnsupportedScannerFiles(): void
+    {
+        phore_dir($this->dir . '/scanner')->mkdir();
+        phore_file($this->dir . '/scanner/report.docx')->set_contents('binary');
+        $action = new ShillerEditAction($this->dir);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unsupported change source type: scanner/report.docx');
+        $action->analyze();
+    }
+
+tWithoutShillerMimeMapping(): void
     {
         $action = new ShillerEditAction(
             $this->dir,

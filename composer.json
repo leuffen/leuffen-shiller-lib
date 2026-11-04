@@ -23,7 +23,7 @@
     "ext-json": "*",
     "phore/cli2": "dev-main",
     "phore/filesystem": "*",
-    "phore/ai-harness": "dev-feat/prompt-directory-mixed-sources-20261104",
+    "phore/ai-harness": "dev-main",
     "phore/log": "dev-master"
   },
   "require-dev": {
