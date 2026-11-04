@@ -14,7 +14,7 @@ use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** CLI-Einstieg fuer typisierte Change-Request-Erfassung. */
-#[CliScope(['shiller', 'edit'])]
+#[CliScope('edit')]
 final class ShillerEditCli
 {
     /**

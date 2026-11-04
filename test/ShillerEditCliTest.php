@@ -105,7 +105,7 @@ final class ShillerEditCliTest extends TestCase
         $scope = (new ReflectionClass(ShillerEditCli::class))
             ->getAttributes(\Phore\Cli\Annotation\CliScope::class);
         self::assertCount(1, $scope);
-        self::assertSame(['shiller', 'edit'], $scope[0]->getArguments()[0]);
+        self::assertSame('edit', $scope[0]->getArguments()[0]);
 
         $create = (new ReflectionMethod(ShillerEditCli::class, 'create'))
             ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
@@ -123,6 +123,23 @@ final class ShillerEditCliTest extends TestCase
         );
         self::assertStringContainsString('ShillerEditCli::class', $launcher);
         self::assertSame(['bin/shiller'], $composer['bin']);
+        self::assertStringContainsString("($argv[1] ?? '') === 'edit'", $launcher);
+        self::assertStringContainsString("['shiller']", $launcher);
+
+        // Die erste CLI-Ebene ist der Programmname, nicht ein zusaetzlicher
+        // CliScope. Beide Edit-Subcommands sind dadurch direkt erreichbar.
+        $app = new \Phore\Cli\CliApplication();
+        $app->addClass(ShillerEditCli::class);
+        ob_start();
+        try {
+            $app->run(['shiller', 'edit', '-h']);
+            $help = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        self::assertIsString($help);
+        self::assertStringContainsString('create', $help);
+        self::assertStringContainsString('resolve', $help);
     }
 
 }
