@@ -79,7 +79,7 @@ Projekt-, Document-Root- und Template-Konfiguration werden über
 
 ## CLI: Kundenänderungen als Change Request erfassen
 
-Ein parameterloses `shiller edit` verwendet `.schiller-edit.d/` in der
+Ein parameterloses `shiller-edit` verwendet `.shiller-edit.d/` in der
 Projektwurzel. Wenn dieses Verzeichnis fehlt, legt die CLI es an, zeigt
 einen Hinweis zum Hineinkopieren der Kundenunterlagen und wartet auf die
 Bestätigung mit `Y` und Enter. Erst anschließend startet die Analyse.
@@ -88,11 +88,11 @@ daraus geladen werden, und startet direkt. Ist es leer, erfolgt keine
 AI-Anfrage; stattdessen erscheint ein Fehler mit den erlaubten Formaten.
 
 ```sh
-shiller edit
-shiller edit .schiller-edit.d/
-shiller edit .schiller-edit.d/feedback.md .schiller-edit.d/scan.pdf
-shiller edit .schiller-edit.d/ --output .schiller-edit.d/kunde.yml
-shiller edit --context briefing.md --skills-dir skills
+shiller-edit
+shiller-edit .shiller-edit.d/
+shiller-edit .shiller-edit.d/feedback.md .shiller-edit.d/scan.pdf
+shiller-edit .shiller-edit.d/ --output .shiller-edit.d/kunde.yml
+shiller-edit --context briefing.md --skills-dir skills
 ```
 
 Explizite Datei- und Verzeichnispfade bleiben unterstützt. Die CLI
@@ -107,7 +107,7 @@ Base64-Data-URL. Diese Typen sind bereits im unveränderten `phore/ai-harness`
 enthalten; es gibt keine Abhängigkeit von einer neuen Harness-API.
 
 Die Ergebnisdatei liegt standardmäßig unter
-`.schiller-edit.d/shiller-edit.yml`. Sie sowie andere `.yml`-/`.yaml`-Dateien
+`.shiller-edit.d/shiller-edit.yml`. Sie sowie andere `.yml`-/`.yaml`-Dateien
 werden beim Einlesen **ausgeschlossen** und niemals an das Modell gesendet.
 Eine vorhandene Ergebnisdatei wird nicht überschrieben; für einen neuen
 Durchlauf kann ein anderer Ausgabepfad mit `--output` gewählt werden.
@@ -146,7 +146,7 @@ ai:
 
 Die Angaben sind optional; ohne Konfiguration gelten die Defaults.
 `--context`, `--skills-dir` und `--model` ermöglichen Overrides.
-Quellen aus `.schiller-edit.d/` werden ausschließlich beim Edit-Intake geladen,
+Quellen aus `.shiller-edit.d/` werden ausschließlich beim Edit-Intake geladen,
 nicht automatisch bei jeder anderen Shiller-AI-Action.
 Workflow-spezifische Basis-Skills bleiben an ihren Workflow gebunden.
 

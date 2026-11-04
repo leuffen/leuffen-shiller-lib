@@ -68,7 +68,7 @@ final class ShillerEditAction
      * Deren vom Modell gelesener Inhalt kann nicht mit Binaerbytes verglichen werden.
      * Bereits vorhandene Ausgabe-Dateien werden nicht ueberschrieben.
      *
-     * @param list<string> $sourcePaths Dateien oder Verzeichnisse relativ zum Projekt; leer nutzt .schiller-edit.d/ oder stdin.
+     * @param list<string> $sourcePaths Dateien oder Verzeichnisse relativ zum Projekt; leer nutzt .shiller-edit.d/ oder stdin.
      * @param string|null $stdinText Mehrzeiliger Originaltext bei leerer Pfadliste.
      * @param string $output Relativer Pfad fuer die YAML-Ausgabe.
      * @return string Relativer Pfad der geschriebenen Datei.
@@ -82,7 +82,7 @@ final class ShillerEditAction
     public function analyze(
         array $sourcePaths = [],
         ?string $stdinText = null,
-        string $output = '.schiller-edit.d/shiller-edit.yml',
+        string $output = '.shiller-edit.d/shiller-edit.yml',
     ): string {
         $relativeOutput = $this->projectRoot->assertRelativePath($output);
         $target = $this->projectRoot->withSubPath($relativeOutput)->asFile();
@@ -94,8 +94,8 @@ final class ShillerEditAction
         // behalten. Die AI liefert den kompletten typisierten DTO-Baum.
         $originals = [];
         if ($sourcePaths === [] && $stdinText === null
-            && $this->projectRoot->withSubPath('.schiller-edit.d')->isDirectory()) {
-            $sourcePaths = ['.schiller-edit.d'];
+            && $this->projectRoot->withSubPath('.shiller-edit.d')->isDirectory()) {
+            $sourcePaths = ['.shiller-edit.d'];
         }
         $sourcePrompts = $this->inputPrompts($sourcePaths, $stdinText, $originals);
         $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->create(

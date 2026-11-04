@@ -36,8 +36,8 @@ final class ShillerEditCliTest extends TestCase
         );
 
         self::assertTrue($confirmed);
-        self::assertTrue(phore_dir($this->root . '/.schiller-edit.d')->isDirectory());
-        self::assertSame(['.schiller-edit.d'], $paths);
+        self::assertTrue(phore_dir($this->root . '/.shiller-edit.d')->isDirectory());
+        self::assertSame(['.shiller-edit.d'], $paths);
         self::assertStringContainsString('wurde angelegt', implode('', $messages));
         self::assertStringContainsString('Kopiere die Aenderungsinformationen', implode('', $messages));
         self::assertStringContainsString('Y eingeben', implode('', $messages));
@@ -45,8 +45,8 @@ final class ShillerEditCliTest extends TestCase
 
     public function testExistingDirectoryIsLoadedWithoutConfirmation(): void
     {
-        phore_dir($this->root . '/.schiller-edit.d')->mkdir();
-        phore_file($this->root . '/.schiller-edit.d/feedback.md')->set_contents("Bitte aktualisieren.\n");
+        phore_dir($this->root . '/.shiller-edit.d')->mkdir();
+        phore_file($this->root . '/.shiller-edit.d/feedback.md')->set_contents("Bitte aktualisieren.\n");
         $messages = [];
 
         $paths = (new ShillerEditCli())->prepareDefaultSources(
@@ -59,9 +59,9 @@ final class ShillerEditCliTest extends TestCase
             },
         );
 
-        self::assertSame(['.schiller-edit.d'], $paths);
-        self::assertSame("Lade Aenderungsinformationen aus .schiller-edit.d/.\n", implode('', $messages));
-        self::assertSame("Bitte aktualisieren.\n", phore_file($this->root . '/.schiller-edit.d/feedback.md')->get_contents());
+        self::assertSame(['.shiller-edit.d'], $paths);
+        self::assertSame("Lade Aenderungsinformationen aus .shiller-edit.d/.\n", implode('', $messages));
+        self::assertSame("Bitte aktualisieren.\n", phore_file($this->root . '/.shiller-edit.d/feedback.md')->get_contents());
     }
 
     public function testNoConfirmationStopsBeforeAnalysis(): void
@@ -81,7 +81,7 @@ final class ShillerEditCliTest extends TestCase
                 },
             );
         } finally {
-            self::assertTrue(phore_dir($this->root . '/.schiller-edit.d')->isDirectory());
+            self::assertTrue(phore_dir($this->root . '/.shiller-edit.d')->isDirectory());
             self::assertStringContainsString('Y eingeben', implode('', $messages));
         }
     }
@@ -99,4 +99,20 @@ final class ShillerEditCliTest extends TestCase
             },
         );
     }
+
+    public function testStandaloneExecutableIsRegisteredAndOriginalShillerOmitsEdit(): void
+    {
+        $project = phore_dir(__DIR__ . '/..')->assertDirectory()->assertReadable();
+        $composer = json_decode($project->withSubPath('composer.json')->asFile()->get_contents(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertContains('bin/shiller-edit', $composer['bin']);
+        self::assertContains('bin/shiller', $composer['bin']);
+
+        $standalone = $project->withSubPath('bin/shiller-edit')->asFile()->get_contents();
+        $original = $project->withSubPath('bin/shiller')->asFile()->get_contents();
+        self::assertStringStartsWith("#!/usr/bin/env php\n<?php\n", $standalone);
+        self::assertStringContainsString('ShillerEditCli::class', $standalone);
+        self::assertStringContainsString("'shiller', 'edit'", $standalone);
+        self::assertStringNotContainsString('ShillerEditCli::class', $original);
+    }
+
 }
