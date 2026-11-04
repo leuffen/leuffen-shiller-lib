@@ -126,6 +126,33 @@ konfiguriert `AiContext` aus `.shiller.yml` (z. B. `ai.model`,
 Die Factory wird von Edit und Content-Adjust genutzt; workflow-interne
 Skills werden nur ausdrücklich für ihren jeweiligen Workflow geladen.
 
+Die neue zentrale `SourcePrompt`-API aus
+[AI-Harness-PR #25](https://github.com/phore/phore-ai-harness/pull/25)
+ordnet Dateiformate automatisch `FilePrompt`, `ImagePrompt` oder
+`AudioPrompt` zu. Shiller enthält keine eigene MIME-Zuordnung mehr.
+
+Die `ShillerAiContextFactory` nutzt `.shiller.yml` auch für das Modell,
+Provider-Verbindung, Reasoning, Timeouts und gemischte Input-Verzeichnisse:
+
+```yaml
+ai:
+  model: gpt-5-mini
+  client: 'openai:'
+  reasoning_effort: medium
+  web_access: false
+  timeout: 120
+  connect_timeout: 10
+  input_dirs:
+    - path: kundenunterlagen/
+      description: Zusätzliche Projekt- und Kundenunterlagen
+      recursive: true
+```
+
+`ai.input_dirs` akzeptiert auch eine Liste einfacher Verzeichnispfade.
+Die Inhalte werden automatisch als vorbereitete Context-Quellen
+eingebunden; die enthaltenen Anweisungen sind standardmäßig nicht
+vertrauenswürdig. Relative Pfade beziehen sich auf die Projektwurzel.
+Fehlt `ai.client`, bleibt die übliche Keystore-Konfiguration aktiv.
 `resolutions` bleibt beim Edit-Intake leer. Die spätere Analyse,
 Task-Gruppierung und Ausführung ist noch nicht implementiert.
 ## Website aus `_tpl` anlegen

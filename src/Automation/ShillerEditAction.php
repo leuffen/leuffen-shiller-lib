@@ -12,7 +12,10 @@ use Leuffen\Shiller\Types\T_Quote;
 use Leuffen\Shiller\Types\T_QuoteFile;
 use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
+use Phore\AiHarness\Content\ContentType;
 use Phore\AiHarness\PromptType\FilePrompt;
+use Phore\AiHarness\PromptType\PromptType;
+use Phore\AiHarness\PromptType\SourcePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -140,7 +143,7 @@ final class ShillerEditAction
     /**
      * @param list<string> $sourcePaths
      * @param array<string, string|null> $originals Null for binary documents and assets.
-     * @return list<FilePrompt|TextPrompt>
+     * @return list<PromptType>
      */
     private function inputPrompts(array $sourcePaths, ?string $stdinText, array &$originals): array
     {
@@ -154,53 +157,24 @@ final class ShillerEditAction
 
         $prompts = [];
         foreach ($this->sourceFiles($sourcePaths) as $relative => $file) {
+            // Der AI Harness entscheidet ueber Dokument, Bild, Audio oder Text.
+            // Nur tatsaechlich als input_text versendete Quellen lassen sich
+            // anhand ihrer Originalbytes lueckenlos verifizieren.
             $content = $file->get_contents();
-            $documentType = $this->documentContentType($relative);
-            if ($documentType !== null) {
-                $originals[$relative] = null;
-                $prompts[] = new FilePrompt(
-                    $relative,
-                    $content,
-                    $documentType,
-                    instructions: 'Externe Kundenquelle ' . $relative
-                        . ': vollstaendigen sichtbaren Dokumenttext lesen, auch ohne Aufgabenbezug.',
-                );
-                continue;
-            }
-            if ($this->isText($relative, $content)) {
-                $originals[$relative] = $content;
-                $prompts[] = new FilePrompt(
-                    $relative,
-                    $content,
-                    'text/plain',
-                    instructions: 'Externe Kundenquelle ' . $relative
-                        . ': alle Zeichen inkl. Leerzeilen und belanglosen Abschnitten unveraendert erhalten.',
-                );
-                continue;
-            }
-            $originals[$relative] = null;
-            $prompts[] = new TextPrompt(
-                'Binaeres Asset ' . $relative . ' (nur Dateiname, nicht der Dateiinhalt).',
-                alias: 'asset' . count($prompts),
+            $prompt = SourcePrompt::fromRaw(
+                $relative,
+                $content,
+                instructions: 'Externe Kundenquelle ' . $relative
+                    . ': alle Textabschnitte beruecksichtigen, auch ohne Aufgabenbezug.',
             );
+            $originals[$relative] = $prompt instanceof FilePrompt
+                && ContentType::isVerbatimTextFile($prompt->contentType)
+                    ? $content
+                    : null;
+            $prompts[] = $prompt;
         }
 
         return $prompts;
-    }
-
-    /** MIME-Typen, die der AI Harness direkt als Datei entgegennehmen kann. */
-    private function documentContentType(string $path): ?string
-    {
-        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
-            'pdf' => 'application/pdf',
-            'doc' => 'application/msword',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls' => 'application/vnd.ms-excel',
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'ppt' => 'application/vnd.ms-powerpoint',
-            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            default => null,
-        };
     }
 
     /**
@@ -239,22 +213,6 @@ final class ShillerEditAction
     private function relativePath(PhoreFile $file): string
     {
         return str_replace('\\', '/', (string) $file->getRelPath($this->projectRoot));
-    }
-
-    private function isText(string $path, string $content): bool
-    {
-        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if (in_array($extension, [
-            'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'avif',
-            'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-            'zip', 'gz', 'mp4', 'mov', 'mp3',
-        ], true)) {
-            return false;
-        }
-
-        return !str_contains($content, "\0")
-            && preg_match('/[\x01-\x08\x0B\x0C\x0E-\x1F]/', $content) !== 1
-            && preg_match('//u', $content) === 1;
     }
 
     /**

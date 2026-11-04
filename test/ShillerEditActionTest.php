@@ -11,6 +11,8 @@ use Leuffen\Shiller\Types\T_Resolution;
 use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
+use Phore\AiHarness\PromptType\ImagePrompt;
+use Phore\AiHarness\PromptType\PromptDirectory;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerEditActionTest extends TestCase
@@ -240,4 +242,69 @@ final class ShillerEditActionTest extends TestCase
         $this->expectExceptionMessage('already exists');
         $action->analyze(stdinText: 'Text');
     }
+    public function testFactoryBuildsInputsAndDefaultsFromShillerYaml(): void
+    {
+        phore_dir($this->dir . '/attachments')->mkdir();
+        phore_file($this->dir . '/attachments/brief.md')->set_contents("Project details\n");
+        phore_file($this->dir . '/attachments/logo.png')->set_contents("\x89PNG\r\n\x1a\n");
+        phore_file($this->dir . '/.shiller.yml')->set_contents(
+            "ai:\n"
+            . "  model: gpt-5-mini\n"
+            . "  client: 'openai:'\n"
+            . "  reasoning_effort: high\n"
+            . "  timeout: 90\n"
+            . "  connect_timeout: 12\n"
+            . "  input_dirs:\n"
+            . "    - path: attachments\n"
+            . "      description: Kundenunterlagen\n"
+            . "      recursive: false\n",
+        );
+
+        $context = (new ShillerAiContextFactory($this->dir))->create();
+        $options = (new ReflectionProperty(AiContext::class, 'defaults'))->getValue($context)->toArray();
+
+        self::assertSame('gpt-5-mini', $options['model']);
+        self::assertSame('openai:', $options['client']);
+        self::assertSame(['effort' => 'high'], $options['reasoning']);
+        self::assertSame(90, $options['timeout']);
+        self::assertSame(12, $options['connect_timeout']);
+
+        $prompts = (new ReflectionProperty(AiContext::class, 'prompts'))->getValue($context);
+        $directories = array_values(array_filter(
+            $prompts,
+            static fn(mixed $prompt): bool => $prompt instanceof PromptDirectory,
+        ));
+        self::assertCount(1, $directories);
+        self::assertSame('Kundenunterlagen', $directories[0]->description);
+        self::assertFalse($directories[0]->recursive);
+        self::assertCount(2, $directories[0]->segments());
+        self::assertInstanceOf(FilePrompt::class, $directories[0]->segments()[0]);
+        self::assertInstanceOf(ImagePrompt::class, $directories[0]->segments()[1]);
+    }
+
+    public function testImageInputUsesImagePromptWithoutShillerMimeMapping(): void
+    {
+        $action = new ShillerEditAction(
+            $this->dir,
+            static function (AiContext $context, array $prompts): T_Changes {
+                $images = array_values(array_filter(
+                    $prompts,
+                    static fn(mixed $prompt): bool => $prompt instanceof ImagePrompt,
+                ));
+                self::assertCount(1, $images);
+                self::assertSame('feedback/nested/logo.png', $images[0]->fileName);
+
+                return new T_Changes(
+                    [new T_QuoteFile('feedback/nested/logo.png', [
+                        new T_Quote('feedback/nested/logo.png', []),
+                    ])],
+                    [],
+                    [],
+                );
+            },
+        );
+        $path = $action->analyze(['feedback/nested/logo.png']);
+        self::assertSame('.shiller-edit/change-request.yml', $path);
+    }
+
 }
