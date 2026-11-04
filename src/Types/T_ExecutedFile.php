@@ -19,6 +19,5 @@ final class T_ExecutedFile
         public string $path,
         public string $beforeSha256,
         public string $content,
-    ) {
-    }
+    ) {}
 }

@@ -17,6 +17,5 @@ final class T_EditExecution
     public function __construct(
         public string $taskId,
         public array $files,
-    ) {
-    }
+    ) {}
 }
