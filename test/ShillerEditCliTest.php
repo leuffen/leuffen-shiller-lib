@@ -100,19 +100,29 @@ final class ShillerEditCliTest extends TestCase
         );
     }
 
-    public function testStandaloneExecutableIsRegisteredAndOriginalShillerOmitsEdit(): void
+    public function testEditCommandsAreNestedUnderShiller(): void
     {
-        $project = phore_dir(__DIR__ . '/..')->assertDirectory()->assertReadable();
-        $composer = json_decode($project->withSubPath('composer.json')->asFile()->get_contents(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertContains('bin/shiller-edit', $composer['bin']);
-        self::assertContains('bin/shiller', $composer['bin']);
+        $scope = (new ReflectionClass(ShillerEditCli::class))
+            ->getAttributes(\Phore\Cli\Annotation\CliScope::class);
+        self::assertCount(1, $scope);
+        self::assertSame(['shiller', 'edit'], $scope[0]->getArguments()[0]);
 
-        $standalone = $project->withSubPath('bin/shiller-edit')->asFile()->get_contents();
-        $original = $project->withSubPath('bin/shiller')->asFile()->get_contents();
-        self::assertStringStartsWith("#!/usr/bin/env php\n<?php\n", $standalone);
-        self::assertStringContainsString('ShillerEditCli::class', $standalone);
-        self::assertStringContainsString("'shiller', 'edit'", $standalone);
-        self::assertStringNotContainsString('ShillerEditCli::class', $original);
+        $create = (new ReflectionMethod(ShillerEditCli::class, 'create'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        $resolve = (new ReflectionMethod(ShillerEditCli::class, 'resolve'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        self::assertSame('create', $create[0]->getArguments()[0]);
+        self::assertSame('resolve', $resolve[0]->getArguments()[0]);
+
+        $project = phore_dir(__DIR__ . '/..')->assertDirectory()->assertReadable();
+        $launcher = $project->withSubPath('bin/shiller')->asFile()->get_contents();
+        $composer = json_decode(
+            $project->withSubPath('composer.json')->asFile()->get_contents(),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertStringContainsString('ShillerEditCli::class', $launcher);
+        self::assertSame(['bin/shiller'], $composer['bin']);
     }
 
 }

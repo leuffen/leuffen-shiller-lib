@@ -68,6 +68,8 @@ final class ShillerEditActionTest extends TestCase
         $path = $action->analyze(['feedback']);
         $data = phore_file($this->dir . '/' . $path)->get_yaml();
         self::assertSame(['quotes', 'tasks', 'resolutions'], array_keys($data));
+        self::assertSame([], $data['tasks'][0]['questions']);
+        self::assertSame('', $data['tasks'][0]['adminInformation']);
         self::assertSame('feedback/nested/logo.png', $data['quotes'][0]['fileName']);
         self::assertSame('feedback/request.txt', $data['quotes'][1]['fileName']);
         self::assertSame(['text', 'taskIds'], array_keys($data['quotes'][1]['quotes'][0]));
@@ -102,7 +104,7 @@ final class ShillerEditActionTest extends TestCase
         self::assertSame($original, implode('', array_column($data['quotes'][0]['quotes'], 'text')));
     }
 
-    public function testRejectsIncompleteQuotesWithoutWritingOutput(): void
+    public function testAcceptsQuotesThatDoNotExactlyReproduceTheSource(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
@@ -113,13 +115,9 @@ final class ShillerEditActionTest extends TestCase
             ),
         );
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('exact original text');
-        try {
-            $action->analyze(stdinText: "Einleitung.\nNur eine Anforderung\nSchluss.");
-        } finally {
-            self::assertFalse(phore_uri($this->dir . '/.shiller-edit.d/shiller-edit.yml')->exists());
-        }
+        $path = $action->analyze(stdinText: "Einleitung.\nNur eine Anforderung\nSchluss.");
+        $data = phore_file($this->dir . '/' . $path)->get_yaml();
+        self::assertSame('Nur eine Anforderung', $data['quotes'][0]['quotes'][0]['text']);
     }
 
     public function testPdfIsAttachedAsDocumentInsteadOfFilenameOnly(): void

@@ -22,7 +22,7 @@ final class T_Changes
     public array $tasks;
 
     /**
-     * Gruppierte Umsetzungsplaene; bei shiller edit leer.
+     * Umsetzungsplaene aus shiller edit resolve; bei create leer.
      *
      * @var list<T_Resolution>
      */
@@ -31,7 +31,7 @@ final class T_Changes
     /**
      * @param list<T_QuoteFile> $quotes Vollstaendige Quelldateien.
      * @param list<T_Task> $tasks Identifizierte Aenderungswuensche.
-     * @param list<T_Resolution> $resolutions In der Intake-Phase zwingend [].
+     * @param list<T_Resolution> $resolutions Bei create []; resolve fuegt Plaene hinzu.
      * @see T_QuoteFile
      *
      * Beispiel: new T_Changes([new T_QuoteFile('feedback.txt', [new T_Quote('Text', ['T-0001'])])], [new T_Task('T-0001', 'Text bearbeiten')], []).

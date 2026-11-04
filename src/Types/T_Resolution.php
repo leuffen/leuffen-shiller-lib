@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Types;
 
-/** Gemeinsamer Umsetzungsplan fuer mehrere Tasks; erst in Solve befuellt. */
+/** Umsetzungsplan fuer ein oder mehrere Tasks aus dem Resolve-Schritt. */
 final class T_Resolution
 {
     /** Eindeutige Resolution-ID, z. B. R-0001. */

@@ -77,81 +77,71 @@ Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomat
 Projekt-, Document-Root- und Template-Konfiguration werden über
 `Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
 
-## CLI: Kundenänderungen als Change Request erfassen
+## CLI: Kundenänderungen erfassen und Lösungen planen
 
-Ein parameterloses `shiller-edit` verwendet `.shiller-edit.d/` in der
-Projektwurzel. Wenn dieses Verzeichnis fehlt, legt die CLI es an, zeigt
-einen Hinweis zum Hineinkopieren der Kundenunterlagen und wartet auf die
-Bestätigung mit `Y` und Enter. Erst anschließend startet die Analyse.
-Besteht das Verzeichnis bereits, meldet die CLI, dass die Unterlagen
-daraus geladen werden, und startet direkt. Ist es leer, erfolgt keine
-AI-Anfrage; stattdessen erscheint ein Fehler mit den erlaubten Formaten.
+`shiller edit create` sammelt Kundenwünsche als `T_Changes`-YAML, ohne
+Website-Dateien zu ändern. Beim ersten parameterlosen Aufruf legt es
+`.shiller-edit.d/` in der Projektwurzel an und fordert dazu auf,
+`.md`-, `.txt`-, `.pdf`-, `.jpg`-, `.jpeg`- oder `.png`-Dateien
+hineinzukopieren. Erst nach Bestätigung mit `Y` und Enter beginnt die
+Analyse. Bei vorhandenem Verzeichnis werden die Quellen direkt gelesen.
+Explizite Quelldateien und Verzeichnisse bleiben möglich.
 
 ```sh
-shiller-edit
-shiller-edit .shiller-edit.d/
-shiller-edit .shiller-edit.d/feedback.md .shiller-edit.d/scan.pdf
-shiller-edit .shiller-edit.d/ --output .shiller-edit.d/kunde.yml
-shiller-edit --context briefing.md --skills-dir skills
+shiller edit create
+shiller edit create .shiller-edit.d/
+shiller edit create .shiller-edit.d/feedback.md .shiller-edit.d/scan.pdf
+shiller edit create --context briefing.md --skills-dir skills
 ```
 
-Explizite Datei- und Verzeichnispfade bleiben unterstützt. Die CLI
-verwendet den interaktiven `Y`-Dialog ausschließlich beim erstmaligen
-Anlegen des Standardverzeichnisses ohne Pfadparameter.
+Die generierte Datei liegt standardmäßig unter
+`.shiller-edit.d/shiller-edit.yml`. Alle `.yml`- und `.yaml`-Dateien
+werden beim Einlesen des Verzeichnisses ausgeschlossen und **nicht** an
+die AI übertragen. Ein vorhandenes Ergebnis wird bei `create` nicht
+überschrieben; ein alternatives Ziel kann mit `--output` gewählt werden.
 
-**Unterstützte Quellen:** `.md`, `.txt`, `.pdf`, `.jpg`, `.jpeg` und `.png`.
-Andere Dateiendungen werden mit einer verständlichen Fehlermeldung abgelehnt.
-Markdown und TXT werden unverändert als `FilePrompt` übergeben, PDF als
-`FilePrompt` mit `application/pdf`, JPEG und PNG als `ImagePrompt` mit
-Base64-Data-URL. Diese Typen sind bereits im unveränderten `phore/ai-harness`
-enthalten; es gibt keine Abhängigkeit von einer neuen Harness-API.
+Die Struktur enthält `quotes` (Originalstellen einschließlich Text
+ohne Aufgabenbezug), `tasks` (identifizierte Änderungswünsche) und
+`resolutions` (bei `create` immer leer). Jeder Task enthält:
 
-Die Ergebnisdatei liegt standardmäßig unter
-`.shiller-edit.d/shiller-edit.yml`. Sie sowie andere `.yml`-/`.yaml`-Dateien
-werden beim Einlesen **ausgeschlossen** und niemals an das Modell gesendet.
-Eine vorhandene Ergebnisdatei wird nicht überschrieben; für einen neuen
-Durchlauf kann ein anderer Ausgabepfad mit `--output` gewählt werden.
-Die Extraktion verwendet `AiContext::struct(..., T_Changes::class)`
-statt einer JSON-Textantwort.
+- `id` – stabile ID, z. B. `T-0001`
+- `summary` – Beschreibung des Änderungswunsches
+- `questions` – offene Fragen, die `resolve` bei fehlenden Angaben hinterlegt
+- `adminInformation` – manuell ergänzbare Hinweise für die Planung
 
-Die fünf DTOs liegen in `Leuffen\Shiller\Types`:
+Bei Markdown und TXT werden die Inhalte als `FilePrompt` übergeben, PDFs
+als Dokumente und JPEG/PNG als `ImagePrompt`. Die Quotes sollen den
+Originaltext möglichst vollständig wiedergeben. PDFs und Bilder
+ermöglichen keine bytegenaue Textprüfung.
 
-- `T_Changes`: `quotes` (Liste von `T_QuoteFile`), `tasks`, `resolutions`.
-- `T_QuoteFile`: `fileName` (relativer Pfad oder `stdin`), `quotes`.
-- `T_Quote`: `text` (Originaltext), `taskIds` (auch `[]` für Fülltext).
-- `T_Task`: `id` (z. B. `T-0001`) und `summary`.
-- `T_Resolution`: `id`, `taskIds`, `description`, `files`, `changes`.
+### Lösungsplanung mit `shiller edit resolve`
 
-Die Quote-Blöcke einer Textdatei enthalten den gesamten Originaltext
-einschließlich Leerzeilen, Begrüßungen und Text ohne Aufgabenbezug.
-Die Verkettung der Quotes muss bei MD/TXT bytegenau dem Original entsprechen.
-Für PDFs ist diese Textprüfung technisch nicht möglich; die AI soll
-den vollständigen sichtbaren Dokumenttext übernehmen. Für Bilder dient
-der Dateiname als Quote-Text, der Bildinhalt wird dennoch mitgesendet.
-
-Die `Leuffen\Shiller\Ai\ShillerAiContextFactory` konfiguriert den
-gemeinsamen `AiContext` aus `.shiller.yml`, dem Projektkontext in
-`.shiller-context.d/` und den Theme-Skills aus `skills_dir`.
-Für Modell und Laufzeitoptionen gelten beispielsweise:
-
-```yaml
-ai:
-  model: gpt-5-mini
-  client: 'openai:'
-  reasoning_effort: medium
-  web_access: false
-  timeout: 120
-  connect_timeout: 10
+```sh
+shiller edit resolve
+shiller edit resolve --input .shiller-edit.d/shiller-edit.yml
+shiller edit resolve --project-dir /srv/website --document-root docs
+shiller edit resolve --skills-dir skills --context briefing.md
 ```
 
-Die Angaben sind optional; ohne Konfiguration gelten die Defaults.
-`--context`, `--skills-dir` und `--model` ermöglichen Overrides.
-Quellen aus `.shiller-edit.d/` werden ausschließlich beim Edit-Intake geladen,
-nicht automatisch bei jeder anderen Shiller-AI-Action.
-Workflow-spezifische Basis-Skills bleiben an ihren Workflow gebunden.
+`resolve` verwendet die bestehende YAML, das Projektverzeichnis,
+den Projektkontext aus `.shiller-context.d/` und passende Theme-Skills
+aus `skills_dir`. Das Modell kann relevante Edit-Skills und References
+über `skill_load` laden. Als Planungsgrundlage stehen die Dateiliste des
+Document Roots und kleine, lesbare Website-Textdateien zur Verfügung.
+Die gemeinsame `ShillerAiContextFactory` übernimmt die Einstellungen
+aus `.shiller.yml` für Modell, Client, Reasoning, Web-Tool und Timeouts.
 
-`resolutions` bleibt in Phase 1 immer leer. Eine Solve-Phase und die
-Ausführung von Änderungen sind noch nicht implementiert.
+Jeder noch nicht geplante Task wird einzeln geprüft. Wenn sich eine
+konkrete Umsetzung bestimmen lässt, wird eine `T_Resolution` mit
+`id`, `taskIds`, `description`, `files` und `changes` angelegt.
+Kann trotz Projektdateien, Skills und `adminInformation` keine
+verlässliche Lösung ermittelt werden, entsteht **keine** Resolution;
+stattdessen werden die benötigten Angaben in `questions` vermerkt.
+Bereits vorhandene Resolutions werden nicht neu erzeugt. Nach Ergänzen
+der `adminInformation` kann `resolve` für offene Tasks erneut laufen.
+
+`resolve` aktualisiert ausschließlich die Edit-YAML. Es führt keine
+Änderung an Website-Dateien aus und ist keine Solve-/Apply-Phase.
 
 ## Website aus `_tpl` anlegen
 
