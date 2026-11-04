@@ -95,6 +95,7 @@ final class ShillerEditCliTest extends TestCase
             $this->root,
             static fn(): false => false,
             static function (string $message): void {
+                self::assertNotSame('', $message);
             },
         );
     }
