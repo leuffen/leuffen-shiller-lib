@@ -38,6 +38,18 @@ final class ShillerAutomationTest extends TestCase
         self::assertStringContainsString('Do not weaken calls to action', $skill);
     }
 
+    public function testIndividualFileAdaptUsesLowReasoning(): void
+    {
+        $reflection = new ReflectionClass(Leuffen\Shiller\Automation\ShillerContentAction::class);
+        $source = phore_file(__DIR__ . '/../src/Automation/ShillerContentAction.php')->get_contents();
+
+        self::assertSame('low', $reflection->getConstant('FILE_REASONING_EFFORT'));
+        self::assertStringContainsString(
+            "options: ['reasoning' => ['effort' => self::FILE_REASONING_EFFORT]]",
+            $source,
+        );
+    }
+
     public function testAdaptReportsFileErrorsWithoutRemovingBatchContinuation(): void
     {
         $source = phore_file(__DIR__ . '/../src/Automation/ShillerContentAction.php')->get_contents();

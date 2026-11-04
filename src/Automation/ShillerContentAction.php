@@ -18,6 +18,8 @@ use Throwable;
 /** Passt installierte Website-Inhalte mit AiContext und ThemeJS2-Skills an. */
 final class ShillerContentAction
 {
+    private const string FILE_REASONING_EFFORT = 'low';
+
     private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
@@ -125,7 +127,10 @@ final class ShillerContentAction
 
         $usage = GlobalUsage::instance();
         $startStats = $usage->getStats();
-        $this->logger?->step('AI-Modell: {}; Reasoning: {}', [$this->model, $this->reasoningEffort]);
+        $this->logger?->step(
+            'AI-Modell: {}; Kontext-Reasoning: {}; Datei-Reasoning: {}',
+            [$this->model, $this->reasoningEffort, self::FILE_REASONING_EFFORT],
+        );
 
         $context = (new ShillerAiContextFactory((string) $this->projectRoot))->create(
             additionalContextFiles: array_map(
@@ -223,7 +228,11 @@ final class ShillerContentAction
 
                 $beforeFile = $usage->getStats();
                 $task?->detail('Generiere angepassten Inhalt');
-                $content = $fileContext->text($filePrompts, input: $target->get_contents());
+                $content = $fileContext->text(
+                    $filePrompts,
+                    input: $target->get_contents(),
+                    options: ['reasoning' => ['effort' => self::FILE_REASONING_EFFORT]],
+                );
                 $task?->detail('Schreibe Datei ins Filesystem');
                 $target->set_contents($content);
                 $written[] = $relative;
