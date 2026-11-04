@@ -131,12 +131,12 @@ Document Roots und kleine, lesbare Website-Textdateien zur Verfügung.
 Die gemeinsame `ShillerAiContextFactory` übernimmt die Einstellungen
 aus `.shiller.yml` für Modell, Client, Reasoning, Web-Tool und Timeouts.
 
-Jeder noch nicht geplante Task wird einzeln geprüft. Das AI-Ergebnis
-verwendet direkt die vorhandenen DTOs `T_Changes`, `T_Task` und
-`T_Resolution` – ohne zusätzlichen Assessment-Typ. Wenn sich eine
-konkrete Umsetzung bestimmen lässt, wird eine `T_Resolution` mit
-`id`, `taskIds`, `description`, `files` und `changes` angelegt. Eine
-Resolution kann **mehrere Projektdateien** in `files` enthalten.
+Offene Tasks werden gemeinsam analysiert. Das AI-Ergebnis verwendet direkt
+`T_Changes`, `T_Task` und `T_Resolution`, ohne Assessment-Zwischentyp.
+Ein Task hat den Typ `content` oder `style`; eine Resolution kann mehrere
+zusammengehoerende Tasks desselben Typs umfassen. Sie enthaelt `id`,
+`taskIds`, `description`, `defect` und eine Liste `files` mit einer oder
+mehreren Projektdateien.
 Kann trotz Projektdateien, Skills und `adminInformation` keine
 verlässliche Lösung ermittelt werden, entsteht **keine** Resolution;
 stattdessen werden die benötigten Angaben in `questions` vermerkt.
@@ -145,6 +145,73 @@ der `adminInformation` kann `resolve` für offene Tasks erneut laufen.
 
 `resolve` aktualisiert ausschließlich die Edit-YAML. Es führt keine
 Änderung an Website-Dateien aus und ist keine Solve-/Apply-Phase.
+
+### Interaktiv verfeinern: `shiller edit refine`
+
+```sh
+shiller edit refine
+shiller edit refine --project-dir /srv/website --document-root docs
+```
+
+Die Terminal-Eingabe nutzt `phore/cli2` und `In::AskMultiLine()`:
+Enter sendet eine Anweisung, Ctrl+J oder Shift+Enter fuegt einen Zeilenumbruch
+ein, und mehrzeiliges Einfuegen wird unterstuetzt. Freitext wie
+"Fuehre T-0001 und T-0002 zu einer Aufgabe zusammen und aktualisiere die
+Resolution" verfeinert `T_Changes` anhand der vorhandenen Dateien und
+Theme-Skills. Die Original-Zitate bleiben erhalten; neue Zuordnungen in
+`quotes[].quotes[].taskIds` und `resolutions[].taskIds` werden validiert.
+
+Mit `:show` erscheinen die aktuellen Tasks, `:undo` nimmt die letzte AI-Runde
+zurueck, `:save` schreibt die Edit-YAML und `:quit` verlaesst den Dialog
+ohne Schreiben. Website-Dateien bleiben unveraendert. Nach bereits
+protokollierten Ausfuehrungen ist Refine gesperrt, damit die Historie
+ihre stabilen Task-IDs behaelt.
+
+### Anwenden und Diffs aufzeichnen: `shiller edit execute`
+
+```sh
+shiller edit execute --dry-run
+shiller edit execute --task-id T-0001
+shiller edit execute --yes
+```
+
+Die Action setzt Tasks mit bestehender Resolution nacheinander um. Eine
+gemeinsame Resolution mit mehreren Task-IDs wird trotzdem je Task separat
+angewendet und nachgewiesen. Ohne `--yes` muss jeder Schreibvorgang bestaetigt
+werden. `--dry-run` zeigt nur Diffs; es veraendert weder Dateien noch
+das Protokoll. Tasks mit offenen Fragen werden nicht ausgefuehrt.
+
+Geschrieben werden nur vorhandene, in `resolution.files` angegebene UTF-8-
+Projektdateien (bis 80 KB). Der gesamte Zielinhalt muss von der AI mit
+dem korrekten SHA-256-Hash des Originals kommen. Ungeplante Pfade und
+ungueltige/stale Antworten werden vor einem Schreibzugriff abgewiesen.
+Fuer jede Aufgabe entsteht in `.shiller-edit.d/shiller-edit-changes.yml` ein
+einheitliches, nach Task und Dateipfad filterbares Protokoll:
+
+```yaml
+version: 1
+changes:
+  - taskId: T-0001
+    resolutionId: R-0001
+    file: docs/index.md
+    beforeSha256: "..."
+    afterSha256: "..."
+    hunks:
+      - oldStart: 3
+        oldLines: 1
+        newStart: 3
+        newLines: 1
+        diff: |
+          @@ -3,1 +3,1 @@
+          -Alte Adresse
+          +Neue Adresse
+```
+
+Jede weitere geaenderte Datei erhaelt einen eigenen Eintrag mit derselben
+Task-ID. Diffs referenzieren die tatsaechlichen Zeilennummern vor und
+nach genau dieser Task-Ausfuehrung. Bereits protokollierte Tasks werden bei
+erneuter Ausfuehrung uebersprungen. Neue Dateien und Binaerdateien sind
+absichtlich nicht Teil dieses Schreib-Workflows.
 
 ## Website aus `_tpl` anlegen
 
