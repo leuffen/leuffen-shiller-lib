@@ -190,7 +190,11 @@ final class ShillerContentAction
                         . 'and allows structural changes only by explicit applicable exception. '
                         . 'Bearbeite ausschliesslich targetText fuer ' . $relative . ' anhand des '
                         . 'Projektkontexts und der jeweils relevanten Skills und References. '
-                        . 'Lade bei Bedarf weitere Skills/References. Erhalte technische '
+                        . 'Lade bei Bedarf weitere Skills/References. Erhalte gute bestehende '
+                        . 'Formulierungen und fuehre nur den kleinsten durch konkrete, bestaetigte '
+                        . 'Projektfakten erforderlichen Text-Diff aus. Fehlende, unbekannte oder '
+                        . 'unbestaetigte Angaben sind kein Widerspruch und erlauben kein '
+                        . 'Umschreiben oder Abschwaechen bestehender CTAs. Erhalte technische '
                         . 'Struktur und YAML-Keys; erfinde keine Fakten. Aendere nur '
                         . 'targetText mit write_text.',
                         alias: 'editTask',

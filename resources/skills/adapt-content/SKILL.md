@@ -41,6 +41,23 @@ not page generation or redesign.
   claims and approximate text length, paragraph count and visual
   footprint. Do not invent names, medical services, qualifications,
   addresses or other facts. Use only verified project context.
+- **Preserve good existing wording:** Keep existing copy unchanged whenever
+  it is compatible with verified project facts. Missing, unknown, unconfirmed
+  or unspecified project information does not contradict existing copy and
+  does not authorize rewriting it. If the context neither confirms nor
+  disproves an existing statement, retain the original wording and report the
+  uncertainty instead of replacing the text.
+- **Use the smallest justified text diff:** Replace wording only where a
+  specific verified project fact requires the change, and alter only the
+  affected words or sentences. Do not rewrite surrounding valid copy merely
+  for stylistic consistency, variation, SEO or a more cautious tone. Every
+  textual change must be traceable to a concrete project fact or explicit
+  instruction.
+- **Do not weaken calls to action because information is absent:** In
+  particular, do not turn established button labels into generic phrases such
+  as "Questions about ..." or "Information about ..." merely because a
+  workflow, availability or service is undocumented. Preserve the existing
+  label unless verified context contradicts it; report the open question.
 - Preserve existing notices, including their wording and intent.
   In particular, do **not** change "Aktuelle Hinweise zum Coronavirus"
   into "Aktuelle Hinweise" or "Keine aktuellen Hinweise". Never add a

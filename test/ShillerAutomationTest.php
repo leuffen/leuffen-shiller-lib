@@ -25,6 +25,16 @@ final class ShillerAutomationTest extends TestCase
         phore_dir($this->dir)->rmDir(true);
     }
 
+    public function testAdaptSkillPreservesWordingWhenContextIsUncertain(): void
+    {
+        $skill = phore_file(__DIR__ . '/../resources/skills/adapt-content/SKILL.md')->get_contents();
+
+        self::assertStringContainsString('Preserve good existing wording', $skill);
+        self::assertStringContainsString('does not authorize rewriting it', $skill);
+        self::assertStringContainsString('Use the smallest justified text diff', $skill);
+        self::assertStringContainsString('Do not weaken calls to action', $skill);
+    }
+
     public function testAdaptAcceptsPositionalSelectors(): void
     {
         $parameters = (new ReflectionMethod(ShillerCli::class, 'adapt'))->getParameters();
