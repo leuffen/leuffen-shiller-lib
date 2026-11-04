@@ -7,8 +7,9 @@ namespace Leuffen\Shiller\Automation;
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_Resolution;
-use Leuffen\Shiller\Types\T_ResolveAssessment;
+use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
@@ -25,7 +26,7 @@ final class ShillerResolveAction
      * Bindet eine Projektwurzel und einen optional vorbereiteten AI-Kontext.
      *
      * @param string $projectRoot Shiller-Projektwurzel.
-     * @param Closure|null $assess Optionaler fn(AiContext, array): T_ResolveAssessment.
+     * @param Closure|null $resolveTask Optionaler fn(AiContext, array): T_Changes.
      * @param string $model AI-Modell-Override; leer nutzt .shiller.yml.
      * @param list<string> $additionalContextFiles Weitere Kontextdateien.
      * @param string $skillsDir Skills-Override; leer nutzt .shiller.yml.
@@ -37,7 +38,7 @@ final class ShillerResolveAction
      */
     public function __construct(
         string $projectRoot,
-        private readonly ?Closure $assess = null,
+        private readonly ?Closure $resolveTask = null,
         private readonly string $model = '',
         private readonly array $additionalContextFiles = [],
         private readonly string $skillsDir = '',
@@ -61,7 +62,7 @@ final class ShillerResolveAction
      * @return string Pfad der aktualisierten YAML relativ zur Projektwurzel.
      * @throws FilesystemException Bei nicht lesbaren Quellen.
      * @throws RuntimeException Bei ungueltiger YAML oder AI-Antwort.
-     * @see T_ResolveAssessment
+     * @see T_Changes
      * @see T_Resolution
      *
      * Beispiel: $action->resolve('.shiller-edit.d/shiller-edit.yml');
@@ -126,7 +127,7 @@ final class ShillerResolveAction
 
         // Verfuegbare Edit-Skills duerfen die Planung praezisieren, nicht die
         // Kundenanforderung ueberschreiben oder Website-Dateien bearbeiten.
-        if ($this->assess === null && $context->skills()->list() !== []) {
+        if ($this->resolveTask === null && $context->skills()->list() !== []) {
             $context->do(new TextPrompt(
                 'Dies ist ausschliesslich eine Edit-Resolve-Planung. Sieh dir die '
                 . 'verfuegbaren Skills an und lade ueber skill_load die fuer die '
@@ -169,19 +170,24 @@ final class ShillerResolveAction
 
             $prompts = [
                 new TextPrompt(
-                    'Pruefe diesen EINZELNEN Task gegen Projektkontext, die Dateiliste '
-                    . 'und relevante Edit-Skills. Versuche zuerst eine konkrete, technisch '
-                    . 'nachvollziehbare Loesung zu planen. Fordere NICHT vorsorglich '
-                    . 'Rueckfragen an: canResolve=false ist nur erlaubt, wenn nach '
-                    . 'Pruefung der vorhandenen Dateien, Skills und Admin-Hinweise '
-                    . 'wesentliche Fakten fehlen oder eine Umsetzung tatsaechlich '
-                    . 'nicht bestimmbar ist. In diesem Fall setze questions auf '
-                    . 'konkrete benoetigte Angaben und files/changes auf []. '
-                    . 'Bei canResolve=true liefere description, Projekt-relative '
-                    . 'files und konkrete changes; questions muss [] sein. '
-                    . 'taskId muss exakt der vorgegebenen ID entsprechen. '
-                    . 'Das Ergebnis ist nur ein PLAN: keine Dateien aendern, '
-                    . 'keine Aktionen ausfuehren und keine Informationen erfinden.',
+                    'Plane genau diesen EINZELNEN Task anhand des Projektkontexts, '
+                    . 'der Projektdateien und der relevanten Edit-Skills. Suche '
+                    . 'zuerst nach einer belastbaren Umsetzung; stelle nicht '
+                    . 'vorsorglich Fragen. Gib ausschliesslich T_Changes zurueck: '
+                    . 'quotes muss [] sein, tasks muss genau einen T_Task mit '
+                    . 'unveraenderter id, summary und adminInformation enthalten. '
+                    . 'Ist die Umsetzung konkret planbar, liefere questions=[] '
+                    . 'und genau eine T_Resolution in resolutions mit '
+                    . 'id=R-0000 (Platzhalter), taskIds=[Task-ID], einer '
+                    . 'konkreten description, allen betroffenen projekt-relativen '
+                    . 'Dateien in files sowie den geplanten Schritten in changes. '
+                    . 'Eine Resolution darf mehrere Dateien umfassen. '
+                    . 'Ist trotz Projektdateien, Skills und Admin-Hinweisen '
+                    . 'tatsaechlich keine belastbare Planung moeglich, setze '
+                    . 'resolutions=[] und schreibe die konkret fehlenden '
+                    . 'Informationen als questions direkt in den Task. '
+                    . 'Weder Website-Dateien aendern noch Schritte ausfuehren '
+                    . 'oder Fakten erfinden.',
                     alias: 'resolveTask',
                     allowInstructions: true,
                 ),
@@ -194,47 +200,68 @@ final class ShillerResolveAction
                 ], JSON_THROW_ON_ERROR), alias: 'resolveEvidence'),
                 ...$sitePrompts,
             ];
-            $assessment = $this->assess !== null
-                ? ($this->assess)($context, $prompts)
-                : $context->struct($prompts, T_ResolveAssessment::class);
+            $result = $this->resolveTask !== null
+                ? ($this->resolveTask)($context, $prompts)
+                : $context->struct($prompts, T_Changes::class);
 
-            if (!$assessment instanceof T_ResolveAssessment || $assessment->taskId !== $task['id']) {
+            // Das Ergebnis enthaelt nur diesen einen Task. Original-Quotes,
+            // IDs und Admin-Hinweise koennen so nicht ueberschrieben werden.
+            if (!$result instanceof T_Changes || $result->quotes !== []
+                || !array_is_list($result->tasks)
+                || count($result->tasks) !== 1 || !$result->tasks[0] instanceof T_Task
+                || !array_is_list($result->resolutions) || count($result->resolutions) > 1) {
+                throw new RuntimeException('Invalid resolve result for ' . $task['id']);
+            }
+            $resolvedTask = $result->tasks[0];
+            if ($resolvedTask->id !== $task['id']
+                || $resolvedTask->summary !== $task['summary']
+                || $resolvedTask->adminInformation !== $adminInformation
+                || !array_is_list($resolvedTask->questions)) {
                 throw new RuntimeException('Resolve result does not match task ' . $task['id']);
             }
-            if ($assessment->canResolve) {
-                if (trim($assessment->description) === '' || $assessment->files === []
-                    || $assessment->changes === [] || $assessment->questions !== []) {
+
+            if (count($result->resolutions) === 1) {
+                $resolution = $result->resolutions[0];
+                if (!$resolution instanceof T_Resolution
+                    || $resolution->taskIds !== [$task['id']]
+                    || trim($resolution->description) === ''
+                    || $resolution->files === [] || $resolution->changes === []
+                    || !array_is_list($resolution->files)
+                    || !array_is_list($resolution->changes)
+                    || $resolvedTask->questions !== []) {
                     throw new RuntimeException('Incomplete resolution plan for ' . $task['id']);
                 }
-                foreach ($assessment->files as $path) {
+                foreach ($resolution->files as $path) {
                     if (!is_string($path) || trim($path) === '') {
                         throw new RuntimeException('Invalid resolution file for ' . $task['id']);
                     }
                     $this->projectRoot->assertRelativePath($path);
                 }
-                foreach ($assessment->changes as $change) {
+                foreach ($resolution->changes as $change) {
                     if (!is_string($change) || trim($change) === '') {
                         throw new RuntimeException('Invalid resolution change for ' . $task['id']);
                     }
                 }
+                // Der Resolver vergibt stabile, konfliktfreie IDs. Die AI
+                // legt nur fachliche Inhalte und beliebig viele Dateien fest.
                 $data['resolutions'][] = get_object_vars(new T_Resolution(
                     sprintf('R-%04d', ++$lastResolutionId),
                     [$task['id']],
-                    $assessment->description,
-                    $assessment->files,
-                    $assessment->changes,
+                    $resolution->description,
+                    $resolution->files,
+                    $resolution->changes,
                 ));
                 $task['questions'] = [];
             } else {
-                if ($assessment->questions === [] || $assessment->files !== [] || $assessment->changes !== []) {
+                if ($resolvedTask->questions === []) {
                     throw new RuntimeException('Unresolved task requires specific questions: ' . $task['id']);
                 }
-                foreach ($assessment->questions as $question) {
+                foreach ($resolvedTask->questions as $question) {
                     if (!is_string($question) || trim($question) === '') {
                         throw new RuntimeException('Invalid unresolved task question: ' . $task['id']);
                     }
                 }
-                $task['questions'] = $assessment->questions;
+                $task['questions'] = $resolvedTask->questions;
             }
             $task['adminInformation'] = $adminInformation;
             $data['tasks'][$index] = $task;

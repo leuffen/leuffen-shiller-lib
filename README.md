@@ -131,9 +131,12 @@ Document Roots und kleine, lesbare Website-Textdateien zur Verfügung.
 Die gemeinsame `ShillerAiContextFactory` übernimmt die Einstellungen
 aus `.shiller.yml` für Modell, Client, Reasoning, Web-Tool und Timeouts.
 
-Jeder noch nicht geplante Task wird einzeln geprüft. Wenn sich eine
+Jeder noch nicht geplante Task wird einzeln geprüft. Das AI-Ergebnis
+verwendet direkt die vorhandenen DTOs `T_Changes`, `T_Task` und
+`T_Resolution` – ohne zusätzlichen Assessment-Typ. Wenn sich eine
 konkrete Umsetzung bestimmen lässt, wird eine `T_Resolution` mit
-`id`, `taskIds`, `description`, `files` und `changes` angelegt.
+`id`, `taskIds`, `description`, `files` und `changes` angelegt. Eine
+Resolution kann **mehrere Projektdateien** in `files` enthalten.
 Kann trotz Projektdateien, Skills und `adminInformation` keine
 verlässliche Lösung ermittelt werden, entsteht **keine** Resolution;
 stattdessen werden die benötigten Angaben in `questions` vermerkt.
