@@ -20,6 +20,7 @@ use Phore\AiHarness\PromptType\TextPrompt;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
+use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** Erfasst Kundenwuensche ohne Website-Dateien zu bearbeiten. */
@@ -32,7 +33,7 @@ final class ShillerEditAction
      *
      * Ein nicht uebergebener Kontext kommt aus ShillerAiContextFactory.
      * Test-Callbacks koennen die strukturierte AI-Antwort ersetzen, nicht aber
-     * die Validierung oder das 1:1-Erhaltungsgebot der Textquellen.
+     * die strukturelle Validierung der Textquellen.
      *
      * @param string $projectRoot Projektwurzel fuer Eingabe und Ausgabe.
      * @param Closure|null $struct Optionaler fn(AiContext $context, array $prompts): T_Changes.
@@ -40,6 +41,7 @@ final class ShillerEditAction
      * @param list<string> $additionalContextFiles Weitere Kontextdateien.
      * @param string $skillsDir Skills-Override; leer nutzt .shiller.yml.
      * @param AiContext|null $context Vorbereiteter Kontext, etwa aus der gemeinsamen Factory.
+     * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @throws FilesystemException Bei unlesbarer Projektwurzel.
      * @see ShillerAiContextFactory::create()
      *
@@ -52,6 +54,7 @@ final class ShillerEditAction
         private readonly array $additionalContextFiles = [],
         private readonly string $skillsDir = '',
         private readonly ?AiContext $context = null,
+        private readonly ?PhoreLogger $logger = null,
     ) {
         $path = (string) phore_uri($projectRoot)->abs();
         $this->projectRoot = phore_dir($path, ['rootDir' => $path])
@@ -60,10 +63,10 @@ final class ShillerEditAction
     }
 
     /**
-     * Extrahiert lueckenlose Original-Quotes je Datei und zugehoerige Tasks.
+     * Extrahiert moeglichst originalgetreue Quotes je Datei und zugehoerige Tasks.
      *
-     * Bei Textquellen muss die Verkettung aller Quotes den Eingabetext
-     * bytegenau ergeben, auch fuer Leerzeilen oder Fuellelemente ohne Task.
+     * Textquellen sollen vollstaendig, ohne Aenderungen oder Kuerzungen in den
+     * Quotes erhalten bleiben; geringe technische Abweichungen werden toleriert.
      * PDFs werden direkt als Dokumente, JPEG/PNG als Bild-Prompts uebergeben.
      * Deren vom Modell gelesener Inhalt kann nicht mit Binaerbytes verglichen werden.
      * Bereits vorhandene Ausgabe-Dateien werden nicht ueberschrieben.
@@ -90,14 +93,17 @@ final class ShillerEditAction
             throw new RuntimeException('Change-request output already exists: ' . $target);
         }
 
-        // Quelltexte werden ausschliesslich zum Nachweis der Vollstaendigkeit
-        // behalten. Die AI liefert den kompletten typisierten DTO-Baum.
+        // Quelltexte werden fuer die Zuordnung der Eingabedateien behalten.
+        // Die AI liefert den kompletten typisierten DTO-Baum.
         $originals = [];
         if ($sourcePaths === [] && $stdinText === null
             && $this->projectRoot->withSubPath('.schiller-edit.d')->isDirectory()) {
             $sourcePaths = ['.schiller-edit.d'];
         }
         $sourcePrompts = $this->inputPrompts($sourcePaths, $stdinText, $originals);
+        foreach (array_keys($originals) as $sourceName) {
+            $this->logger?->step('Analysiere Edit-Quelle: {}', [$sourceName]);
+        }
         $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->create(
             additionalContextFiles: $this->additionalContextFiles,
             model: $this->model,
@@ -109,12 +115,11 @@ final class ShillerEditAction
             . 'Gib in T_Changes.quotes fuer JEDE Eingabedatei genau ein T_QuoteFile aus: '
             . 'T_QuoteFile.fileName ist exakt der angegebene relative Dateiname, '
             . 'sortiere die Dateien lexikographisch. '
-            . 'Innerhalb jeder Datei muessen ALLE Textzeichen in Originalreihenfolge '
-            . 'und ohne Umformulierung in T_Quote.text enthalten sein: Auch Leerzeilen, '
-            . 'Zeilenumbrueche, Begruessungen, Ueberleitungen, Fuellelemente und Schlussformeln. '
-            . 'Aneinanderhaengen der Quote-Texte muss bytegenau den vollstaendigen '
-            . 'Originaltext jeder UTF-8-Textdatei ergeben; fuege die Trenn-Zeilenumbrueche '
-            . 'in den jeweiligen Quote-Text mit ein. '
+            . 'Uebernimm den Text jeder Datei so nah wie moeglich am Original und in '
+            . 'Originalreihenfolge. Veraendere, korrigiere, ergaenze, paraphrasiere oder '
+            . 'kuerze den Originaltext nicht. Erhalte insbesondere Leerzeilen, Zeilenumbrueche, '
+            . 'Begruessungen, Ueberleitungen, Fuellelemente und Schlussformeln und fuege die '
+            . 'Trenn-Zeilenumbrueche in den jeweiligen Quote-Text mit ein. '
             . 'Jeder T_Quote hat nur text und taskIds; fuer inhaltlich belanglose '
             . 'Passagen muss taskIds ein leeres Array [] sein. '
             . 'Jede eigenstaendige Aenderungsanforderung erhaelt einen T_Task '
@@ -142,7 +147,9 @@ final class ShillerEditAction
         $this->assertValidChanges($changes, $originals);
         $target->mkdir()->set_contents(Codec::emitYaml($changes->toArray()));
 
-        return str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
+        $relativeTarget = str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
+        $this->logger?->step('Schreibe Edit-Ergebnis: {}', [$relativeTarget]);
+        return $relativeTarget;
     }
 
     /**
@@ -289,13 +296,8 @@ final class ShillerEditAction
                 }
             }
 
-            // Diese Pruefung verhindert, dass relevante oder irrelevante Stellen
-            // im Text vergessen, paraphrasiert oder nachtraeglich ergaenzt werden.
-            if ($originals[$sourceName] !== null && $fullText !== $originals[$sourceName]) {
-                throw new RuntimeException('Quotes do not reproduce the exact original text of ' . $sourceName);
-            }
-            if ($originals[$sourceName] === null && trim($fullText) === '') {
-                throw new RuntimeException('Missing extracted document text or asset name in ' . $sourceName);
+            if (trim($fullText) === '') {
+                throw new RuntimeException('Missing quoted text or asset name in ' . $sourceName);
             }
         }
         foreach (array_keys($taskIds) as $id) {

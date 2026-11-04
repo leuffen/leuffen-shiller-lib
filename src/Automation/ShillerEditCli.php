@@ -9,6 +9,8 @@ use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
+use Phore\Log\Driver\PhoreConsoleLoggerDriver;
+use Phore\Log\PhoreLogger;
 use RuntimeException;
 
 /** CLI-Einstieg fuer typisierte Change-Request-Erfassung. */
@@ -57,6 +59,8 @@ final class ShillerEditCli
             array_map('trim', explode(',', $context)),
             static fn(string $path): bool => $path !== '',
         ));
+        $logger = new PhoreLogger(new PhoreConsoleLoggerDriver());
+        $logger->step('Starte Edit-Analyse mit konfiguriertem AI-Modell und Reasoning.');
         $aiContext = (new ShillerAiContextFactory($startDirectory))->create(
             additionalContextFiles: $contextFiles,
             model: $model,
@@ -65,6 +69,7 @@ final class ShillerEditCli
         $written = (new ShillerEditAction(
             $startDirectory,
             context: $aiContext,
+            logger: $logger,
         ))->analyze($argv, output: $output);
 
         echo $written . PHP_EOL;
