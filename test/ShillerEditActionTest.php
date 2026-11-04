@@ -241,7 +241,8 @@ final class ShillerEditActionTest extends TestCase
         $this->expectExceptionMessage('already exists');
         $action->analyze(stdinText: 'Text');
     }
-    public function testFactoryBuildsInputsAndDe    public function testFactoryBuildsDefaultsFromShillerYamlWithoutHarnessExtension(): void
+
+    public function testFactoryBuildsDefaultsFromShillerYamlWithoutHarnessExtension(): void
     {
         phore_file($this->dir . '/.shiller.yml')->set_contents(
             "ai:\n"
@@ -319,7 +320,7 @@ final class ShillerEditActionTest extends TestCase
         $action->analyze();
     }
 
-tWithoutShillerMimeMapping(): void
+    public function testImageInputUsesExistingHarnessImagePrompt(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
