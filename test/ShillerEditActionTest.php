@@ -37,8 +37,12 @@ final class ShillerEditActionTest extends TestCase
             $this->dir,
             static function (AiContext $context, array $prompts): T_Changes {
                 self::assertCount(3, $prompts);
-                self::assertInstanceOf(FilePrompt::class, $prompts[1]);
-                self::assertStringContainsString('Logo austauschen', $prompts[1]->content);
+                $files = array_values(array_filter(
+                    $prompts,
+                    static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
+                ));
+                self::assertCount(1, $files);
+                self::assertStringContainsString('Logo austauschen', $files[0]->content);
                 return new T_Changes(
                     quotes: [
                         new T_Quote('Adresse korrigieren.', ['T-0001']),
@@ -85,9 +89,13 @@ final class ShillerEditActionTest extends TestCase
                 self::assertSame('feedback', $context->skills()->list()[0]['name']);
                 $reflection = new ReflectionProperty(AiContext::class, 'prompts');
                 $prepared = $reflection->getValue($context);
-                self::assertCount(2, $prepared);
-                self::assertSame('Projektinfos', $prepared[0]->content);
-                self::assertSame('Kundeninfos', $prepared[1]->content);
+                $contextFiles = array_values(array_filter(
+                    $prepared,
+                    static fn(mixed $prompt): bool => $prompt instanceof FilePrompt,
+                ));
+                self::assertCount(2, $contextFiles);
+                self::assertSame('Projektinfos', $contextFiles[0]->content);
+                self::assertSame('Kundeninfos', $contextFiles[1]->content);
                 return new T_Changes(
                     [new T_Quote('Telefon aendern.', ['T-0001'])],
                     [new T_Task('T-0001', 'Telefon aktualisieren')],
