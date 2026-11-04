@@ -195,8 +195,9 @@ final class ShillerContentAction
                         . 'Projektfakten erforderlichen Text-Diff aus. Fehlende, unbekannte oder '
                         . 'unbestaetigte Angaben erlauben kein Umschreiben gueltiger, '
                         . 'projektneutraler Texte. Ersetze jedoch alle erkennbaren Demo-, Fremd- '
-                        . 'oder widerspruechlichen Angaben durch knappe, veroeffentlichbare und '
-                        . 'zum bestaetigten Kontext passende Platzhaltertexte; erfinde nichts und '
+                        . 'oder widerspruechlichen Angaben durch knappe, natuerliche und zum '
+                        . 'bestaetigten Projekttyp passende Texte ohne unbelegte Detailbehauptungen. '
+                        . 'Setze keine Platzhalter oder Unsicherheitshinweise, erfinde nichts und '
                         . 'brich die Bearbeitung deshalb nicht ab. Erhalte technische '
                         . 'Struktur und YAML-Keys. Aendere nur targetText mit write_text.',
                         alias: 'editTask',

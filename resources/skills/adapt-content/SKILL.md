@@ -51,15 +51,17 @@ not page generation or redesign.
   specialties, services, vacancies, job duties, software, benefits and working
   conditions explicitly. Replace every incompatible value; never leave it in
   place merely because a verified replacement detail is unavailable.
-- **Use context-appropriate placeholders for missing facts:** When a template
-  block requires project-specific content but the necessary facts are missing,
-  unknown or unconfirmed, keep the existing structure and replace unsupported
-  claims with concise, publication-safe placeholder copy that fits the verified
-  context. State only what is known and make the missing status transparent,
-  for example that no current vacancy information has been confirmed. Do not
-  output foreign demo facts, bracket placeholders such as "[unknown]", invented
-  facts or instructions to editors. A missing fact is not a file-edit failure
-  and must not abort or skip the adaptation.
+- **Adapt foreign demo copy into plausible project copy:** When a template
+  block contains project-specific demo content but the corresponding project
+  facts are missing, unknown or unconfirmed, keep the existing structure and
+  rewrite the demo text into concise, natural, publication-ready copy that fits
+  the verified project type, location, specialty and page purpose. Generalize
+  unsupported specifics instead of preserving them or substituting uncertainty
+  notices. Do not emit placeholders, editorial notes, statements such as "not
+  confirmed", invented vacancies, benefits, procedures or other factual claims.
+  The result must read like intentional website copy while remaining true under
+  the known context. Missing facts are not a file-edit failure and must not
+  abort or skip the adaptation.
 - **Use the smallest justified text diff:** Replace wording only where a
   specific verified project fact requires the change, and alter only the
   affected words or sentences. Do not rewrite surrounding valid copy merely
@@ -71,8 +73,9 @@ not page generation or redesign.
   as "Questions about ..." or "Information about ..." merely because a
   workflow, availability or service is undocumented. Preserve the existing
   label when it remains project-neutral. If it contains a foreign, demo or
-  contradicted claim, replace it with concise context-appropriate placeholder
-  wording instead of retaining the claim or aborting the edit.
+  contradicted claim, replace it with concise, plausible, project-appropriate
+  wording that makes no unsupported factual claim instead of retaining the
+  claim, inserting a placeholder or aborting the edit.
 - Preserve existing notices, including their wording and intent.
   In particular, do **not** change "Aktuelle Hinweise zum Coronavirus"
   into "Aktuelle Hinweise" or "Keine aktuellen Hinweise". Never add a

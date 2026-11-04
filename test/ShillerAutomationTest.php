@@ -25,13 +25,14 @@ final class ShillerAutomationTest extends TestCase
         phore_dir($this->dir)->rmDir(true);
     }
 
-    public function testAdaptSkillPreservesGoodCopyAndReplacesForeignFactsWithPlaceholders(): void
+    public function testAdaptSkillPreservesGoodCopyAndPlausiblyAdaptsForeignFacts(): void
     {
         $skill = phore_file(__DIR__ . '/../resources/skills/adapt-content/SKILL.md')->get_contents();
 
         self::assertStringContainsString('Preserve good existing wording', $skill);
         self::assertStringContainsString('Never preserve foreign or demo facts', $skill);
-        self::assertStringContainsString('Use context-appropriate placeholders for missing facts', $skill);
+        self::assertStringContainsString('Adapt foreign demo copy into plausible project copy', $skill);
+        self::assertStringContainsString('Do not emit placeholders', $skill);
         self::assertStringContainsString('must not abort or skip the adaptation', $skill);
         self::assertStringContainsString('Use the smallest justified text diff', $skill);
         self::assertStringContainsString('Do not weaken calls to action', $skill);
