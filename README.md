@@ -79,19 +79,25 @@ Projekt-, Document-Root- und Template-Konfiguration werden über
 
 ## CLI: Kundenänderungen als Change Request erfassen
 
-`shiller edit` erstellt eine typisierte Change-Request-YAML, ohne Website-Dateien
-zu bearbeiten. Standardquelle ist das Verzeichnis `scanner/` in der Projektwurzel,
-sofern es existiert; es wird rekursiv eingelesen. Ohne `scanner/` liest der
-Befehl wie bisher stdin bis EOF (interaktiv mit Strg+D). Explizite Pfade
-überschreiben diese Standardauswahl.
+Ein parameterloses `shiller edit` verwendet `.schiller-edit.d/` in der
+Projektwurzel. Wenn dieses Verzeichnis fehlt, legt die CLI es an, zeigt
+einen Hinweis zum Hineinkopieren der Kundenunterlagen und wartet auf die
+Bestätigung mit `Y` und Enter. Erst anschließend startet die Analyse.
+Besteht das Verzeichnis bereits, meldet die CLI, dass die Unterlagen
+daraus geladen werden, und startet direkt. Ist es leer, erfolgt keine
+AI-Anfrage; stattdessen erscheint ein Fehler mit den erlaubten Formaten.
 
 ```sh
 shiller edit
-shiller edit scanner/
-shiller edit scanner/feedback.md scanner/scan.pdf
-shiller edit scanner/ --output .shiller-edit/kunde.yml
-shiller edit scanner/ --context briefing.md --skills-dir skills
+shiller edit .schiller-edit.d/
+shiller edit .schiller-edit.d/feedback.md .schiller-edit.d/scan.pdf
+shiller edit .schiller-edit.d/ --output .schiller-edit.d/kunde.yml
+shiller edit --context briefing.md --skills-dir skills
 ```
+
+Explizite Datei- und Verzeichnispfade bleiben unterstützt. Die CLI
+verwendet den interaktiven `Y`-Dialog ausschließlich beim erstmaligen
+Anlegen des Standardverzeichnisses ohne Pfadparameter.
 
 **Unterstützte Quellen:** `.md`, `.txt`, `.pdf`, `.jpg`, `.jpeg` und `.png`.
 Andere Dateiendungen werden mit einer verständlichen Fehlermeldung abgelehnt.
@@ -100,9 +106,13 @@ Markdown und TXT werden unverändert als `FilePrompt` übergeben, PDF als
 Base64-Data-URL. Diese Typen sind bereits im unveränderten `phore/ai-harness`
 enthalten; es gibt keine Abhängigkeit von einer neuen Harness-API.
 
-Der Standard-Ausgabepfad ist `.shiller-edit/change-request.yml`; vorhandene
-YAML-Dateien werden nicht überschrieben. Die Extraktion verwendet
-`AiContext::struct(..., T_Changes::class)` statt einer JSON-Textantwort.
+Die Ergebnisdatei liegt standardmäßig unter
+`.schiller-edit.d/shiller-edit.yml`. Sie sowie andere `.yml`-/`.yaml`-Dateien
+werden beim Einlesen **ausgeschlossen** und niemals an das Modell gesendet.
+Eine vorhandene Ergebnisdatei wird nicht überschrieben; für einen neuen
+Durchlauf kann ein anderer Ausgabepfad mit `--output` gewählt werden.
+Die Extraktion verwendet `AiContext::struct(..., T_Changes::class)`
+statt einer JSON-Textantwort.
 
 Die fünf DTOs liegen in `Leuffen\Shiller\Types`:
 
@@ -136,7 +146,7 @@ ai:
 
 Die Angaben sind optional; ohne Konfiguration gelten die Defaults.
 `--context`, `--skills-dir` und `--model` ermöglichen Overrides.
-Quellen aus `scanner/` werden ausschließlich beim Edit-Intake geladen,
+Quellen aus `.schiller-edit.d/` werden ausschließlich beim Edit-Intake geladen,
 nicht automatisch bei jeder anderen Shiller-AI-Action.
 Workflow-spezifische Basis-Skills bleiben an ihren Workflow gebunden.
 

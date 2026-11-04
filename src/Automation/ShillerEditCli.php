@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Automation;
 
+use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
@@ -17,7 +18,8 @@ final class ShillerEditCli
     /**
      * Erstellt mit AiContext::struct() eine T_Changes-YAML.
      *
-     * Ohne Pfade wird scanner/ genutzt, sofern vorhanden; sonst stdin bis EOF.
+     * Ohne Pfade wird .schiller-edit.d/ als Quelle vorbereitet. Ein neu
+     * angelegtes Verzeichnis wird erst nach Y-Bestaetigung analysiert.
      * Projektkontext, --context-Dateien und Skills kommen aus der Factory.
      *
      * @param list<string> $argv Relative Datei- oder Verzeichnispfade.
@@ -28,13 +30,13 @@ final class ShillerEditCli
      * @throws RuntimeException Bei fehlender Eingabe oder Analysefehlern.
      * @see ShillerEditAction::analyze()
      *
-     * Beispiel: shiller edit feedback/ --context briefing.md --output changes/kunde.yml
+     * Beispiel: shiller edit --context briefing.md
      */
-    #[CliCommand('edit', 'Extrahiert Quotes und Tasks aus Kundenfeedback.', 'Liest stdin, Dateien oder Verzeichnisse und erzeugt eine typisierte T_Changes-YAML. Es werden keine Website-Dateien bearbeitet.')]
+    #[CliCommand('edit', 'Extrahiert Quotes und Tasks aus Kundenfeedback.', 'Liest standardmaessig .schiller-edit.d/ oder explizite Dateien und Verzeichnisse und erzeugt eine T_Changes-YAML.')]
     public function edit(
         array $argv,
         #[CliParameter('output', 'Relativer YAML-Zielpfad')]
-        string $output = '.shiller-edit/change-request.yml',
+        string $output = '.schiller-edit.d/shiller-edit.yml',
         #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
         string $context = '',
         #[CliParameter('skills-dir', 'Optionaler Theme-Skills-Pfad')]
@@ -47,19 +49,8 @@ final class ShillerEditCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $stdinText = null;
-        if ($argv === [] && phore_dir($startDirectory, ['rootDir' => $startDirectory])
-            ->withSubPath('scanner')->isDirectory()) {
-            $argv = ['scanner'];
-        }
         if ($argv === []) {
-            if (function_exists('stream_isatty') && stream_isatty(STDIN)) {
-                fwrite(STDERR, "Aenderungswuensche eingeben; mit Strg+D abschliessen:\n");
-            }
-            $stdinText = stream_get_contents(STDIN);
-            if (!is_string($stdinText) || trim($stdinText) === '') {
-                throw new RuntimeException('No changes provided via stdin.');
-            }
+            $argv = $this->prepareDefaultSources($startDirectory);
         }
 
         $contextFiles = array_values(array_filter(
@@ -74,8 +65,55 @@ final class ShillerEditCli
         $written = (new ShillerEditAction(
             $startDirectory,
             context: $aiContext,
-        ))->analyze($argv, $stdinText, $output);
+        ))->analyze($argv, output: $output);
 
         echo $written . PHP_EOL;
     }
+
+    /**
+     * Bereitet den Standard-Eingabeordner fuer einen parameterlosen Edit-Aufruf vor.
+     *
+     * Existiert .schiller-edit.d/ bereits, wird sein Inhalt direkt verarbeitet.
+     * Andernfalls wird der Ordner angelegt und der Aufruf bis zur expliziten
+     * Eingabe von Y unterbrochen. Bei Abbruch erfolgt keine AI-Anfrage.
+     *
+     * @param string $startDirectory Projektwurzel des CLI-Aufrufs.
+     * @param Closure|null $readConfirmation Optionaler Eingabe-Callback fuer Tests.
+     * @param Closure|null $notify Optionaler Ausgabe-Callback fuer Tests.
+     * @return list<string> Quellverzeichnisse relativ zur Projektwurzel.
+     * @throws RuntimeException Wenn die erforderliche Y-Bestaetigung ausbleibt.
+     * @see ShillerEditAction::analyze()
+     *
+     * Beispiel: $paths = (new ShillerEditCli())->prepareDefaultSources('/srv/site');
+     */
+    public function prepareDefaultSources(
+        string $startDirectory,
+        ?Closure $readConfirmation = null,
+        ?Closure $notify = null,
+    ): array {
+        $path = (string) phore_uri($startDirectory)->abs();
+        $root = phore_dir($path, ['rootDir' => $path])->assertDirectory()->assertReadable();
+        $directory = $root->withSubPath('.schiller-edit.d');
+
+        $emit = $notify ?? static fn(string $text): int => fwrite(STDOUT, $text);
+        if ($directory->exists()) {
+            $directory->assertDirectory()->assertReadable();
+            $emit("Lade Aenderungsinformationen aus .schiller-edit.d/.\n");
+            return ['.schiller-edit.d'];
+        }
+
+        // Nach dem ersten Anlegen erhaelt der Nutzer Gelegenheit, die Quellen
+        // hineinzukopieren. Ohne ein ausdrueckliches Y wird nicht analysiert.
+        $directory->asDirectory()->mkdir();
+        $emit("Das Verzeichnis .schiller-edit.d/ wurde angelegt.\n");
+        $emit("Kopiere die Aenderungsinformationen (.md, .txt, .pdf, .jpg, .jpeg, .png) dorthin.\n");
+        $emit("Wenn alle Dateien bereitliegen, Y eingeben und mit Enter bestaetigen: ");
+        $answer = $readConfirmation !== null ? $readConfirmation() : fgets(STDIN);
+        if (!is_string($answer) || strtoupper(trim($answer)) !== 'Y') {
+            throw new RuntimeException('Edit abgebrochen: keine Bestaetigung mit Y.');
+        }
+
+        return ['.schiller-edit.d'];
+    }
+
 }
