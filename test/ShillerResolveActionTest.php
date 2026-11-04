@@ -157,7 +157,10 @@ final class ShillerResolveActionTest extends TestCase
             $this->dir,
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
                 [],
-                [new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren')],
+                [
+                    new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren'),
+                    new T_Task('T-0002', 'Logo austauschen', ['Welche Logodatei?'], 'Es gibt noch kein Logo.'),
+                ],
                 [],
             ),
         );
@@ -179,7 +182,10 @@ final class ShillerResolveActionTest extends TestCase
             $this->dir,
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
                 [],
-                [new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren')],
+                [
+                    new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren'),
+                    new T_Task('T-0002', 'Logo austauschen', ['Welche Logodatei?'], 'Es gibt noch kein Logo.'),
+                ],
                 [new T_Resolution(
                     'R-0000',
                     ['T-0002'],
