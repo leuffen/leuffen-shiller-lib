@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
-use Leuffen\Shiller\Automation\ShillerChangeRequest;
 use Leuffen\Shiller\Automation\ShillerEditAction;
-use Leuffen\Shiller\Automation\ShillerResolutionPlan;
+use Leuffen\Shiller\Types\T_Changes;
+use Leuffen\Shiller\Types\T_Quote;
+use Leuffen\Shiller\Types\T_Resolution;
+use Leuffen\Shiller\Types\T_Task;
+use Phore\AiHarness\AiContext;
+use Phore\AiHarness\PromptType\FilePrompt;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerEditActionTest extends TestCase
@@ -27,28 +31,25 @@ final class ShillerEditActionTest extends TestCase
         phore_dir($this->dir)->rmDir(true);
     }
 
-    public function testDirectoryAnalysisProducesBidirectionalTaskLinksAndAssets(): void
+    public function testStructDTOsAreSerializedWithoutIntermediateSchema(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
-            static function (array $sections, array $assets): array {
-                self::assertCount(2, $sections);
-                self::assertSame(['feedback/nested/logo.png'], $assets);
-
-                return [
-                    [
-                        'title' => 'Adresse korrigieren',
-                        'description' => 'Adresse in beiden betroffenen Stellen anpassen.',
-                        'section_ids' => ['S-0001', 'S-0002'],
-                        'asset_paths' => [],
+            static function (AiContext $context, array $prompts): T_Changes {
+                self::assertCount(3, $prompts);
+                self::assertInstanceOf(FilePrompt::class, $prompts[1]);
+                self::assertStringContainsString('Logo austauschen', $prompts[1]->content);
+                return new T_Changes(
+                    quotes: [
+                        new T_Quote('Adresse korrigieren.', ['T-0001']),
+                        new T_Quote('feedback/nested/logo.png', ['T-0002']),
                     ],
-                    [
-                        'title' => 'Logo tauschen',
-                        'description' => 'Kundenlogo ersetzen.',
-                        'section_ids' => ['S-0001'],
-                        'asset_paths' => ['feedback/nested/logo.png'],
+                    tasks: [
+                        new T_Task('T-0001', 'Adresse korrigieren'),
+                        new T_Task('T-0002', 'Logo austauschen'),
                     ],
-                ];
+                    resolutions: [],
+                );
             },
         );
 
@@ -56,80 +57,95 @@ final class ShillerEditActionTest extends TestCase
         self::assertSame('.shiller-edit/change-request.yml', $path);
         $data = phore_file($this->dir . '/' . $path)->get_yaml();
 
-        self::assertSame(1, $data['schema_version']);
-        self::assertSame(['T-0001', 'T-0002'], $data['sections'][0]['task_ids']);
-        self::assertSame(['T-0001'], $data['sections'][1]['task_ids']);
-        self::assertSame(['S-0001', 'S-0002'], $data['tasks'][0]['section_ids']);
-        self::assertSame(['feedback/nested/logo.png'], $data['tasks'][1]['asset_paths']);
-        self::assertSame('open', $data['tasks'][1]['status']);
-        self::assertSame(1, $data['sections'][0]['line_start']);
-        self::assertSame(3, $data['sections'][1]['line_start']);
-        self::assertCount(2, $data['sources']);
-        self::assertArrayNotHasKey('resolutions', $data);
+        self::assertSame(
+            ['quotes', 'tasks', 'resolutions'],
+            array_keys($data),
+        );
+        self::assertSame(['text', 'taskIds'], array_keys($data['quotes'][0]));
+        self::assertSame('Adresse korrigieren.', $data['quotes'][0]['text']);
+        self::assertSame(['T-0002'], $data['quotes'][1]['taskIds']);
+        self::assertSame('T-0002', $data['tasks'][1]['id']);
+        self::assertSame([], $data['resolutions']);
     }
 
-    public function testStdinParagraphsAndOutputOverride(): void
+    public function testStdinAcceptsExtraContextAndConfiguredSkills(): void
+    {
+        phore_dir($this->dir . '/.shiller-context.d')->mkdir();
+        phore_file($this->dir . '/.shiller-context.d/project.md')->set_contents('Projektinfos');
+        phore_file($this->dir . '/briefing.md')->set_contents('Kundeninfos');
+        phore_dir($this->dir . '/skills/feedback')->mkdir();
+        phore_file($this->dir . '/skills/feedback/SKILL.md')->set_contents(
+            "---\nname: feedback\ndescription: Bearbeitet Kundenfeedback\n---\n# Feedback\n",
+        );
+        phore_file($this->dir . '/.shiller.yml')->set_contents("skills_dir: skills\n");
+
+        $action = new ShillerEditAction(
+            $this->dir,
+            static function (AiContext $context, array $prompts): T_Changes {
+                self::assertSame('feedback', $context->skills()->list()[0]['name']);
+                $reflection = new ReflectionProperty(AiContext::class, 'prompts');
+                $prepared = $reflection->getValue($context);
+                self::assertCount(2, $prepared);
+                self::assertSame('Projektinfos', $prepared[0]->content);
+                self::assertSame('Kundeninfos', $prepared[1]->content);
+                return new T_Changes(
+                    [new T_Quote('Telefon aendern.', ['T-0001'])],
+                    [new T_Task('T-0001', 'Telefon aktualisieren')],
+                    [],
+                );
+            },
+            additionalContextFiles: ['briefing.md'],
+        );
+
+        $path = $action->analyze(stdinText: 'Telefon aendern.', output: 'requests/kunde.yml');
+        $data = phore_file($this->dir . '/' . $path)->get_yaml();
+        self::assertSame(['T-0001'], $data['quotes'][0]['taskIds']);
+    }
+
+    public function testRejectsUnknownTaskReferenceWithoutRewriting(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
-            static fn(array $sections, array $assets): array => [[
-                'title' => 'Kontakt',
-                'description' => 'Kontaktdaten aktualisieren.',
-                'section_ids' => ['S-0001', 'S-0002'],
-                'asset_paths' => [],
-            ]],
+            static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
+                [new T_Quote('Text', ['T-9999'])],
+                [new T_Task('T-0001', 'Aenderung')],
+                [],
+            ),
         );
 
-        $path = $action->analyze(
-            stdinText: "Telefon aendern.\n\nE-Mail aendern.",
-            output: 'requests/kunde.yml',
-        );
-        $data = phore_file($this->dir . '/' . $path)->get_yaml();
-        self::assertSame('stdin', $data['sources'][0]['path']);
-        self::assertSame('S-0002', $data['sections'][1]['id']);
-        self::assertSame(['T-0001'], $data['sections'][1]['task_ids']);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown task');
+        $action->analyze(stdinText: 'Text');
     }
 
-    public function testRejectsUnknownSectionReferences(): void
+    public function testRejectsFilledResolutionsDuringIntake(): void
     {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Unknown section reference');
-
-        ShillerChangeRequest::fromAnalysis(
-            [['id' => 'F-0001', 'path' => 'stdin', 'kind' => 'text']],
-            [['id' => 'S-0001', 'source_id' => 'F-0001', 'line_start' => 1, 'line_end' => 1, 'text' => 'Text']],
-            [['title' => 'Task', 'description' => 'Details', 'section_ids' => ['S-9999'], 'asset_paths' => []]],
+        $action = new ShillerEditAction(
+            $this->dir,
+            static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
+                [new T_Quote('Text', ['T-0001'])],
+                [new T_Task('T-0001', 'Aenderung')],
+                [new T_Resolution('R-0001', ['T-0001'], 'Spaeter', ['docs/index.md'], ['Text ersetzen'])],
+            ),
         );
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Resolutions must remain empty');
+        $action->analyze(stdinText: 'Text');
     }
 
     public function testRefusesToOverwriteExistingYaml(): void
     {
         $action = new ShillerEditAction(
             $this->dir,
-            static fn(array $sections, array $assets): array => [[
-                'title' => 'Kontakt',
-                'description' => 'Kontaktdaten aktualisieren.',
-                'section_ids' => ['S-0001'],
-                'asset_paths' => [],
-            ]],
+            static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
+                [new T_Quote('Text', ['T-0001'])],
+                [new T_Task('T-0001', 'Aenderung')],
+                [],
+            ),
         );
-        $action->analyze(stdinText: 'Telefon aendern.');
+        $action->analyze(stdinText: 'Text');
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('already exists');
-        $action->analyze(stdinText: 'E-Mail aendern.');
-    }
-
-    public function testResolutionPlanStaysSeparateFromChangeRequest(): void
-    {
-        $plan = new ShillerResolutionPlan('requests/kunde.yml', [[
-            'id' => 'R-0001',
-            'task_ids' => ['T-0001', 'T-0002'],
-            'summary' => 'Kontaktangaben gemeinsam anpassen.',
-            'changes' => [
-                ['path' => 'docs/index.md', 'description' => 'Adresse aktualisieren', 'method' => 'Text ersetzen'],
-            ],
-        ]]);
-        self::assertSame(['T-0001', 'T-0002'], $plan->toArray()['resolutions'][0]['task_ids']);
-        self::assertSame('requests/kunde.yml', $plan->toArray()['change_request']);
+        $action->analyze(stdinText: 'Text');
     }
 }

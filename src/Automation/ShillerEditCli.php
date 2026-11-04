@@ -9,29 +9,35 @@ use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
 use RuntimeException;
 
-/** CLI-Einstieg fuer die analysebasierte Change-Request-Erfassung. */
+/** CLI-Einstieg fuer typisierte Change-Request-Erfassung. */
 #[CliScope('shiller')]
 final class ShillerEditCli
 {
     /**
-     * Erstellt aus Eingabetext, Dateien oder Verzeichnissen eine Change-Request-YAML.
+     * Erstellt mit AiContext::struct() eine T_Changes-YAML.
      *
-     * Ohne Pfad liest edit bis EOF von stdin; mit Pfaden werden alle enthaltenen
-     * Dateien eingelesen. Es werden keine Website-Dateien geaendert.
+     * Ohne Pfade liest edit bis EOF von stdin. Projektkontext, optionale
+     * --context-Dateien sowie Theme-Skills werden von der Action geladen.
      *
      * @param list<string> $argv Relative Datei- oder Verzeichnispfade.
-     * @param string $output YAML-Ausgabedatei relativ zur Projektwurzel.
-     * @param string $model AI-Modell fuer die Task-Erkennung.
+     * @param string $output YAML-Ziel relativ zur Projektwurzel.
+     * @param string $context Weitere Kontextdateien, kommagetrennt.
+     * @param string $skillsDir Optionaler Skills-Pfad (sonst skills_dir aus .shiller.yml).
+     * @param string $model AI-Modell fuer die strukturierte Extraktion.
      * @throws RuntimeException Bei fehlender Eingabe oder Analysefehlern.
      * @see ShillerEditAction::analyze()
      *
-     * Beispiel: shiller edit kundenfeedback --output .shiller-edit/kunde.yml
+     * Beispiel: shiller edit feedback/ --context briefing.md --output changes/kunde.yml
      */
-    #[CliCommand('edit', 'Erfasst Aenderungswuensche als Tasks.', 'Analysiert stdin oder Dateien/Verzeichnisse und schreibt einen Change Request mit referenzierten Textabschnitten als YAML. Fuehrt keine Aenderungen aus.')]
+    #[CliCommand('edit', 'Extrahiert Quotes und Tasks aus Kundenfeedback.', 'Liest stdin, Dateien oder Verzeichnisse und erzeugt eine typisierte T_Changes-YAML. Es werden keine Website-Dateien bearbeitet.')]
     public function edit(
         array $argv,
         #[CliParameter('output', 'Relativer YAML-Zielpfad')]
         string $output = '.shiller-edit/change-request.yml',
+        #[CliParameter('context', 'Zusaetzliche Kontextdateien, kommagetrennt')]
+        string $context = '',
+        #[CliParameter('skills-dir', 'Optionaler Theme-Skills-Pfad')]
+        string $skillsDir = '',
         #[CliParameter('model', 'AI-Modell fuer die Task-Extraktion')]
         string $model = ShillerAiDefaults::MODEL,
     ): void {
@@ -51,8 +57,17 @@ final class ShillerEditCli
             throw new RuntimeException('Cannot determine current directory.');
         }
 
-        $written = (new ShillerEditAction($startDirectory, model: $model))
-            ->analyze($argv, $stdinText, $output);
+        $contextFiles = array_values(array_filter(
+            array_map('trim', explode(',', $context)),
+            static fn(string $path): bool => $path !== '',
+        ));
+        $written = (new ShillerEditAction(
+            $startDirectory,
+            model: $model,
+            additionalContextFiles: $contextFiles,
+            skillsDir: $skillsDir,
+        ))->analyze($argv, $stdinText, $output);
+
         echo $written . PHP_EOL;
     }
 }

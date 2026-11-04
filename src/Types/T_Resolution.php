@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Leuffen\Shiller\Types;
+
+/** Gemeinsamer Umsetzungsplan fuer mehrere Tasks; erst in Solve befuellt. */
+final class T_Resolution
+{
+    /** Eindeutige Resolution-ID, z. B. R-0001. */
+    public string $id;
+
+    /** Zugehoerige IDs mehrerer Aenderungswuensche.
+     * @var list<string>
+     */
+    public array $taskIds;
+
+    /** Beschreibung der geplanten Loesung. */
+    public string $description;
+
+    /** Betroffene Dateien, relativ zur Projektwurzel.
+     * @var list<string>
+     */
+    public array $files;
+
+    /** Geplante, noch nicht ausgefuehrte Schritte.
+     * @var list<string>
+     */
+    public array $changes;
+
+    /**
+     * @param string $id Eindeutige Resolution-ID.
+     * @param list<string> $taskIds Tasks dieser Resolution.
+     * @param string $description Beschreibung der Loesung.
+     * @param list<string> $files Betroffene Dateien.
+     * @param list<string> $changes Geplante Aenderungen.
+     * @see T_Changes
+     *
+     * Beispiel: new T_Resolution('R-0001', ['T-0001'], 'Logo tauschen', ['docs/index.md'], ['Bildreferenz ersetzen']).
+     */
+    public function __construct(string $id, array $taskIds, string $description, array $files, array $changes)
+    {
+        $this->id = $id;
+        $this->taskIds = $taskIds;
+        $this->description = $description;
+        $this->files = $files;
+        $this->changes = $changes;
+    }
+}
