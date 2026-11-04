@@ -77,6 +77,72 @@ Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomat
 Projekt-, Document-Root- und Template-Konfiguration werden über
 `Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
 
+## CLI: Kundenänderungen als Change Request erfassen
+
+`shiller edit` erstellt eine typisierte Change-Request-YAML, ohne Website-Dateien
+zu bearbeiten. Standardquelle ist das Verzeichnis `scanner/` in der Projektwurzel,
+sofern es existiert; es wird rekursiv eingelesen. Ohne `scanner/` liest der
+Befehl wie bisher stdin bis EOF (interaktiv mit Strg+D). Explizite Pfade
+überschreiben diese Standardauswahl.
+
+```sh
+shiller edit
+shiller edit scanner/
+shiller edit scanner/feedback.md scanner/scan.pdf
+shiller edit scanner/ --output .shiller-edit/kunde.yml
+shiller edit scanner/ --context briefing.md --skills-dir skills
+```
+
+**Unterstützte Quellen:** `.md`, `.txt`, `.pdf`, `.jpg`, `.jpeg` und `.png`.
+Andere Dateiendungen werden mit einer verständlichen Fehlermeldung abgelehnt.
+Markdown und TXT werden unverändert als `FilePrompt` übergeben, PDF als
+`FilePrompt` mit `application/pdf`, JPEG und PNG als `ImagePrompt` mit
+Base64-Data-URL. Diese Typen sind bereits im unveränderten `phore/ai-harness`
+enthalten; es gibt keine Abhängigkeit von einer neuen Harness-API.
+
+Der Standard-Ausgabepfad ist `.shiller-edit/change-request.yml`; vorhandene
+YAML-Dateien werden nicht überschrieben. Die Extraktion verwendet
+`AiContext::struct(..., T_Changes::class)` statt einer JSON-Textantwort.
+
+Die fünf DTOs liegen in `Leuffen\Shiller\Types`:
+
+- `T_Changes`: `quotes` (Liste von `T_QuoteFile`), `tasks`, `resolutions`.
+- `T_QuoteFile`: `fileName` (relativer Pfad oder `stdin`), `quotes`.
+- `T_Quote`: `text` (Originaltext), `taskIds` (auch `[]` für Fülltext).
+- `T_Task`: `id` (z. B. `T-0001`) und `summary`.
+- `T_Resolution`: `id`, `taskIds`, `description`, `files`, `changes`.
+
+Die Quote-Blöcke einer Textdatei enthalten den gesamten Originaltext
+einschließlich Leerzeilen, Begrüßungen und Text ohne Aufgabenbezug.
+Die Verkettung der Quotes muss bei MD/TXT bytegenau dem Original entsprechen.
+Für PDFs ist diese Textprüfung technisch nicht möglich; die AI soll
+den vollständigen sichtbaren Dokumenttext übernehmen. Für Bilder dient
+der Dateiname als Quote-Text, der Bildinhalt wird dennoch mitgesendet.
+
+Die `Leuffen\Shiller\Ai\ShillerAiContextFactory` konfiguriert den
+gemeinsamen `AiContext` aus `.shiller.yml`, dem Projektkontext in
+`.shiller-context.d/` und den Theme-Skills aus `skills_dir`.
+Für Modell und Laufzeitoptionen gelten beispielsweise:
+
+```yaml
+ai:
+  model: gpt-5-mini
+  client: 'openai:'
+  reasoning_effort: medium
+  web_access: false
+  timeout: 120
+  connect_timeout: 10
+```
+
+Die Angaben sind optional; ohne Konfiguration gelten die Defaults.
+`--context`, `--skills-dir` und `--model` ermöglichen Overrides.
+Quellen aus `scanner/` werden ausschließlich beim Edit-Intake geladen,
+nicht automatisch bei jeder anderen Shiller-AI-Action.
+Workflow-spezifische Basis-Skills bleiben an ihren Workflow gebunden.
+
+`resolutions` bleibt in Phase 1 immer leer. Eine Solve-Phase und die
+Ausführung von Änderungen sind noch nicht implementiert.
+
 ## Website aus `_tpl` anlegen
 
 Das Theme-Paket liefert `_tpl/_root/` für die bedingungslose Grundstruktur und

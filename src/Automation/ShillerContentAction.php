@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Automation;
 
-use Phore\AiHarness\AiContext;
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
-use Phore\AiHarness\ToolType\WebAccessTool;
 use Phore\AiHarness\Usage\GlobalUsage;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -119,38 +118,27 @@ final class ShillerContentAction
             throw new RuntimeException('No files match the requested selectors.');
         }
 
-        $prompts = [];
-        foreach ($this->contextFiles as $index => $file) {
-            $prompts[] = new FilePrompt(
-                (string) $file,
-                $file->get_contents(),
-                'text/markdown',
-                alias: 'projectContext' . ($index + 1),
-                instructions: 'Verbindliche Projektfakten und Bearbeitungshinweise.',
-                allowInstructions: true,
-            );
-        }
-
-        if ($this->webAccess) {
-            $prompts[] = new WebAccessTool();
-        }
-
         $usage = GlobalUsage::instance();
         $startStats = $usage->getStats();
         $this->logger?->step('AI-Modell: {}; Reasoning: {}', [$this->model, $this->reasoningEffort]);
-        $context = new AiContext($prompts, [
-            'model' => $this->model,
-            'reasoning' => ['effort' => $this->reasoningEffort],
-            'debug_log' => $debug,
-        ]);
-        $skills = $context->skills()
-            ->add((string) $this->skillFile->withParentDir(), ['initialLoad' => true])
-            ->addDirectory((string) $this->skillsDirectory);
-        $available = array_column($skills->list(), 'name');
-        if ($available === []) {
-            throw new RuntimeException('No SKILL.md found in skill directory: ' . $this->skillsDirectory);
-        }
+
+        $context = (new ShillerAiContextFactory((string) $this->documentRoot->withParentDir()))->create(
+            additionalContextFiles: array_map(
+                static fn(PhoreFile $file): string => (string) $file,
+                $this->contextFiles,
+            ),
+            model: $this->model,
+            skillsDir: (string) $this->skillsDirectory,
+            workflowSkillFile: (string) $this->skillFile,
+            reasoningEffort: $this->reasoningEffort,
+            webAccess: $this->webAccess,
+            debug: $debug,
+            requireContext: true,
+            requireSkills: true,
+        );
+        $available = array_column($context->skills()->list(), 'name');
         $this->logger?->step('Verfuegbare Skills: {}', [implode(', ', $available)]);
+
         $contextTask = $this->logger?->start('Analysiere Projektkontext');
 
         // Alle Dateien zweigen vom selben analysierten Ausgangszustand ab.
