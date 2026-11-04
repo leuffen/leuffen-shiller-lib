@@ -43,10 +43,23 @@ not page generation or redesign.
   addresses or other facts. Use only verified project context.
 - **Preserve good existing wording:** Keep existing copy unchanged whenever
   it is compatible with verified project facts. Missing, unknown, unconfirmed
-  or unspecified project information does not contradict existing copy and
-  does not authorize rewriting it. If the context neither confirms nor
-  disproves an existing statement, retain the original wording and report the
-  uncertainty instead of replacing the text.
+  or unspecified project information alone does not authorize rewriting valid,
+  project-neutral wording.
+- **Never preserve foreign or demo facts:** Wording protection does not apply
+  to recognizable template, example or previous-customer data, or to claims
+  that conflict with verified project facts. Check names, locations, medical
+  specialties, services, vacancies, job duties, software, benefits and working
+  conditions explicitly. Replace every incompatible value; never leave it in
+  place merely because a verified replacement detail is unavailable.
+- **Use context-appropriate placeholders for missing facts:** When a template
+  block requires project-specific content but the necessary facts are missing,
+  unknown or unconfirmed, keep the existing structure and replace unsupported
+  claims with concise, publication-safe placeholder copy that fits the verified
+  context. State only what is known and make the missing status transparent,
+  for example that no current vacancy information has been confirmed. Do not
+  output foreign demo facts, bracket placeholders such as "[unknown]", invented
+  facts or instructions to editors. A missing fact is not a file-edit failure
+  and must not abort or skip the adaptation.
 - **Use the smallest justified text diff:** Replace wording only where a
   specific verified project fact requires the change, and alter only the
   affected words or sentences. Do not rewrite surrounding valid copy merely
@@ -57,7 +70,9 @@ not page generation or redesign.
   particular, do not turn established button labels into generic phrases such
   as "Questions about ..." or "Information about ..." merely because a
   workflow, availability or service is undocumented. Preserve the existing
-  label unless verified context contradicts it; report the open question.
+  label when it remains project-neutral. If it contains a foreign, demo or
+  contradicted claim, replace it with concise context-appropriate placeholder
+  wording instead of retaining the claim or aborting the edit.
 - Preserve existing notices, including their wording and intent.
   In particular, do **not** change "Aktuelle Hinweise zum Coronavirus"
   into "Aktuelle Hinweise" or "Keine aktuellen Hinweise". Never add a

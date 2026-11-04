@@ -193,10 +193,12 @@ final class ShillerContentAction
                         . 'Lade bei Bedarf weitere Skills/References. Erhalte gute bestehende '
                         . 'Formulierungen und fuehre nur den kleinsten durch konkrete, bestaetigte '
                         . 'Projektfakten erforderlichen Text-Diff aus. Fehlende, unbekannte oder '
-                        . 'unbestaetigte Angaben sind kein Widerspruch und erlauben kein '
-                        . 'Umschreiben oder Abschwaechen bestehender CTAs. Erhalte technische '
-                        . 'Struktur und YAML-Keys; erfinde keine Fakten. Aendere nur '
-                        . 'targetText mit write_text.',
+                        . 'unbestaetigte Angaben erlauben kein Umschreiben gueltiger, '
+                        . 'projektneutraler Texte. Ersetze jedoch alle erkennbaren Demo-, Fremd- '
+                        . 'oder widerspruechlichen Angaben durch knappe, veroeffentlichbare und '
+                        . 'zum bestaetigten Kontext passende Platzhaltertexte; erfinde nichts und '
+                        . 'brich die Bearbeitung deshalb nicht ab. Erhalte technische '
+                        . 'Struktur und YAML-Keys. Aendere nur targetText mit write_text.',
                         alias: 'editTask',
                         allowInstructions: true,
                     ),
@@ -229,8 +231,10 @@ final class ShillerContentAction
                 echo 'Datei: ' . $this->formatUsage($beforeFile, $afterFile)
                     . ' | Gesamt: ' . $this->formatUsage($startStats, $afterFile) . PHP_EOL;
             } catch (Throwable $e) {
-                // Zeigt den Dateifehler an, lässt aber die übrigen Ziele des Batch-Laufs weiterlaufen.
-                $task?->failure($e->getMessage());
+                // Technische Dateifehler sind sichtbar, stoppen aber die übrigen Ziele des Batch-Laufs nicht.
+                $message = 'Fehler bei der Anpassung von ' . $relative . ': ' . $e->getMessage();
+                $task?->failure($message);
+                fwrite(STDERR, $message . PHP_EOL);
                 continue;
             }
         }

@@ -25,14 +25,24 @@ final class ShillerAutomationTest extends TestCase
         phore_dir($this->dir)->rmDir(true);
     }
 
-    public function testAdaptSkillPreservesWordingWhenContextIsUncertain(): void
+    public function testAdaptSkillPreservesGoodCopyAndReplacesForeignFactsWithPlaceholders(): void
     {
         $skill = phore_file(__DIR__ . '/../resources/skills/adapt-content/SKILL.md')->get_contents();
 
         self::assertStringContainsString('Preserve good existing wording', $skill);
-        self::assertStringContainsString('does not authorize rewriting it', $skill);
+        self::assertStringContainsString('Never preserve foreign or demo facts', $skill);
+        self::assertStringContainsString('Use context-appropriate placeholders for missing facts', $skill);
+        self::assertStringContainsString('must not abort or skip the adaptation', $skill);
         self::assertStringContainsString('Use the smallest justified text diff', $skill);
         self::assertStringContainsString('Do not weaken calls to action', $skill);
+    }
+
+    public function testAdaptReportsFileErrorsWithoutRemovingBatchContinuation(): void
+    {
+        $source = phore_file(__DIR__ . '/../src/Automation/ShillerContentAction.php')->get_contents();
+
+        self::assertStringContainsString("fwrite(STDERR, \$message . PHP_EOL);", $source);
+        self::assertMatchesRegularExpression('/fwrite\\(STDERR, \\$message \\. PHP_EOL\\);\\s+continue;/', $source);
     }
 
     public function testAdaptAcceptsPositionalSelectors(): void
