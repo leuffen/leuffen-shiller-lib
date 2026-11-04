@@ -18,6 +18,7 @@ use Throwable;
 /** Passt installierte Website-Inhalte mit AiContext und ThemeJS2-Skills an. */
 final class ShillerContentAction
 {
+    private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
     private readonly PhoreDirectory $skillsDirectory;
@@ -66,8 +67,12 @@ final class ShillerContentAction
             throw new RuntimeException('At least one Shiller context file is required.');
         }
 
-        $documentPath = (string) phore_uri($documentRoot)->abs();
+        $documentUri = phore_uri($documentRoot)->abs();
+        $documentPath = (string) $documentUri;
+        $projectPath = (string) $documentUri->withParentDir();
         $templatePath = (string) phore_uri($templateDir)->abs();
+        $this->projectRoot = phore_dir($projectPath, ['rootDir' => $projectPath])
+            ->assertDirectory()->assertReadable();
         $this->documentRoot = phore_dir($documentPath, ['rootDir' => $documentPath])
             ->assertDirectory()->assertReadable();
         $this->templateDir = phore_dir($templatePath, ['rootDir' => $templatePath])
@@ -122,7 +127,7 @@ final class ShillerContentAction
         $startStats = $usage->getStats();
         $this->logger?->step('AI-Modell: {}; Reasoning: {}', [$this->model, $this->reasoningEffort]);
 
-        $context = (new ShillerAiContextFactory((string) $this->documentRoot->withParentDir()))->create(
+        $context = (new ShillerAiContextFactory((string) $this->projectRoot))->create(
             additionalContextFiles: array_map(
                 static fn(PhoreFile $file): string => (string) $file,
                 $this->contextFiles,

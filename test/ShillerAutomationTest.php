@@ -93,6 +93,25 @@ final class ShillerAutomationTest extends TestCase
         );
     }
 
+    public function testContentActionKeepsProjectRootSeparateFromDocumentRoot(): void
+    {
+        phore_dir($this->dir . '/site/docs')->mkdir();
+        phore_dir($this->dir . '/site/skills/demo')->mkdir();
+        phore_file($this->dir . '/site/skills/demo/SKILL.md')->set_contents(
+            "---\nname: demo\ndescription: Demo\n---\n# Demo\n",
+        );
+        phore_dir($this->dir . '/site/.shiller-context.d')->mkdir();
+        phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents(
+            "template_dir: ../tpl\nskills_dir: skills\n",
+        );
+
+        $action = (new ShillerAutomationFactory($this->dir . '/site'))->createContentAction();
+        $projectRoot = (new ReflectionProperty($action, 'projectRoot'))->getValue($action);
+
+        self::assertSame($this->dir . '/site', (string) $projectRoot);
+    }
+
     public function testFactoryAllowsConfiguredTemplateOutsideProjectRoot(): void
     {
         phore_file($this->dir . '/site/.shiller.yml')->set_contents("template_dir: ../tpl\n");
