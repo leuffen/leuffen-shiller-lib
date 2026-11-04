@@ -23,27 +23,25 @@ final class T_Resolution
      */
     public array $files;
 
-    /** Geplante, noch nicht ausgefuehrte Schritte.
-     * @var list<string>
-     */
-    public array $changes;
+    /** Kurze Beschreibung des aktuell bestehenden Fehlers. */
+    public string $defect;
 
     /**
      * @param string $id Eindeutige Resolution-ID.
      * @param list<string> $taskIds Tasks dieser Resolution.
      * @param string $description Beschreibung der Loesung.
      * @param list<string> $files Eine oder mehrere Projektdateien des gemeinsamen Plans.
-     * @param list<string> $changes Geplante Aenderungen.
+     * @param string $defect Kurze Beschreibung des aktuellen Fehlers.
      * @see T_Changes
      *
-     * Beispiel: new T_Resolution('R-0001', ['T-0001'], 'Logo tauschen', ['docs/index.md', 'docs/_data/general.yml'], ['Bildreferenz ersetzen']).
+     * Beispiel: new T_Resolution('R-0001', ['T-0001'], 'Logo austauschen.', ['docs/index.md'], 'Das falsche Logo wird angezeigt.').
      */
-    public function __construct(string $id, array $taskIds, string $description, array $files, array $changes)
+    public function __construct(string $id, array $taskIds, string $description, array $files, string $defect)
     {
         $this->id = $id;
         $this->taskIds = $taskIds;
         $this->description = $description;
         $this->files = $files;
-        $this->changes = $changes;
+        $this->defect = $defect;
     }
 }

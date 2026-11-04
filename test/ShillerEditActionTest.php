@@ -216,7 +216,7 @@ final class ShillerEditActionTest extends TestCase
             static fn(AiContext $context, array $prompts): T_Changes => new T_Changes(
                 [new T_QuoteFile('stdin', [new T_Quote('Text', ['T-0001'])])],
                 [new T_Task('T-0001', 'Aenderung')],
-                [new T_Resolution('R-0001', ['T-0001'], 'Spaeter', ['docs/index.md'], ['Text ersetzen'])],
+                [new T_Resolution('R-0001', ['T-0001'], 'Text ersetzen.', ['docs/index.md'], 'Der Text ist falsch.')],
             ),
         );
         $this->expectException(RuntimeException::class);

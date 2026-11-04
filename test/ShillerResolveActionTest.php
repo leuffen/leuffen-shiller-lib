@@ -9,6 +9,7 @@ use Leuffen\Shiller\Types\T_Resolution;
 use Leuffen\Shiller\Types\T_Task;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
+use Phore\AiHarness\PromptType\TextPrompt;
 use PHPUnit\Framework\TestCase;
 
 final class ShillerResolveActionTest extends TestCase
@@ -51,36 +52,40 @@ final class ShillerResolveActionTest extends TestCase
                 );
                 self::assertSame("address: Altstadt 1\n", $sourceFiles[0]->content);
                 self::assertSame("# Beispiel\n\nAdresse: Altstadt 1\n", $sourceFiles[1]->content);
+                $instructions = array_values(array_filter(
+                    $prompts,
+                    static fn(mixed $prompt): bool => $prompt instanceof TextPrompt
+                        && $prompt->alias === 'resolveTasks',
+                ));
+                self::assertCount(1, $instructions);
+                self::assertStringContainsString('Eigenstaendige Inhaltswuensche', $instructions[0]->text);
+                self::assertStringContainsString('docs/_data/general.yml', $instructions[0]->text);
 
-                if ($calls === 1) {
-                    return new T_Changes(
-                        [],
-                        [new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren')],
-                        [new T_Resolution(
-                            'R-0000',
-                            ['T-0001'],
-                            'Adresse in der Startseite und den Stammdaten aktualisieren',
-                            ['docs/index.md', 'docs/_data/general.yml'],
-                            ['Adresse in der Startseite und der allgemeinen Konfiguration ersetzen'],
-                        )],
-                    );
-                }
                 return new T_Changes(
                     [],
-                    [new T_Task(
-                        'T-0002',
-                        'Logo austauschen',
-                        ['Welche konkrete Logodatei soll verwendet werden?'],
-                        'Es gibt noch kein Logo.',
+                    [
+                        new T_Task('T-0001', 'Adresse auf der Webseite aktualisieren'),
+                        new T_Task(
+                            'T-0002',
+                            'Logo austauschen',
+                            ['Welche konkrete Logodatei soll verwendet werden?'],
+                            'Es gibt noch kein Logo.',
+                        ),
+                    ],
+                    [new T_Resolution(
+                        'R-0000',
+                        ['T-0001'],
+                        'Adresse in der Startseite und den Stammdaten aktualisieren',
+                        ['docs/index.md', 'docs/_data/general.yml'],
+                        'Die alte Adresse wird angezeigt.',
                     )],
-                    [],
                 );
             },
         );
 
         $path = $action->resolve();
         self::assertSame('.shiller-edit.d/shiller-edit.yml', $path);
-        self::assertSame(2, $calls);
+        self::assertSame(1, $calls);
         $result = phore_file($this->dir . '/' . $path)->get_yaml();
         self::assertSame($initial['quotes'], $result['quotes']);
         self::assertSame(['T-0001'], $result['resolutions'][0]['taskIds']);
@@ -101,7 +106,7 @@ final class ShillerResolveActionTest extends TestCase
             'taskIds' => ['T-0001'],
             'description' => 'Bestehender freigegebener Plan',
             'files' => ['docs/index.md'],
-            'changes' => ['Adressfeld aendern'],
+            'defect' => 'Die alte Adresse wird angezeigt.',
         ]];
         $changes['tasks'][1]['questions'] = ['Welche Logodatei?'];
         $changes['tasks'][1]['adminInformation'] = 'Verwende das vorhandene Logo aus dem Medienordner.';
@@ -125,7 +130,7 @@ final class ShillerResolveActionTest extends TestCase
                         ['T-0002'],
                         'Bestehendes Logo im Header verwenden',
                         ['docs/index.md'],
-                        ['Header-Bildverweis auf vorhandenes Logo umstellen'],
+                        'Im Header wird das falsche Logo angezeigt.',
                     )],
                 );
             },
@@ -180,13 +185,13 @@ final class ShillerResolveActionTest extends TestCase
                     ['T-0002'],
                     'Falsch zugeordnete Aenderung',
                     ['docs/index.md', 'docs/_data/general.yml'],
-                    ['Adresse aktualisieren'],
+                    'Die Adresse ist falsch.',
                 )],
             ),
         );
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Incomplete resolution plan');
+        $this->expectExceptionMessage('Invalid grouped resolution task reference');
         try {
             $action->resolve();
         } finally {
@@ -216,12 +221,14 @@ final class ShillerResolveActionTest extends TestCase
                 [
                     'id' => 'T-0001',
                     'summary' => 'Adresse auf der Webseite aktualisieren',
+                    'type' => 'content',
                     'questions' => [],
                     'adminInformation' => '',
                 ],
                 [
                     'id' => 'T-0002',
                     'summary' => 'Logo austauschen',
+                    'type' => 'content',
                     'questions' => [],
                     'adminInformation' => 'Es gibt noch kein Logo.',
                 ],

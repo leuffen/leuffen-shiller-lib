@@ -108,6 +108,7 @@ final class ShillerEditAction
             additionalContextFiles: $this->additionalContextFiles,
             model: $this->model,
             skillsDir: $this->skillsDir,
+            debug: true,
         );
 
         $instruction = new TextPrompt(
@@ -123,7 +124,10 @@ final class ShillerEditAction
             . 'Jeder T_Quote hat nur text und taskIds; fuer inhaltlich belanglose '
             . 'Passagen muss taskIds ein leeres Array [] sein. '
             . 'Jede eigenstaendige Aenderungsanforderung erhaelt einen T_Task '
-            . 'mit fortlaufender eindeutiger ID T-0001, T-0002 usw. und kurzer summary. '
+            . 'mit fortlaufender eindeutiger ID T-0001, T-0002 usw., kurzer summary und type. '
+            . 'Setze type=content fuer Texte, Links, Bilder, Daten und andere Inhalte; '
+            . 'setze type=style fuer CSS, Layout, Farben, Abstaende, Groessen, Positionierung '
+            . 'und responsive Darstellung. '
             . 'Mehrere Quotes duerfen denselben Task oder mehrere Tasks referenzieren. '
             . 'PDF-Dateien werden als Dokumente bereitgestellt: '
             . 'uebernimm moeglichst deren gesamten sichtbaren Text in lesbarer Reihenfolge, '
@@ -270,7 +274,8 @@ final class ShillerEditAction
         $taskIds = [];
         foreach ($changes->tasks as $task) {
             if (!$task instanceof T_Task || preg_match('/^T-[0-9]{4,}$/', $task->id) !== 1
-                || trim($task->summary) === '' || isset($taskIds[$task->id])) {
+                || trim($task->summary) === '' || !in_array($task->type, ['content', 'style'], true)
+                || isset($taskIds[$task->id])) {
                 throw new RuntimeException('Invalid or duplicate task ID or summary.');
             }
             $taskIds[$task->id] = true;

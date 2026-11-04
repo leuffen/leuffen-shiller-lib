@@ -65,6 +65,7 @@ final class ShillerEditCli
             additionalContextFiles: $contextFiles,
             model: $model,
             skillsDir: $skillsDir,
+            debug: true,
         );
         $written = (new ShillerEditAction(
             $startDirectory,
@@ -120,6 +121,7 @@ final class ShillerEditCli
             additionalContextFiles: $contextFiles,
             model: $model,
             skillsDir: $skillsDir,
+            debug: true,
         );
         $written = (new ShillerResolveAction($root, context: $aiContext))->resolve($input, $documentRoot);
 

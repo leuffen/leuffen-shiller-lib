@@ -13,6 +13,9 @@ final class T_Task
     /** Kurzbeschreibung dessen, was geaendert werden soll. */
     public string $summary;
 
+    /** Art der Aenderung: content fuer Inhalte, style fuer CSS oder Layout. */
+    public string $type;
+
     /** @var list<string> Offene Fragen fuer fehlende Informationen bei Resolve. */
     public array $questions;
 
@@ -24,14 +27,24 @@ final class T_Task
      * @param string $summary Aenderungsanforderung ohne Loesung.
      * @param list<string> $questions Offene Fragen aus dem Resolve-Schritt.
      * @param string $adminInformation Manuelle Hinweise fuer die Planung.
+     * @param string $type Aenderungstyp content oder style.
      * @see T_Quote
      *
      * Beispiel: new T_Task('T-0001', 'Logo ersetzen').
      */
-    public function __construct(string $id, string $summary, array $questions = [], string $adminInformation = '')
-    {
+    public function __construct(
+        string $id,
+        string $summary,
+        array $questions = [],
+        string $adminInformation = '',
+        string $type = 'content',
+    ) {
+        if (!in_array($type, ['content', 'style'], true)) {
+            throw new \InvalidArgumentException('Task type must be content or style.');
+        }
         $this->id = $id;
         $this->summary = $summary;
+        $this->type = $type;
         $this->questions = $questions;
         $this->adminInformation = $adminInformation;
     }

@@ -88,6 +88,7 @@ final class ShillerResolveAction
             if (!is_array($task) || !is_string($task['id'] ?? null)
                 || preg_match('/^T-[0-9]{4,}$/', $task['id']) !== 1
                 || !is_string($task['summary'] ?? null) || trim($task['summary']) === ''
+                || !in_array($task['type'] ?? null, ['content', 'style'], true)
                 || isset($taskIds[$task['id']])) {
                 throw new RuntimeException('Invalid or duplicate task in ' . $target);
             }
@@ -122,149 +123,154 @@ final class ShillerResolveAction
             additionalContextFiles: $this->additionalContextFiles,
             model: $this->model,
             skillsDir: $this->skillsDir,
+            debug: true,
         );
         [$projectFiles, $sitePrompts] = $this->siteSources($documentRoot);
 
-        // Verfuegbare Edit-Skills duerfen die Planung praezisieren, nicht die
-        // Kundenanforderung ueberschreiben oder Website-Dateien bearbeiten.
         if ($this->resolveTask === null && $context->skills()->list() !== []) {
             $context->do(new TextPrompt(
                 'Dies ist ausschliesslich eine Edit-Resolve-Planung. Sieh dir die '
-                . 'verfuegbaren Skills an und lade ueber skill_load die fuer die '
-                . 'Website-Aenderungen passenden Edit-Skills und References. '
-                . 'Der adapt-content-Basis-Skill gilt nicht fuer diesen Workflow. '
-                . 'Keine Website-Dateien aendern oder ausfuehrbare Loesung starten.',
+                . 'verfuegbaren Skills an und lade ueber skill_load die passenden '
+                . 'Edit-Skills und References. Keine Website-Dateien aendern.',
                 alias: 'resolveSkills',
                 allowInstructions: true,
             ), throw: true);
         }
 
-        foreach ($data['tasks'] as $index => $task) {
+        $openTasks = [];
+        $evidence = [];
+        foreach ($data['tasks'] as $task) {
             if (isset($resolved[$task['id']])) {
                 continue;
             }
-            $adminInformation = $task['adminInformation'] ?? '';
-            if (!is_string($adminInformation)) {
-                throw new RuntimeException('Invalid adminInformation for ' . $task['id']);
-            }
             $task['questions'] = $task['questions'] ?? [];
-            if (!is_array($task['questions']) || !array_is_list($task['questions'])) {
-                throw new RuntimeException('Invalid questions for ' . $task['id']);
+            $task['adminInformation'] = $task['adminInformation'] ?? '';
+            if (!is_array($task['questions']) || !array_is_list($task['questions'])
+                || !is_string($task['adminInformation'])) {
+                throw new RuntimeException('Invalid task details for ' . $task['id']);
             }
-
-            // Nur die zum Task gehoerenden Originalstellen dienen als Beleg.
-            $evidence = [];
+            $openTasks[$task['id']] = $task;
+            $evidence[$task['id']] = [];
             foreach ($data['quotes'] as $quoteFile) {
                 if (!is_array($quoteFile)) {
                     throw new RuntimeException('Invalid quotes in ' . $target);
                 }
                 foreach ($quoteFile['quotes'] ?? [] as $quote) {
                     if (is_array($quote) && in_array($task['id'], $quote['taskIds'] ?? [], true)) {
-                        $evidence[] = [
+                        $evidence[$task['id']][] = [
                             'file' => $quoteFile['fileName'] ?? '',
                             'text' => $quote['text'] ?? '',
                         ];
                     }
                 }
             }
+        }
 
-            $prompts = [
-                new TextPrompt(
-                    'Plane genau diesen EINZELNEN Task anhand des Projektkontexts, '
-                    . 'der Projektdateien und der relevanten Edit-Skills. Suche '
-                    . 'zuerst nach einer belastbaren Umsetzung; stelle nicht '
-                    . 'vorsorglich Fragen. Gib ausschliesslich T_Changes zurueck: '
-                    . 'quotes muss [] sein, tasks muss genau einen T_Task mit '
-                    . 'unveraenderter id, summary und adminInformation enthalten. '
-                    . 'Ist die Umsetzung konkret planbar, liefere questions=[] '
-                    . 'und genau eine T_Resolution in resolutions mit '
-                    . 'id=R-0000 (Platzhalter), taskIds=[Task-ID], einer '
-                    . 'konkreten description, allen betroffenen projekt-relativen '
-                    . 'Dateien in files sowie den geplanten Schritten in changes. '
-                    . 'Eine Resolution darf mehrere Dateien umfassen. '
-                    . 'Ist trotz Projektdateien, Skills und Admin-Hinweisen '
-                    . 'tatsaechlich keine belastbare Planung moeglich, setze '
-                    . 'resolutions=[] und schreibe die konkret fehlenden '
-                    . 'Informationen als questions direkt in den Task. '
-                    . 'Weder Website-Dateien aendern noch Schritte ausfuehren '
-                    . 'oder Fakten erfinden.',
-                    alias: 'resolveTask',
-                    allowInstructions: true,
-                ),
-                new TextPrompt(json_encode([
-                    'task' => $task,
-                    'evidence' => $evidence,
-                    'projectRoot' => (string) $this->projectRoot,
-                    'documentRoot' => $documentRoot,
-                    'availableFiles' => $projectFiles,
-                ], JSON_THROW_ON_ERROR), alias: 'resolveEvidence'),
-                ...$sitePrompts,
-            ];
-            $result = $this->resolveTask !== null
-                ? ($this->resolveTask)($context, $prompts)
-                : $context->struct($prompts, T_Changes::class);
+        $prompts = [
+            new TextPrompt(
+                'Plane alle offenen Tasks GEMEINSAM und gib ausschliesslich T_Changes zurueck. '
+                . 'quotes muss [] sein und tasks muss jeden uebergebenen Task genau einmal mit '
+                . 'unveraenderter id, summary, type und adminInformation enthalten. Fasse Tasks in '
+                . 'sinnvolle T_Resolutions zusammen. Gruppiere niemals Tasks verschiedener Typen. '
+                . 'Eigenstaendige Inhaltswuensche vom Typ content bleiben auch '
+                . 'dann getrennte Resolutions, wenn sie denselben Aenderungstyp oder dieselbe Seite '
+                . 'betreffen. Eine gemeinsame Datei allein ist kein Grund zur Gruppierung. Ausnahme: '
+                . 'Aenderungen an derselben zentralen Daten- oder Konfigurationsdatei, insbesondere '
+                . 'docs/_data/general.yml, duerfen gemeinsam geplant werden. CSS-, Darstellungs- oder '
+                . 'Layout-Tasks duerfen nur dann gebuendelt werden, wenn sie dasselbe konkrete Problem '
+                . 'und denselben Implementierungsbereich betreffen. Google-Maps-Anfahrt, Leistungs- '
+                . 'oder Prothetik-Inhalte und andere fachlich unabhaengige Wuensche niemals miteinander '
+                . 'mischen. Eine Resolution soll alle und nur die fachlich zugehoerigen Task-IDs in '
+                . 'taskIds enthalten und darf mehrere Dateien umfassen. Vermeide doppelte '
+                . 'Beschreibungen und Dateiaenderungen. Jede Resolution enthaelt nur einen kurzen '
+                . 'defect, der den aktuellen Fehler beschreibt, und eine kurze description, die das '
+                . 'gewollte Ergebnis beschreibt. Gib keine kleinteiligen Umsetzungsschritte aus. '
+                . 'Wenn Text hinzugefuegt oder ersetzt werden soll, muss description den vollstaendig '
+                . 'ausformulierten Zieltext enthalten. Verwende id=R-0000 als Platzhalter. '
+                . 'Fuer konkret planbare Tasks muss questions=[] '
+                . 'sein. Nur tatsaechlich nicht planbare Tasks erhalten konkrete questions und duerfen '
+                . 'in keiner Resolution stehen. Weder Website-Dateien aendern noch Fakten erfinden.',
+                alias: 'resolveTasks',
+                allowInstructions: true,
+            ),
+            new TextPrompt(json_encode([
+                'tasks' => array_values($openTasks),
+                'evidenceByTask' => $evidence,
+                'projectRoot' => (string) $this->projectRoot,
+                'documentRoot' => $documentRoot,
+                'availableFiles' => $projectFiles,
+            ], JSON_THROW_ON_ERROR), alias: 'resolveEvidence'),
+            ...$sitePrompts,
+        ];
+        $result = $this->resolveTask !== null
+            ? ($this->resolveTask)($context, $prompts)
+            : $context->struct($prompts, T_Changes::class);
+        if (!$result instanceof T_Changes || $result->quotes !== [] || !array_is_list($result->tasks)
+            || !array_is_list($result->resolutions)) {
+            throw new RuntimeException('Invalid grouped resolve result.');
+        }
 
-            // Das Ergebnis enthaelt nur diesen einen Task. Original-Quotes,
-            // IDs und Admin-Hinweise koennen so nicht ueberschrieben werden.
-            if (!$result instanceof T_Changes || $result->quotes !== []
-                || !array_is_list($result->tasks)
-                || count($result->tasks) !== 1 || !$result->tasks[0] instanceof T_Task
-                || !array_is_list($result->resolutions) || count($result->resolutions) > 1) {
-                throw new RuntimeException('Invalid resolve result for ' . $task['id']);
+        $returnedTasks = [];
+        foreach ($result->tasks as $task) {
+            if (!$task instanceof T_Task || !isset($openTasks[$task->id]) || isset($returnedTasks[$task->id])
+                || $task->summary !== $openTasks[$task->id]['summary']
+                || $task->type !== $openTasks[$task->id]['type']
+                || $task->adminInformation !== $openTasks[$task->id]['adminInformation']
+                || !array_is_list($task->questions)) {
+                throw new RuntimeException('Resolve result contains an invalid task.');
             }
-            $resolvedTask = $result->tasks[0];
-            if ($resolvedTask->id !== $task['id']
-                || $resolvedTask->summary !== $task['summary']
-                || $resolvedTask->adminInformation !== $adminInformation
-                || !array_is_list($resolvedTask->questions)) {
-                throw new RuntimeException('Resolve result does not match task ' . $task['id']);
-            }
+            $returnedTasks[$task->id] = $task;
+        }
+        if (count($returnedTasks) !== count($openTasks)) {
+            throw new RuntimeException('Resolve result must contain every open task.');
+        }
 
-            if (count($result->resolutions) === 1) {
-                $resolution = $result->resolutions[0];
-                if (!$resolution instanceof T_Resolution
-                    || $resolution->taskIds !== [$task['id']]
-                    || trim($resolution->description) === ''
-                    || $resolution->files === [] || $resolution->changes === []
-                    || !array_is_list($resolution->files)
-                    || !array_is_list($resolution->changes)
-                    || $resolvedTask->questions !== []) {
-                    throw new RuntimeException('Incomplete resolution plan for ' . $task['id']);
-                }
-                foreach ($resolution->files as $path) {
-                    if (!is_string($path) || trim($path) === '') {
-                        throw new RuntimeException('Invalid resolution file for ' . $task['id']);
-                    }
-                    $this->projectRoot->assertRelativePath($path);
-                }
-                foreach ($resolution->changes as $change) {
-                    if (!is_string($change) || trim($change) === '') {
-                        throw new RuntimeException('Invalid resolution change for ' . $task['id']);
-                    }
-                }
-                // Der Resolver vergibt stabile, konfliktfreie IDs. Die AI
-                // legt nur fachliche Inhalte und beliebig viele Dateien fest.
-                $data['resolutions'][] = get_object_vars(new T_Resolution(
-                    sprintf('R-%04d', ++$lastResolutionId),
-                    [$task['id']],
-                    $resolution->description,
-                    $resolution->files,
-                    $resolution->changes,
-                ));
-                $task['questions'] = [];
-            } else {
-                if ($resolvedTask->questions === []) {
-                    throw new RuntimeException('Unresolved task requires specific questions: ' . $task['id']);
-                }
-                foreach ($resolvedTask->questions as $question) {
-                    if (!is_string($question) || trim($question) === '') {
-                        throw new RuntimeException('Invalid unresolved task question: ' . $task['id']);
-                    }
-                }
-                $task['questions'] = $resolvedTask->questions;
+        $newlyResolved = [];
+        foreach ($result->resolutions as $resolution) {
+            if (!$resolution instanceof T_Resolution || $resolution->taskIds === []
+                || trim($resolution->description) === '' || trim($resolution->defect) === ''
+                || $resolution->files === [] || !array_is_list($resolution->taskIds)
+                || !array_is_list($resolution->files)) {
+                throw new RuntimeException('Incomplete grouped resolution plan.');
             }
-            $task['adminInformation'] = $adminInformation;
-            $data['tasks'][$index] = $task;
+            foreach ($resolution->taskIds as $id) {
+                if (!is_string($id) || !isset($openTasks[$id]) || isset($newlyResolved[$id])
+                    || $returnedTasks[$id]->questions !== []) {
+                    throw new RuntimeException('Invalid grouped resolution task reference.');
+                }
+                $newlyResolved[$id] = true;
+            }
+            foreach ($resolution->files as $path) {
+                if (!is_string($path) || trim($path) === '') {
+                    throw new RuntimeException('Invalid grouped resolution file.');
+                }
+                $this->projectRoot->assertRelativePath($path);
+            }
+            $types = array_unique(array_map(
+                static fn(string $id): string => $openTasks[$id]['type'],
+                $resolution->taskIds,
+            ));
+            if (count($types) !== 1) {
+                throw new RuntimeException('Grouped resolution mixes task types.');
+            }
+            $data['resolutions'][] = get_object_vars(new T_Resolution(
+                sprintf('R-%04d', ++$lastResolutionId),
+                $resolution->taskIds,
+                $resolution->description,
+                $resolution->files,
+                $resolution->defect,
+            ));
+        }
+        foreach ($data['tasks'] as $index => $task) {
+            if (!isset($openTasks[$task['id']])) {
+                continue;
+            }
+            $returned = $returnedTasks[$task['id']];
+            if (!isset($newlyResolved[$task['id']]) && $returned->questions === []) {
+                throw new RuntimeException('Unresolved task requires specific questions: ' . $task['id']);
+            }
+            $data['tasks'][$index]['questions'] = $returned->questions;
+            $data['tasks'][$index]['adminInformation'] = $returned->adminInformation;
         }
 
         // Ausschliesslich die bestehende YAML erhaelt die neuen Planungsdaten.
