@@ -77,6 +77,43 @@ Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomat
 Projekt-, Document-Root- und Template-Konfiguration werden über
 `Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
 
+## CLI: Kundenänderungen als Change Request erfassen
+
+`shiller edit` analysiert Änderungswünsche, **ohne** die Website zu
+verändern. Ohne Dateiangabe nimmt es mehrzeilige Texte über stdin entgegen
+(bei interaktiver Eingabe mit Strg+D abschließen). Mehrere Dateien und
+Verzeichnisse können zusammen angegeben werden; Verzeichnisse werden rekursiv
+gelesen. UTF-8-Textdateien werden in Absätze mit Zeilenreferenzen aufgeteilt.
+Bilder und andere Binärdateien erscheinen nur mit ihrem Dateinamen als Assets.
+
+```sh
+shiller edit
+shiller edit feedback.txt weiterer-auftrag.md
+shiller edit kundenfeedback/ --output .shiller-edit/kunde.yml
+cat aenderungen.txt | shiller edit --output .shiller-edit/mail.yml
+```
+
+Standardziel ist `.shiller-edit/change-request.yml` in der
+Projektwurzel. Bestehende Zieldateien werden nicht überschrieben; verwende
+`--output` für weitere Requests. Die Task-Extraktion benötigt die
+AI-Konfiguration von `phore/ai-harness`; das Modell kann mit `--model`
+gewählt werden. Ungültige AI-Referenzen oder nicht parsebares JSON brechen
+die Analyse ab, statt unvollständige YAML-Daten zu speichern.
+
+Die YAML-Datei enthält ein unverändertes `schema_version: 1`-Schema:
+`sources` (F-IDs, Pfade und Typen), `sections` (S-IDs, Originaltext,
+Quellen-ID, Zeilenbereich und zugewiesene `task_ids`) sowie `tasks`
+(T-IDs, Titel, Beschreibung, `section_ids`, `asset_paths`, Status
+`open`). Dieselbe Textstelle kann mehreren Tasks zugeordnet werden;
+ein Task kann mehrere Stellen referenzieren. Es gibt **noch keine**
+Lösungen oder Änderungen an Ziel-Dateien.
+
+Die spätere Solve-Phase besitzt ein **separates** Datenmodell
+`ShillerResolutionPlan` mit `change_request` und `resolutions`.
+Eine Resolution (R-ID) enthält `task_ids`, eine Zusammenfassung sowie
+`changes` mit `path`, `description` und `method`. Ein `solve`-
+oder Ausführungsbefehl ist in dieser ersten Phase noch nicht implementiert.
+
 ## Website aus `_tpl` anlegen
 
 Das Theme-Paket liefert `_tpl/_root/` für die bedingungslose Grundstruktur und
