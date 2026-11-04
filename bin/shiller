@@ -16,8 +16,7 @@ $app->addClass(\Leuffen\Shiller\Automation\ShillerCli::class);
 $app->addClass(\Leuffen\Shiller\Automation\ShillerEditCli::class);
 
 try {
-    $scope = ($argv[1] ?? '') === 'edit' ? [] : ['shiller'];
-    echo $app->run([$argv[0], ...$scope, ...array_slice($argv, 1)]);
+    $app->run($argv);
 } catch (\Throwable $exception) {
     \Phore\Cli\Output\Out::TextDanger($exception->getMessage());
     exit(1);

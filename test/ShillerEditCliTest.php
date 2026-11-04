@@ -100,7 +100,7 @@ final class ShillerEditCliTest extends TestCase
         );
     }
 
-    public function testEditCommandsAreNestedUnderShiller(): void
+    public function testEditCommandsAreRegisteredUnderExecutable(): void
     {
         $scope = (new ReflectionClass(ShillerEditCli::class))
             ->getAttributes(\Phore\Cli\Annotation\CliScope::class);
@@ -123,13 +123,14 @@ final class ShillerEditCliTest extends TestCase
         );
         self::assertStringContainsString('ShillerEditCli::class', $launcher);
         self::assertSame(['bin/shiller'], $composer['bin']);
-        self::assertStringContainsString("($argv[1] ?? '') === 'edit'", $launcher);
-        self::assertStringContainsString("['shiller']", $launcher);
+        self::assertStringContainsString('$app->run($argv);', $launcher);
+        self::assertStringNotContainsString('array_slice($argv', $launcher);
 
         // Die erste CLI-Ebene ist der Programmname, nicht ein zusaetzlicher
         // CliScope. Beide Edit-Subcommands sind dadurch direkt erreichbar.
         $app = new \Phore\Cli\CliApplication();
         $app->addClass(ShillerEditCli::class);
+        $app->addClass(\Leuffen\Shiller\Automation\ShillerInitCli::class);
         ob_start();
         try {
             $app->run(['shiller', 'edit', '-h']);
@@ -140,6 +141,18 @@ final class ShillerEditCliTest extends TestCase
         self::assertIsString($help);
         self::assertStringContainsString('create', $help);
         self::assertStringContainsString('resolve', $help);
+
+        // Der nach dem Executable benannte Scope wird von phore/cli2
+        // automatisch auf die Programmebene abgebildet.
+        ob_start();
+        try {
+            $app->run(['shiller', 'init', '-h']);
+            $initHelp = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        self::assertIsString($initHelp);
+        self::assertStringContainsString('--template-dir', $initHelp);
     }
 
 }
