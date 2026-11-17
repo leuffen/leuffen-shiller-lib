@@ -59,7 +59,7 @@ final class ShillerExecuteAction
      * @param string $taskId Optional nur einen Task ausfuehren.
      * @param bool $yes Vor jeder Task-Aenderung keine Rueckfrage stellen.
      * @param bool $dryRun Ausschliesslich Diffs berechnen und anzeigen.
-     * @return string Relativer Pfad zur Historie, leer bei Dry-Run.
+     * @param string $diffFile Optionaler Unified-Diff-Gesamtbericht relativ zur Projektwurzel.\n     * @return string Relativer Pfad zur Historie, leer bei Dry-Run.
      * @throws RuntimeException Bei ungueltigem Plan oder unerwartetem Dateistand.
      * @see ShillerEditDiff::between()
      *
@@ -71,9 +71,15 @@ final class ShillerExecuteAction
         string $taskId = '',
         bool $yes = false,
         bool $dryRun = false,
+        string $diffFile = '',
     ): string {
         $inputPath = $this->root->assertRelativePath($input);
         $logPath = $this->root->assertRelativePath($changesFile);
+        $diffPath = $diffFile === '' ? '' : $this->root->assertRelativePath($diffFile);
+        if ($diffPath !== '' && ($diffPath === $inputPath || $diffPath === $logPath
+            || !str_starts_with($diffPath, '.shiller-edit.d/'))) {
+            throw new RuntimeException('Diff report must be a separate file in .shiller-edit.d/.');
+        }
         if ($inputPath === $logPath) {
             throw new RuntimeException('Execution history must differ from input YAML.');
         }
@@ -134,6 +140,7 @@ final class ShillerExecuteAction
 
         $context = $this->context;
         $processed = 0;
+        $originalFiles = [];
         foreach ($tasks as $id => $task) {
             if (($taskId !== '' && $id !== $taskId) || isset($completed[$id])) {
                 continue;
@@ -150,6 +157,9 @@ final class ShillerExecuteAction
 
             $resolution = $planned[$id];
             $originals = $this->readPlannedFiles($resolution['files'], $inputPath, $logPath);
+            foreach ($originals as $name => $body) {
+                $originalFiles[$name] ??= $body;
+            }
             if ($context === null && $this->apply === null) {
                 $context = (new ShillerAiContextFactory((string) $this->root))->create(
                     model: $this->model,
@@ -265,6 +275,25 @@ final class ShillerExecuteAction
         }
         if ($processed === 0) {
             echo "Keine offenen, ausfuehrbaren Tasks.\n";
+        }
+        if (!$dryRun && $diffPath !== '') {
+            $patch = '';
+            $changedFiles = 0;
+            foreach ($originalFiles as $name => $before) {
+                $after = $this->root->withSubPath($name)->asFile()->assertFile()->assertReadable()->get_contents();
+                $hunks = ShillerEditDiff::between($before, $after);
+                if ($hunks === []) {
+                    continue;
+                }
+                $patch .= "--- a/{$name}\n+++ b/{$name}\n";
+                foreach ($hunks as $hunk) {
+                    $patch .= $hunk['diff'];
+                }
+                $changedFiles++;
+                echo 'Geaendert: ' . $name . "\n";
+            }
+            $this->root->withSubPath($diffPath)->asFile()->set_contents($patch);
+            echo "Gesamtdiff: {$diffPath} ({$changedFiles} Dateien)\n";
         }
         return $dryRun ? '' : $logPath;
     }
