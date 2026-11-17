@@ -106,6 +106,54 @@ final class ShillerExecuteActionTest extends TestCase
         self::assertCount(3, phore_file($this->root . '/.shiller-edit.d/shiller-edit-changes.yml')->get_yaml()['changes']);
     }
 
+    public function testPerformExportsConsolidatedPatchForMultipleFilesAndTasks(): void
+    {
+        $count = 0;
+        $action = new ShillerExecuteAction(
+            $this->root,
+            static function ($context, array $prompts) use (&$count): T_EditExecution {
+                $count++;
+                $files = [];
+                foreach ($prompts as $prompt) {
+                    if ($prompt instanceof FilePrompt) {
+                        $files[$prompt->fileName] = $prompt->content;
+                    }
+                }
+                if ($count === 1) {
+                    return new T_EditExecution('T-0001', [
+                        new T_ExecutedFile('docs/index.md', hash('sha256', $files['docs/index.md']),
+                            str_replace('Address old', 'Address new', $files['docs/index.md'])),
+                        new T_ExecutedFile('docs/_data/general.yml', hash('sha256', $files['docs/_data/general.yml']),
+                            "address: new\n"),
+                    ]);
+                }
+                return new T_EditExecution('T-0002', [
+                    new T_ExecutedFile('docs/index.md', hash('sha256', $files['docs/index.md']),
+                        str_replace('Title', 'Updated title', $files['docs/index.md'])),
+                ]);
+            },
+        );
+
+        ob_start();
+        try {
+            $action->execute(yes: true, diffFile: '.shiller-edit.d/shiller-edit.diff');
+            $output = (string) ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+
+        $patch = phore_file($this->root . '/.shiller-edit.d/shiller-edit.diff')->get_contents();
+        self::assertSame(2, $count);
+        self::assertSame(1, substr_count($patch, '--- a/docs/index.md'));
+        self::assertStringContainsString('+++ b/docs/index.md', $patch);
+        self::assertStringContainsString('-Title', $patch);
+        self::assertStringContainsString('+Updated title', $patch);
+        self::assertStringContainsString('-Address old', $patch);
+        self::assertStringContainsString('+Address new', $patch);
+        self::assertStringContainsString('--- a/docs/_data/general.yml', $patch);
+        self::assertStringContainsString('Gesamtdiff:', $output);
+    }
+
     public function testDryRunDisplaysDiffButDoesNotWrite(): void
     {
         $action = new ShillerExecuteAction(
