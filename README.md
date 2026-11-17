@@ -234,7 +234,9 @@ mit `--- a/<pfad>` / `+++ b/<pfad>` und Zeilen-Hunks pro geaenderter
 Datei. Die Datei laesst sich in einem Diff-Viewer oeffnen. Werden mehrere
 Tasks auf dieselbe Datei angewandt, erscheint diese nur einmal mit der
 Gesamtaenderung dieses Laufs. Bereits abgeschlossene Tasks werden wie
-bei `edit execute` uebersprungen.
+bei `edit execute` uebersprungen. Gibt es keine neuen Aenderungen,
+bleibt ein bereits vorhandener Diff-Bericht unveraendert; es wird kein
+leerer Bericht erzeugt.
 
 ## Website aus `_tpl` anlegen
 

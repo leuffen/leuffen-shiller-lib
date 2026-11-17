@@ -292,8 +292,14 @@ final class ShillerExecuteAction
                 $changedFiles++;
                 echo 'Geaendert: ' . $name . "\n";
             }
-            $this->root->withSubPath($diffPath)->asFile()->set_contents($patch);
-            echo "Gesamtdiff: {$diffPath} ({$changedFiles} Dateien)\n";
+            if ($changedFiles > 0) {
+                $this->root->withSubPath($diffPath)->asFile()->set_contents($patch);
+                echo "Gesamtdiff: {$diffPath} ({$changedFiles} Dateien)\n";
+            } else {
+                // Vorhandene Reports nicht durch einen leeren Wiederholungslauf
+                // ueberschreiben; sie dokumentieren den letzten echten Diff.
+                echo "Keine neuen Dateiaenderungen; Gesamtdiff unveraendert.\n";
+            }
         }
         return $dryRun ? '' : $logPath;
     }

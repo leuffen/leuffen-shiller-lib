@@ -161,6 +161,19 @@ final class ShillerExecuteActionTest extends TestCase
         self::assertStringContainsString('+Address new', $patch);
         self::assertStringContainsString('--- a/docs/_data/general.yml', $patch);
         self::assertStringContainsString('Gesamtdiff:', $output);
+
+        // Ein erneuter Perform-Lauf darf einen vorhandenen Review-Diff
+        // nicht leeren, wenn alle Tasks bereits erledigt sind.
+        ob_start();
+        try {
+            $action->execute(yes: true, diffFile: '.shiller-edit.d/shiller-edit.diff');
+            $secondOutput = (string) ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        self::assertSame(2, $count);
+        self::assertSame($patch, phore_file($this->root . '/.shiller-edit.d/shiller-edit.diff')->get_contents());
+        self::assertStringContainsString('Gesamtdiff unveraendert', $secondOutput);
     }
 
     public function testDryRunDisplaysDiffButDoesNotWrite(): void
