@@ -129,6 +129,144 @@ final class ShillerEditCli
     }
 
     /**
+     * Ueberarbeitet einen Change Request im interaktiven Terminal.
+     *
+     * Die Eingabe verwendet phore/cli2 AskMultiLine. Mehrere Runden
+     * koennen Tasks zusammenlegen und Quote-/Resolution-Zuordnungen
+     * anpassen. Gespeichert wird erst mit :save.
+     *
+     * @param string $input Bestehendes Edit-YAML.
+     * @param string $projectDir Projektwurzel, leer nutzt CWD.
+     * @param string $documentRoot Lesbarer Website-Document-Root.
+     * @param string $skillsDir Optionales Theme-Skills-Verzeichnis.
+     * @param string $model Optionales AI-Modell.
+     * @throws RuntimeException Bei ungueltigen Aenderungen.
+     * @see ShillerRefineAction::run()
+     *
+     * Beispiel: shiller edit refine --input .shiller-edit.d/shiller-edit.yml
+     */
+    #[CliCommand('refine', 'Ueberarbeitet Tasks interaktiv.', 'Mehrzeilige Anweisungen, Merge von Tasks, :save, :undo, :quit.')]
+    public function refine(
+        #[CliParameter('input', 'Bestehende Edit-YAML')]
+        string $input = '.shiller-edit.d/shiller-edit.yml',
+        #[CliParameter('project-dir', 'Projektwurzel; standardmaessig CWD')]
+        string $projectDir = '',
+        #[CliParameter('document-root', 'Lesbarer Website-Document-Root')]
+        string $documentRoot = 'docs',
+        #[CliParameter('skills-dir', 'Theme-Skills-Verzeichnis')]
+        string $skillsDir = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = '',
+    ): void {
+        $root = $projectDir !== '' ? $projectDir : getcwd();
+        if ($root === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $written = (new ShillerRefineAction($root, model: $model, skillsDir: $skillsDir))
+            ->run($input, $documentRoot);
+        echo $written === '' ? "Refine abgebrochen.\n" : $written . PHP_EOL;
+    }
+
+    /**
+     * Fuehrt vorhandene Resolutions taskweise aus und schreibt Diff-Historie.
+     *
+     * Ohne --yes wird vor jedem Task bestaetigt; --dry-run schreibt nicht.
+     * Alle geaenderten Textdateien werden mit Task-ID, Dateipfad,
+     * Hashes und Zeilen-Diffs in der Changes-YAML erfasst.
+     *
+     * @param string $input Bestehende Edit-YAML.
+     * @param string $projectDir Projektwurzel, leer nutzt CWD.
+     * @param string $changesFile YAML fuer Diff-Historie.
+     * @param string $taskId Optional nur diesen Task ausfuehren.
+     * @param bool $yes Vor Schreibvorgaengen nicht bestaetigen.
+     * @param bool $dryRun Nur Vorschau ohne Dateioperationen.
+     * @param string $skillsDir Optionales Theme-Skills-Verzeichnis.
+     * @param string $model Optionales AI-Modell.
+     * @throws RuntimeException Bei Konflikten oder ungueltigen Datei-Antworten.
+     * @see ShillerExecuteAction::execute()
+     *
+     * Beispiel: shiller edit execute --task-id T-0001 --dry-run
+     */
+    #[CliCommand('execute', 'Setzt Resolutions taskweise um.', 'Schreibt Website-Dateien und zeilengenaue Changes-YAML nach Bestaetigung.')]
+    public function execute(
+        #[CliParameter('input', 'Bestehende Edit-YAML')]
+        string $input = '.shiller-edit.d/shiller-edit.yml',
+        #[CliParameter('project-dir', 'Projektwurzel; standardmaessig CWD')]
+        string $projectDir = '',
+        #[CliParameter('changes-file', 'YAML fuer ausgefuehrte Datei-Diffs')]
+        string $changesFile = '.shiller-edit.d/shiller-edit-changes.yml',
+        #[CliParameter('task-id', 'Optional genau einen Task ausfuehren')]
+        string $taskId = '',
+        #[CliParameter('yes', 'Jede Task-Aenderung ohne Rueckfrage anwenden')]
+        bool $yes = false,
+        #[CliParameter('dry-run', 'Nur Diff-Vorschau; nichts schreiben')]
+        bool $dryRun = false,
+        #[CliParameter('skills-dir', 'Theme-Skills-Verzeichnis')]
+        string $skillsDir = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = '',
+    ): void {
+        $root = $projectDir !== '' ? $projectDir : getcwd();
+        if ($root === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        $written = (new ShillerExecuteAction($root, model: $model, skillsDir: $skillsDir))
+            ->execute($input, $changesFile, $taskId, $yes, $dryRun);
+        if ($written !== '') {
+            echo $written . PHP_EOL;
+        }
+    }
+
+    /**
+     * Fuehrt alle noch offenen Resolutions aus und exportiert den Gesamtdiff.
+     *
+     * Mehrere Task-Aenderungen an derselben Datei werden zu einem Diff
+     * zwischen Zustand vor und nach diesem Perform-Lauf zusammengefasst.
+     *
+     * @param string $input Bestehende Edit-YAML.
+     * @param string $projectDir Projektwurzel; leer nutzt CWD.
+     * @param string $changesFile YAML-Historie der einzelnen Tasks.
+     * @param string $diffFile Unified-Diff-Datei fuer externe Diff-Viewer.
+     * @param bool $yes Schreibvorgaenge ohne Rueckfrage bestaetigen.
+     * @param bool $dryRun Nur Task-Diffs anzeigen, nichts schreiben.
+     * @param string $skillsDir Theme-Skills-Verzeichnis.
+     * @param string $model Optionales AI-Modell.
+     * @throws RuntimeException Bei ungueltiger YAML oder Datei-Konflikten.
+     * @see ShillerExecuteAction::execute()
+     *
+     * Beispiel: shiller edit perform --yes
+     */
+    #[CliCommand('perform', 'Fuehrt offene Edits aus und schreibt einen Gesamtdiff.', 'Erzeugt einen Unified-Diff pro geaenderter Datei in einer .diff-Datei.')]
+    public function perform(
+        #[CliParameter('input', 'Bestehende Edit-YAML')]
+        string $input = '.shiller-edit.d/shiller-edit.yml',
+        #[CliParameter('project-dir', 'Projektwurzel; standardmaessig CWD')]
+        string $projectDir = '',
+        #[CliParameter('changes-file', 'YAML-Historie der Task-Diffs')]
+        string $changesFile = '.shiller-edit.d/shiller-edit-changes.yml',
+        #[CliParameter('diff-file', 'Unified-Diff-Bericht fuer Diff-Viewer')]
+        string $diffFile = '.shiller-edit.d/shiller-edit.diff',
+        #[CliParameter('yes', 'Alle Task-Aenderungen ohne Rueckfrage anwenden')]
+        bool $yes = false,
+        #[CliParameter('dry-run', 'Nur Vorschau; nichts schreiben')]
+        bool $dryRun = false,
+        #[CliParameter('skills-dir', 'Theme-Skills-Verzeichnis')]
+        string $skillsDir = '',
+        #[CliParameter('model', 'AI-Modell')]
+        string $model = '',
+    ): void {
+        $root = $projectDir !== '' ? $projectDir : getcwd();
+        if ($root === false) {
+            throw new RuntimeException('Cannot determine current directory.');
+        }
+
+        (new ShillerExecuteAction($root, model: $model, skillsDir: $skillsDir))
+            ->execute($input, $changesFile, yes: $yes, dryRun: $dryRun, diffFile: $diffFile);
+    }
+
+    /**
      * Bereitet den Standard-Eingabeordner fuer einen parameterlosen Create-Aufruf vor.
      *
      * Existiert .shiller-edit.d/ bereits, wird sein Inhalt direkt verarbeitet.

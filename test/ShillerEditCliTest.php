@@ -113,6 +113,12 @@ final class ShillerEditCliTest extends TestCase
             ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
         self::assertSame('create', $create[0]->getArguments()[0]);
         self::assertSame('resolve', $resolve[0]->getArguments()[0]);
+        $refine = (new ReflectionMethod(ShillerEditCli::class, 'refine'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        $execute = (new ReflectionMethod(ShillerEditCli::class, 'execute'))
+            ->getAttributes(\Phore\Cli\Annotation\CliCommand::class);
+        self::assertSame('refine', $refine[0]->getArguments()[0]);
+        self::assertSame('execute', $execute[0]->getArguments()[0]);
 
         $project = phore_dir(__DIR__ . '/..')->assertDirectory()->assertReadable();
         $launcher = $project->withSubPath('bin/shiller')->asFile()->get_contents();
@@ -141,6 +147,8 @@ final class ShillerEditCliTest extends TestCase
         self::assertIsString($help);
         self::assertStringContainsString('create', $help);
         self::assertStringContainsString('resolve', $help);
+        self::assertStringContainsString('refine', $help);
+        self::assertStringContainsString('execute', $help);
 
         // Der nach dem Executable benannte Scope wird von phore/cli2
         // automatisch auf die Programmebene abgebildet.
