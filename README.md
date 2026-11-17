@@ -213,6 +213,29 @@ nach genau dieser Task-Ausfuehrung. Bereits protokollierte Tasks werden bei
 erneuter Ausfuehrung uebersprungen. Neue Dateien und Binaerdateien sind
 absichtlich nicht Teil dieses Schreib-Workflows.
 
+### Finale Ausfuehrung mit `shiller edit perform`
+
+Nach `edit create`, `edit resolve` und optional `edit refine` setzt
+`perform` alle noch nicht ausgefuehrten, aufgeloesten Tasks um:
+
+```sh
+shiller edit perform
+shiller edit perform --yes
+shiller edit perform --dry-run
+shiller edit perform --diff-file .shiller-edit.d/review.diff
+```
+
+Ohne `--yes` wird jede Task-Aenderung vor dem Schreiben bestaetigt.
+`--dry-run` zeigt nur Task-Diffs und veraendert keine Dateien.
+Die bestehende `.shiller-edit.d/shiller-edit-changes.yml` bleibt als
+Task-Historie erhalten. Zusaetzlich enthaelt
+`.shiller-edit.d/shiller-edit.diff` einen zusammengefassten Unified-Diff
+mit `--- a/<pfad>` / `+++ b/<pfad>` und Zeilen-Hunks pro geaenderter
+Datei. Die Datei laesst sich in einem Diff-Viewer oeffnen. Werden mehrere
+Tasks auf dieselbe Datei angewandt, erscheint diese nur einmal mit der
+Gesamtaenderung dieses Laufs. Bereits abgeschlossene Tasks werden wie
+bei `edit execute` uebersprungen.
+
 ## Website aus `_tpl` anlegen
 
 Das Theme-Paket liefert `_tpl/_root/` für die bedingungslose Grundstruktur und
