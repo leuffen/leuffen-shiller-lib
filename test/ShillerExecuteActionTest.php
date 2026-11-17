@@ -121,15 +121,24 @@ final class ShillerExecuteActionTest extends TestCase
                 }
                 if ($count === 1) {
                     return new T_EditExecution('T-0001', [
-                        new T_ExecutedFile('docs/index.md', hash('sha256', $files['docs/index.md']),
-                            str_replace('Address old', 'Address new', $files['docs/index.md'])),
-                        new T_ExecutedFile('docs/_data/general.yml', hash('sha256', $files['docs/_data/general.yml']),
-                            "address: new\n"),
+                        new T_ExecutedFile(
+                            'docs/index.md',
+                            hash('sha256', $files['docs/index.md']),
+                            str_replace('Address old', 'Address new', $files['docs/index.md']),
+                        ),
+                        new T_ExecutedFile(
+                            'docs/_data/general.yml',
+                            hash('sha256', $files['docs/_data/general.yml']),
+                            "address: new\n",
+                        ),
                     ]);
                 }
                 return new T_EditExecution('T-0002', [
-                    new T_ExecutedFile('docs/index.md', hash('sha256', $files['docs/index.md']),
-                        str_replace('Title', 'Updated title', $files['docs/index.md'])),
+                    new T_ExecutedFile(
+                        'docs/index.md',
+                        hash('sha256', $files['docs/index.md']),
+                        str_replace('Title', 'Updated title', $files['docs/index.md']),
+                    ),
                 ]);
             },
         );
