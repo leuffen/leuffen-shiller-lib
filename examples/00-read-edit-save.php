@@ -5,7 +5,7 @@ use Leuffen\Shiller\Access\ShillerRepository;
 
 // Vorhandene englische Seite bearbeiten; Ausgangsdaten und Rechte: README.
 $site = new ShillerRepository(
-    phore_dir('/srv/site/docs'),
+    '/srv/site/docs',
     access: new AccessContext(role: 'user'),
 );
 $page = $site->getPage('/leistungen/diagnostik');

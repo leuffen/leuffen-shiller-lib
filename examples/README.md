@@ -6,7 +6,7 @@ Shiller öffnet ein extern bereitgestelltes Website-Quellverzeichnis. Dieser typ
 
 ```php
 $site = new ShillerRepository(
-    phore_dir('/srv/site/docs'),
+    '/srv/site/docs',
     access: new AccessContext(role: 'user'),
 );
 $page = $site->getPage('/leistungen/diagnostik');
@@ -20,7 +20,7 @@ ShillerRepository ist der Einstieg, Document die bearbeitbare Seite, header das 
 
 ## Darstellungsform und gemeinsamer Kontext
 
-Die [API](../docs/proposals/2026-09-12-shiller-seiten-api.md) ist ein Vorschlag, noch keine implementierte Library. Die PHP-Dateien sind lesbare Anwendungsausschnitte mit erwarteten Ergebnissen; sie werden nicht als nacheinander auszuführende Skripte oder Demo-Closures eingebunden. 14/15 sind ausdrücklich Interface-Implementierungsskizzen mit werfenden Methodenstümpfen für Framework-Entwickler.
+Die API ist in der Library implementiert; das [ursprüngliche Proposal](../docs/proposals/2026-09-12-shiller-seiten-api.md) dokumentiert den Entwurf und ist keine verbindliche Beschreibung des aktuellen API-Stands. Die PHP-Dateien sind lesbare Anwendungsausschnitte mit erwarteten Ergebnissen; sie werden nicht als nacheinander auszuführende Skripte oder Demo-Closures eingebunden. 14/15 sind ausdrücklich Interface-Implementierungsskizzen mit werfenden Methodenstümpfen für Framework-Entwickler.
 
 Einmaliger Namenskontext für die Anwendungsausschnitte:
 
@@ -32,9 +32,9 @@ use Leuffen\Shiller\Access\ShillerRepository;
 use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
 ```
 
-Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Anbindung und SiteStorage sind noch Entwurfsbestandteile. Das vorhandene Repository-Grundgerüst verlangt PHP >=8.3 und hat noch nicht Shillers Namespace; die Beispiele behaupten keine bereits installierbare API.
+Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Classmap-Autoloading und das SiteStorage-Interface sind vorhanden. Die Library verlangt PHP >=8.5. Die Beispielpfade unter /srv sind illustrative, vom Anwender bereitzustellende Dateisystempfade.
 
-Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist das in 01 geöffnete PhoreDirectory, `$site` je nach Kennzeichnung dessen lesender oder schreibender ShillerRepository. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
+Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist der in 01 verwendete absolute Pfad zum Website-Root, `$site` je nach Kennzeichnung dessen lesender oder schreibender ShillerRepository. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
 
 ## Gemeinsame Ausgangsdaten
 
