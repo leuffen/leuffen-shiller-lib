@@ -395,6 +395,21 @@ final class Document
         return $this->site()->getHeaderDefinitions($this->id, $this->language);
     }
 
+    /**
+     * Liefert die vom Adapter für dieses Dokument sichtbaren Form-Felder.
+     *
+     * Der aktuelle Header wird nur gelesen; nicht gesetzte Werte werden über
+     * den Default angezeigt, aber nicht automatisch ins Dokument geschrieben.
+     *
+     * @return list<array<string, mixed>>
+     * @see \Leuffen\Shiller\Adapter\Adapter::getEditableHeaders()
+     * @example $fields = $site->getPage('/leistungen')->getEditableHeaders();
+     */
+    public function getEditableHeaders(): array
+    {
+        return $this->site()->adapter()->getEditableHeaders($this);
+    }
+
     public function getTranslation(?string $language = null, bool $createIfMissing = false): ?Document
     {
         return $this->site()->translation($this, $language, $createIfMissing);

@@ -54,6 +54,56 @@ final class PolyglotStructureTest extends TestCase
         return new ShillerDir($this->dir, access: new AccessContext('user'));
     }
 
+
+    public function testEditableHeadersAreResolvedPerPolyglotDocument(): void
+    {
+        $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
+        $this->put('en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
+        $this->put('editable-headers.conf.yaml', <<<'YAML'
+fields:
+  - name: title
+    type: string
+    label: Titel
+    description: Seitentitel
+    order: 20
+    allowEmpty: false
+  - name: published
+    type: switch
+    label: Veröffentlicht
+    default: true
+    order: 10
+    allowNull: true
+  - name: teaser
+    type: textarea
+    label: Teaser
+    default: Hallo
+    when:
+      include: ['~^leistungen\\.md$~']
+      on:
+        category: [praxis, news]
+      not:
+        published: true
+  - name: hidden
+    type: integer
+    when:
+      exclude: '~^leistungen\\.md$~'
+YAML
+        );
+
+        $site = $this->site();
+        $page = $site->getPage('/leistungen');
+        $fields = $page->getEditableHeaders();
+        self::assertSame(['published', 'title', 'teaser'], array_column($fields, 'name'));
+        self::assertFalse($fields[0]['value']);
+        self::assertTrue($fields[0]['present']);
+        self::assertSame('Hallo', $fields[2]['value']);
+        self::assertFalse($fields[2]['present']);
+        self::assertArrayNotHasKey('teaser', $page->header);
+        self::assertSame(['published', 'title', 'hidden'], array_column(
+            $site->getPage('/leistungen', 'en')->getEditableHeaders(), 'name'
+        ));
+    }
+
     public function testFirstChildPromotesAllExistingParentLanguagesAndPreservesBytes(): void
     {
         $german = "---\ntitle: Leistungen\ncustom: {nested: yes}\n---\n# Inhalt\n";

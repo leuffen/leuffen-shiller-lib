@@ -211,6 +211,11 @@ abstract class AbstractJekyllAdapter implements Adapter
         return $document->header;
     }
 
+    public function getEditableHeaders(Document $document): array
+    {
+        return [];
+    }
+
     public function getUrl(Document $document, bool $absolute = false): string
     {
         $url = $document->header['permalink'] ?? null;
@@ -845,6 +850,143 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
         return $this->commonFields();
+    }
+
+
+    /**
+     * Ermittelt sichtbare Polyglot-Headerfelder aus der Website-Konfiguration.
+     *
+     * Der Dateipfad bezieht sich auf den Document Root. Alle Bedingungen eines
+     * Feldes sind UND-verknüpft; Regex-Listen und Wertelisten sind ODER-verknüpft.
+     * Die Methode verändert weder Front Matter noch Dokumentzustand.
+     *
+     * @return list<array<string, mixed>>
+     * @throws ValidationException Bei ungültiger Feld- oder Regex-Konfiguration.
+     * @see Document::getEditableHeaders()
+     * @example $fields = $site->getPage('/')->getEditableHeaders();
+     */
+    public function getEditableHeaders(Document $document): array
+    {
+        $path = 'editable-headers.conf.yaml';
+        if (!$this->s()->exists($path)) {
+            return [];
+        }
+
+        $config = Codec::yaml($this->s()->read($path), $path);
+        $definitions = $config['fields'] ?? [];
+        if (!is_array($definitions) || !array_is_list($definitions)) {
+            throw new ValidationException("$path: fields must be a list");
+        }
+
+        $fields = [];
+        foreach ($definitions as $index => $definition) {
+            if (!is_array($definition)) {
+                throw new ValidationException("$path: field $index must be a mapping");
+            }
+
+            $name = $definition['name'] ?? null;
+            $type = $definition['type'] ?? null;
+            if (!is_string($name) || $name === '' || !is_string($type)
+                || !in_array($type, ['switch', 'string', 'textarea', 'integer', 'select', 'multiselect'], true)) {
+                throw new ValidationException("$path: invalid name or type at field $index");
+            }
+
+            $when = $definition['when'] ?? [];
+            if (!is_array($when)) {
+                throw new ValidationException("$path: when must be a mapping for $name");
+            }
+            $sourcePath = $document->file?->path ?? $this->getSourcePath($document->id, $document->language);
+            if (!$this->matchesEditableHeaderWhen($when, $sourcePath, $document->header, $name)) {
+                continue;
+            }
+
+            $options = $definition['options'] ?? [];
+            if (!is_array($options) || (in_array($type, ['select', 'multiselect'], true) && !array_is_list($options))) {
+                throw new ValidationException("$path: invalid options for $name");
+            }
+            $regex = $definition['regex'] ?? null;
+            if ($regex !== null && (!is_string($regex) || @preg_match($regex, '') === false)) {
+                throw new ValidationException("$path: invalid value regex for $name");
+            }
+            $order = $definition['order'] ?? $index;
+            if (!is_int($order)) {
+                throw new ValidationException("$path: order must be an integer for $name");
+            }
+            $present = array_key_exists($name, $document->header);
+            $fields[] = [
+                'name' => $name,
+                'type' => $type,
+                'label' => (string) ($definition['label'] ?? $name),
+                'description' => (string) ($definition['description'] ?? ''),
+                'allowNull' => (bool) ($definition['allowNull'] ?? false),
+                'allowEmpty' => (bool) ($definition['allowEmpty'] ?? false),
+                'regex' => $regex,
+                'options' => $options,
+                'default' => $definition['default'] ?? null,
+                'value' => $present ? $document->header[$name] : ($definition['default'] ?? null),
+                'present' => $present,
+                'order' => $order,
+                '_index' => $index,
+            ];
+        }
+
+        usort($fields, static fn(array $a, array $b): int =>
+            ($a['order'] <=> $b['order']) ?: ($a['_index'] <=> $b['_index'])
+        );
+        foreach ($fields as &$field) {
+            unset($field['_index']);
+        }
+        unset($field);
+
+        return $fields;
+    }
+
+    /**
+     * @param array<string, mixed> $when
+     * @param array<string, mixed> $header
+     */
+    private function matchesEditableHeaderWhen(array $when, string $path, array $header, string $name): bool
+    {
+        foreach (['include', 'exclude'] as $condition) {
+            if (!array_key_exists($condition, $when)) {
+                continue;
+            }
+            $patterns = is_string($when[$condition]) ? [$when[$condition]] : $when[$condition];
+            if (!is_array($patterns) || !array_is_list($patterns)) {
+                throw new ValidationException("Invalid $condition patterns for $name");
+            }
+            $matched = false;
+            foreach ($patterns as $pattern) {
+                if (!is_string($pattern) || ($result = @preg_match($pattern, $path)) === false) {
+                    throw new ValidationException("Invalid $condition regex for $name");
+                }
+                if ($result === 1) {
+                    $matched = true;
+                }
+            }
+            if (($condition === 'include' && !$matched) || ($condition === 'exclude' && $matched)) {
+                return false;
+            }
+        }
+
+        foreach (['on', 'not'] as $condition) {
+            if (!array_key_exists($condition, $when)) {
+                continue;
+            }
+            $checks = $when[$condition];
+            if (!is_array($checks) || array_is_list($checks)) {
+                throw new ValidationException("Invalid $condition mapping for $name");
+            }
+            foreach ($checks as $key => $expected) {
+                $allowed = is_array($expected) && array_is_list($expected) ? $expected : [$expected];
+                $matched = array_key_exists($key, $header) && in_array($header[$key], $allowed, true);
+                if (($condition === 'on' && !$matched) || ($condition === 'not' && $matched)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public function capabilities(string $id, ?string $language = null): Capabilities

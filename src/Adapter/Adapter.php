@@ -47,6 +47,9 @@ interface Adapter
 
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet;
 
+    /** @return list<array<string, mixed>> */
+    public function getEditableHeaders(Document $document): array;
+
     public function getUrl(Document $document, bool $absolute = false): string;
 
     public function getDocumentByUrl(string $url): Document;
