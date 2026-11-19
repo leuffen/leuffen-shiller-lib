@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\Storage;
+namespace Leuffen\Shiller\Access\Storage;
 
 use FilesystemIterator;
-use Leuffen\Shiller\MoveCapableStorage;
-use Leuffen\Shiller\StorageException;
-use Leuffen\Shiller\ValidationException;
+use Leuffen\Shiller\Access\Storage\MoveCapableStorage;
+use Leuffen\Shiller\Access\Exception\StorageException;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 use Throwable;
 
 /**

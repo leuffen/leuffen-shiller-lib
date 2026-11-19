@@ -1,7 +1,8 @@
 # Demo Template
 
 Dieses Verzeichnis repraesentiert ein eigenstaendiges Template-Projekt.
-`_tpl/_root/docs/` enthaelt Basiskonfiguration und strukturierte Daten;
+`_tpl/_root/.shiller.yml` enthaelt die Projektkonfiguration;
+`_tpl/_root/docs/` enthaelt strukturierte Daten;
 `_tpl/pages/` enthaelt tag-basierte Markdown-Vorlagen. Die AI-Anpassung
 verwendet die Skills aus dem installierten ThemeJS2-npm-Paket.
 
@@ -9,5 +10,6 @@ verwendet die Skills aus dem installierten ThemeJS2-npm-Paket.
 editierbare Vorlage fuer den zentralen Projektkontext. Rohdaten werden dagegen
 erst im nutzenden Projekt unter `.shiller-context.d/raw/` abgelegt.
 
-Wird aus `demo/project` mit dem Tag `demo` installiert, zeigt die kopierte
-`.shiller.yml` zurueck auf dieses `_tpl`.
+Bei Installation nach `demo/project` zeigt die kopierte `.shiller.yml`
+mit `template_dir: ../template/_tpl` auf das benachbarte Demo-Template.
+Dieser relative Pfad gilt nur fuer diese Demo-Verzeichnisstruktur.

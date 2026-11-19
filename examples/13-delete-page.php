@@ -1,7 +1,11 @@
 <?php
 
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Exception\NotFoundException;
+use Leuffen\Shiller\Access\ShillerRepository;
+
 // Unabhängiger Schreibablauf; frische Basisfixture, löscht en und danach die Blattgruppe.
-$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerRepository($root, access: new AccessContext(role: 'admin'));
 $page = $site->getPage('/leistungen/diagnostik');
 $english = $page->getTranslation('en');
 

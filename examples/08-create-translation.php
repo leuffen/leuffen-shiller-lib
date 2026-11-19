@@ -1,5 +1,8 @@
 <?php
 
+use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
+use Leuffen\Shiller\Access\Info\Diagnostic;
+
 // Unabhängiger Schreibablauf mit $site aus 00 und frischer Basisfixture; fr fehlt.
 $page = $site->getPage('/leistungen/diagnostik');
 $french = $page->getTranslation('fr', createIfMissing: true);

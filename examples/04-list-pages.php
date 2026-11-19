@@ -1,5 +1,7 @@
 <?php
 
+use Leuffen\Shiller\Access\DTO\Document;
+
 // Verwendet den lesenden $site aus 01; Basisfixture mit Kategorie und einer Unterseite.
 $tree = $site->pages('/leistungen');
 $category = $tree->root;

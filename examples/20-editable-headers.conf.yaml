@@ -1,0 +1,63 @@
+# Diese Datei als docs/editable-headers.conf.yaml in die Website kopieren.
+# Der Polyglot-Adapter liest sie relativ zum Document Root (hier docs/).
+fields:
+  - name: title
+    type: string
+    label: Seitentitel
+    description: Überschrift der Seite
+    allowNull: false
+    allowEmpty: false
+    regex: '~^.{1,100}$~'
+    order: 10
+
+  - name: published
+    type: switch
+    label: Veröffentlicht
+    description: Steuert die Veröffentlichung der Seite
+    default: false
+    allowNull: false
+    order: 20
+
+  - name: description
+    type: textarea
+    label: Beschreibung
+    description: Mehrzeilige Kurzbeschreibung
+    allowNull: true
+    allowEmpty: true
+    order: 30
+
+  - name: order
+    type: integer
+    label: Sortierung
+    default: 0
+    order: 40
+
+  - name: layout
+    type: select
+    label: Layout
+    options: [default, landing]
+    default: default
+    order: 50
+
+  - name: ptags
+    type: multiselect
+    label: Seiten-Tags
+    options: [praxis, news, service]
+    default: []
+    order: 60
+
+  - name: featured
+    type: switch
+    label: Hervorgehoben
+    default: false
+    order: 70
+    when:
+      # Nur im Bereich Leistungen; Sprachversionen unter en/ ausnehmen.
+      include: ['~^leistungen/.*\.md$~']
+      exclude: ['~^en/~']
+      # Das Feld erscheint nur, wenn der tatsächliche Header published=true enthält.
+      on:
+        published: true
+      # Der Header hidden=true blendet das Feld aus.
+      not:
+        hidden: true

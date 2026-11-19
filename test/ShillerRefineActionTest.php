@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Leuffen\Shiller\Automation\ShillerRefineAction;
-use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_Quote;
 use Leuffen\Shiller\Types\T_QuoteFile;

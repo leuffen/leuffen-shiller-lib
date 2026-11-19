@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use FilesystemIterator;
-use Leuffen\Shiller\AccessContext;
-use Leuffen\Shiller\ConflictException;
-use Leuffen\Shiller\ShillerDir;
-use Leuffen\Shiller\Storage\NativeSiteStorage;
-use Leuffen\Shiller\StorageException;
-use Leuffen\Shiller\ValidationException;
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Exception\ConflictException;
+use Leuffen\Shiller\Access\ShillerRepository;
+use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
+use Leuffen\Shiller\Access\Exception\StorageException;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -49,9 +49,86 @@ final class PolyglotStructureTest extends TestCase
         file_put_contents($file, $content);
     }
 
-    private function site(): ShillerDir
+    private function site(): ShillerRepository
     {
-        return new ShillerDir($this->dir, access: new AccessContext('user'));
+        return new ShillerRepository($this->dir, access: new AccessContext('user'));
+    }
+
+
+    public function testEditableHeaderFieldErrorsIncludeConfigurationFile(): void
+    {
+        $this->put('index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: invalid\n");
+        try {
+            $this->site()->getPage('/')->getEditableHeaders();
+            self::fail('Invalid field type was accepted');
+        } catch (ValidationException $exception) {
+            self::assertStringContainsString('editable-headers.conf.yaml', $exception->getMessage());
+            self::assertStringContainsString('fields[0]', $exception->getMessage());
+            self::assertStringContainsString('.type', $exception->getMessage());
+        }
+    }
+
+    public function testEditableHeaderWhenErrorsIncludeConfigurationFile(): void
+    {
+        $this->put('index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: string\n    when:\n      include: '~[~'\n");
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('editable-headers.conf.yaml: fields[0] (title).when: when.include');
+        $this->site()->getPage('/')->getEditableHeaders();
+    }
+
+    public function testEditableHeadersAreResolvedPerPolyglotDocument(): void
+    {
+        $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
+        $this->put('en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
+        $this->put(
+            'editable-headers.conf.yaml',
+            <<<'YAML'
+fields:
+  - name: title
+    type: string
+    label: Titel
+    description: Seitentitel
+    order: 20
+    allowEmpty: false
+  - name: published
+    type: switch
+    label: Veröffentlicht
+    default: true
+    order: 10
+    allowNull: true
+  - name: teaser
+    type: textarea
+    label: Teaser
+    default: Hallo
+    when:
+      include: ['~^leistungen\.md$~']
+      on:
+        category: [praxis, news]
+      not:
+        published: true
+  - name: hidden
+    type: integer
+    when:
+      exclude: '~^leistungen\.md$~'
+YAML,
+        );
+
+        $site = $this->site();
+        $page = $site->getPage('/leistungen');
+        self::assertSame([], $page->getHeaderDefinitions()->fields);
+        $fields = $page->getEditableHeaders();
+        self::assertSame(['published', 'title', 'teaser'], array_column($fields, 'name'));
+        self::assertFalse($fields[0]['value']);
+        self::assertTrue($fields[0]['present']);
+        self::assertSame('Hallo', $fields[2]['value']);
+        self::assertFalse($fields[2]['present']);
+        self::assertArrayNotHasKey('teaser', $page->header);
+        self::assertSame(['published', 'title', 'hidden'], array_column(
+            $site->getPage('/leistungen', 'en')->getEditableHeaders(),
+            'name',
+        ));
     }
 
     public function testFirstChildPromotesAllExistingParentLanguagesAndPreservesBytes(): void

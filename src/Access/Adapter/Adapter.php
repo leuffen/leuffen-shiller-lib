@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\Adapter;
+namespace Leuffen\Shiller\Access\Adapter;
 
-use Leuffen\Shiller\Capabilities;
-use Leuffen\Shiller\Document;
-use Leuffen\Shiller\FieldSet;
-use Leuffen\Shiller\PageTree;
-use Leuffen\Shiller\SiteConfig;
-use Leuffen\Shiller\SiteStorage;
+use Leuffen\Shiller\Access\Info\Capabilities;
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\FieldSet;
+use Leuffen\Shiller\Access\DTO\PageTree;
+use Leuffen\Shiller\Access\DTO\SiteConfig;
+use Leuffen\Shiller\Access\Storage\SiteStorage;
 
 /**
  * Adaptervertrag zwischen Shillers gemeinsamer Laufzeit und dem konkreten Ablageformat.
@@ -46,6 +46,9 @@ interface Adapter
     public function getEffectiveHeader(Document $document): array;
 
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet;
+
+    /** @return list<array<string, mixed>> */
+    public function getEditableHeaders(Document $document): array;
 
     public function getUrl(Document $document, bool $absolute = false): string;
 

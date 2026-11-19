@@ -6,7 +6,7 @@ namespace Leuffen\Shiller\Automation;
 
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
-use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Types\T_EditExecution;
 use Leuffen\Shiller\Types\T_ExecutedFile;
 use Phore\AiHarness\AiContext;

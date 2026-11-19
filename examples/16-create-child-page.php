@@ -1,8 +1,11 @@
 <?php
 
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\ShillerRepository;
+
 // Unabhängige Fixture: leistungen.md und en/leistungen.md, noch keine Indexdateien.
 // Beide sind veröffentlicht; fr fehlt. Ersetzt die Basisfixture nur für diesen Ablauf.
-$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerRepository($root, access: new AccessContext(role: 'admin'));
 $parent = $site->getPage('/leistungen');
 $englishParent = $parent->getTranslation('en');
 $child = $site->createPage(

@@ -1,5 +1,8 @@
 <?php
 
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Info\TranslationInfo;
+
 // Verwendet den lesenden $site aus 01.
 $page = $site->getPage('/leistungen/diagnostik');
 $translations = $page->getTranslations(); // array<string, TranslationInfo>

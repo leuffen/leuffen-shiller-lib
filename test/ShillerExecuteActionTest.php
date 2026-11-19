@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Leuffen\Shiller\Automation\ShillerEditDiff;
 use Leuffen\Shiller\Automation\ShillerExecuteAction;
-use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Types\T_EditExecution;
 use Leuffen\Shiller\Types\T_ExecutedFile;
 use Phore\AiHarness\PromptType\FilePrompt;

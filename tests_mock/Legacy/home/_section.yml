@@ -1,0 +1,21 @@
+desc: Startseite
+is_sortable: true
+ptags:
+  - {key: show_always, text: In Navigationsleiste anzeigen}
+  - {key: featured, text: Hervorheben}
+layouts:
+  - {layout: path/to/layout, text: Startseite der Website}
+  - {layout: landing, text: Landingpage}
+forms:
+  - key: navi_title
+    type: text
+    name: Titel in der Navigation
+    title: Nur bei aktivem Navigationstag
+    attrs: {maxlength: 30}
+  - key: navi_desc
+    type: textarea
+    name: Beschreibung in der Navigation
+    desc: Optionaler Navigationstext
+    attrs: {maxlength: 160}
+defaults:
+  layout: path/to/layout

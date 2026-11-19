@@ -72,7 +72,7 @@ bereitstehen, kann das Website-Repository ausschließlich
 und Git-Prüfung zeigt der
 [Shiller Theme Setup Skill](skills/shiller-theme-setup/SKILL.md).
 
-Die Library enthält den Seitenzugriff über `ShillerDir` und getrennt davon die
+Die Library enthält den Seitenzugriff über `ShillerRepository` und getrennt davon die
 Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomation`.
 Projekt-, Document-Root- und Template-Konfiguration werden über
 `Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
@@ -397,7 +397,7 @@ verbindliche Template-Vertrag in [AGENTS.md](AGENTS.md) und die
 
 Der bisherige [Seiten-API-Entwurf](docs/proposals/2026-09-12-shiller-seiten-api.md)
 und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
-`ShillerDir`-Bereich.
+`ShillerRepository`-Bereich.
 
 ## Vollstaendiges Demo-Projekt
 

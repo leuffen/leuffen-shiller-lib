@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller\Adapter;
 
-use Leuffen\Shiller\Capabilities;
-use Leuffen\Shiller\Document;
-use Leuffen\Shiller\FieldSet;
-use Leuffen\Shiller\PageTree;
-use Leuffen\Shiller\SiteConfig;
-use Leuffen\Shiller\SiteStorage;
+use Leuffen\Shiller\Access\Adapter\Adapter;
+use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;
+use Leuffen\Shiller\Access\DTO\TreeNode;
+use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
+use Leuffen\Shiller\Access\ShillerRepository;
+use Leuffen\Shiller\Access\Info\Capabilities;
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\FieldSet;
+use Leuffen\Shiller\Access\DTO\PageTree;
+use Leuffen\Shiller\Access\DTO\SiteConfig;
+use Leuffen\Shiller\Access\Storage\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
@@ -18,7 +23,7 @@ final class JekyllPolyglotAdapter implements Adapter
 {
     private SiteStorage $storage;
 
-    /** Wird durch ShillerDir einmalig nach der argumentlosen Konstruktion aufgerufen. */
+    /** Wird durch ShillerRepository einmalig nach der argumentlosen Konstruktion aufgerufen. */
     public function bind(SiteStorage $storage): void
     {
         throw new \LogicException('Entwurfsstub: JekyllPolyglotAdapter::bind');

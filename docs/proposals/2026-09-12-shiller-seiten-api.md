@@ -17,11 +17,11 @@
 
 ## § 1 Ziel und Umfang
 
-**Vorschlag, noch keine implementierte API.** Der Aufrufer übergibt das Website-Quellverzeichnis als `PhoreDirectory`, beispielsweise das bereits extern bereitgestellte `docs/`. `ShillerDir` liest dessen aktuelle Konfiguration selbst und bietet einen typisierten Zugriff auf Dateien, Seiten, Sprachvarianten, Metafelder und Berechtigungen. Alle Shiller-Namen und Methoden in diesem Dokument sind vorgeschlagen; die ausdrücklich als bestehend bezeichneten Phore-Funktionen sind im Quellcode geprüft.
+**Vorschlag, noch keine implementierte API.** Der Aufrufer übergibt das Website-Quellverzeichnis als `PhoreDirectory`, beispielsweise das bereits extern bereitgestellte `docs/`. `ShillerRepository` liest dessen aktuelle Konfiguration selbst und bietet einen typisierten Zugriff auf Dateien, Seiten, Sprachvarianten, Metafelder und Berechtigungen. Alle Shiller-Namen und Methoden in diesem Dokument sind vorgeschlagen; die ausdrücklich als bestehend bezeichneten Phore-Funktionen sind im Quellcode geprüft.
 
 Der erste Ausbau umfasst normale Markdown-/HTML-Seiten, Front Matter, Inhalt, Übersetzungsdateien und berechnete Ziel-URLs. Git, Checkout, Commit, Push, Deploy, HTTP, Login, KI-Übersetzung und Bearbeitungssperren bleiben Aufgaben der Anwendung. `_data`-Editoren, Collections, Posts, Medienverwaltung und das Bearbeiten von Liquid-Layouts sind spätere Erweiterungen. Ihre Dateien dürfen bei erlaubtem Lesezugriff im Dateibaum erscheinen, werden aber nicht als normale Seiten interpretiert.
 
-Empfehlung: **ein Einstiegspunkt `ShillerDir`, Seitenobjekte `Document`, einen internen `JekyllUrlResolver` und austauschbare Formatadapter**. Speicherzugriff und Website-Format sind zwei unabhängige Schnittstellen. Eine neue Polyglot-Version erfordert damit keinen neuen Filesystem-Connector.
+Empfehlung: **ein Einstiegspunkt `ShillerRepository`, Seitenobjekte `Document`, einen internen `JekyllUrlResolver` und austauschbare Formatadapter**. Speicherzugriff und Website-Format sind zwei unabhängige Schnittstellen. Eine neue Polyglot-Version erfordert damit keinen neuen Filesystem-Connector.
 
 ## § 2 Was der bisherige Page Builder benötigt
 
@@ -50,30 +50,30 @@ Das alte Listing verlangt Sections und sprachcodierte Dateinamen. Der neue Stand
 Der verbindliche Standard für das neue Polyglot-Profil ist eine Website mit `index.md` direkt im Root. Die Default-Sprache wird nicht in einen eigenen Sprachordner verschoben. Übersetzungen spiegeln die Root-Struktur unter ihrem Sprachcode. Die minimale Konfiguration steht zusätzlich in [examples/README.md](../../examples/README.md).
 
 ```php
-use Leuffen\Shiller\ShillerDir;
-use Leuffen\Shiller\AccessContext;
-use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\ShillerRepository;
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
 
 // Checkout und Auswahl von docs/ erledigt die Anwendung.
-$site = new ShillerDir(phore_dir('/srv/websites/customer/docs'));
+$site = new ShillerRepository(phore_dir('/srv/websites/customer/docs'));
 $config = $site->config();             // SiteConfig
 $files = $site->files();               // FileListing, eine Ebene
 $pages = $site->pages();               // PageTree, rekursiv
 
 // Rollen stammen aus der bereits authentifizierten Anwendung.
-$site = new ShillerDir(
+$site = new ShillerRepository(
     phore_dir('/srv/websites/customer/docs'),
     access: new AccessContext(role: 'user'),
 );
 
 // Mitgelieferter Adapter für den alten Bestand; Auswahl überschreibt shiller.yaml.
-$legacy = new ShillerDir(
+$legacy = new ShillerRepository(
     phore_dir('/srv/websites/legacy/docs'),
     adapter: new JekyllLegacyAdapter(),
 );
 ```
 
-Mitgeliefert werden `Leuffen\Shiller\Adapter\JekyllPolyglotAdapter` und `Leuffen\Shiller\Adapter\JekyllLegacyAdapter`. Auswahlreihenfolge: explizite Adapterinstanz im ShillerDir-Konstruktor, sonst adapter in shiller.yaml, sonst ein neuer JekyllPolyglotAdapter. Die IDs jekyll-polyglot und micx-legacy bleiben für YAML erhalten. Beide Klassen werden ohne Storage-Argument erzeugt; ShillerDir bindet die gewählte Instanz intern einmalig über bind(SiteStorage). Eine Instanz darf nicht an mehrere ShillerDir gebunden werden. Für den normalen Aufruf ist keine Registry erforderlich.
+Mitgeliefert werden `Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter` und `Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter`. Auswahlreihenfolge: explizite Adapterinstanz im ShillerRepository-Konstruktor, sonst adapter in shiller.yaml, sonst ein neuer JekyllPolyglotAdapter. Die IDs jekyll-polyglot und micx-legacy bleiben für YAML erhalten. Beide Klassen werden ohne Storage-Argument erzeugt; ShillerRepository bindet die gewählte Instanz intern einmalig über bind(SiteStorage). Eine Instanz darf nicht an mehrere ShillerRepository gebunden werden. Für den normalen Aufruf ist keine Registry erforderlich.
 
 Ohne `AccessContext` verwendet Shiller die Rolle `reader`: ausschließlich lesend und nur für explizit freigegebene Bereiche. Fehlt `shiller.yaml`, ist die Inspektion normaler Seiten und ihrer Vorfahren read-only erlaubt; sonstige Dateien bleiben verborgen. Keine stillschweigenden Administratorrechte. Eine fehlende optionale Shiller-Konfiguration verhindert also nicht das Lesen einer bestehenden Website.
 
@@ -260,7 +260,7 @@ $new->isPersisted();              // true
 
 Änderungen an einem bestehenden Dokument werden ohne vorgeschriebenen Revisionsvergleich geschrieben. Ein reines Body-Update bewahrt den Headerblock, ein reines Header-Update den Body. YAML-Neuserialisierung garantiert keine Erhaltung der Kommentare.
 
-Innerhalb derselben ShillerDir-Instanz wird pro ID/Sprache dieselbe Document-Instanz verwendet. Eine automatische Umstellung auf Indexablage ändert nur die FileEntry, nicht die ID, Sprache oder Root-Beziehung. Schon ausgegebene Listings bleiben Snapshots und werden erneut abgefragt.
+Innerhalb derselben ShillerRepository-Instanz wird pro ID/Sprache dieselbe Document-Instanz verwendet. Eine automatische Umstellung auf Indexablage ändert nur die FileEntry, nicht die ID, Sprache oder Root-Beziehung. Schon ausgegebene Listings bleiben Snapshots und werden erneut abgefragt.
 
 ### § 5.1 Editor-Speicherung und Konflikte
 
@@ -268,21 +268,21 @@ Innerhalb derselben ShillerDir-Instanz wird pro ID/Sprache dieselbe Document-Ins
 
 ConflictException bleibt als Exception-Typ für spätere Revisionsprüfung vorgesehen. Eine künftige Adapterimplementierung kann ihren freien adapterState dafür verwenden; Revisionstoken, bedingtes Schreiben und deren HTTP-Konfliktbehandlung sind keine Voraussetzung für den ersten Ausbau. Strukturelle Mehrdeutigkeiten und Zielkollisionen werden bereits jetzt über ValidationException beziehungsweise AlreadyExistsException gemeldet.
 
-Bei getrennten HTTP-Anfragen muss der ursprüngliche Dokumentstand erhalten bleiben. Vorgeschlagener öffentlicher Transport: `Document::toArray(): array` liefert einen JSON-fähigen Stand aus id, language, header, content und `state`. `state` transportiert unverändert den internen Bearbeitungskontext einschließlich adapterState, Adapterbindung und Ausgangsstand für hasChanges; seine Felder sind keine von der Anwendung zu verwaltenden Revisionsparameter. `ShillerDir::restoreDocument(array $data): Document` bindet diesen Stand an einen neuen ShillerDir. Ein frisches getPage im POST darf den ursprünglichen Zustand nicht ersetzen.
+Bei getrennten HTTP-Anfragen muss der ursprüngliche Dokumentstand erhalten bleiben. Vorgeschlagener öffentlicher Transport: `Document::toArray(): array` liefert einen JSON-fähigen Stand aus id, language, header, content und `state`. `state` transportiert unverändert den internen Bearbeitungskontext einschließlich adapterState, Adapterbindung und Ausgangsstand für hasChanges; seine Felder sind keine von der Anwendung zu verwaltenden Revisionsparameter. `ShillerRepository::restoreDocument(array $data): Document` bindet diesen Stand an einen neuen ShillerRepository. Ein frisches getPage im POST darf den ursprünglichen Zustand nicht ersetzen.
 
 restoreDocument nimmt ausschließlich diesen definierten Transport entgegen, keine beliebigen PHP-Objekte oder Klassennamen. Es prüft Identität, Adapter-/Site-Bindung, Struktur und aktuelle Leserechte; Rollen, Storage-Verbindungen und FileEntry-Pfade werden nicht aus Clientdaten übernommen. Auch ohne Revisionsprüfung bleiben Identität und Rechte serverseitig verbindlich; Clientdaten dürfen keine fremden Documents oder Zugriffsrechte erschließen. Ein leerer adapterState ist im ersten Ausbau gültig. Bei später aktivierter Revisionsprüfung muss der Adapter auch die Bindung seiner Token sicherstellen. Ein bereits unter derselben Identität verwaltetes Document wird nicht still überschrieben; importiert wird in eine frische Bearbeitungseinheit.
 
 Die UI erhält den vollständigen Dokumentstand und verändert nur Header/Inhalt. Nicht sichtbare Headerkeys und der opake state bleiben erhalten; bewusstes Entfernen eines Headerkeys ist eine Löschanweisung. Ein partielles Formular wird in der Anwendung auf diesen erhaltenen Stand angewandt, nicht als kompletter Header interpretiert. getEffectiveHeader und allgemeine Requestfelder werden nicht zurückgeschrieben. [Beispiel 18](../../examples/18-editor-save.php) zeigt die beiden HTTP-Aktionen ohne externe Revisionsverwaltung. Der Transport ist Teil des Entwurfs, noch keine implementierte Hydration.
 
-`ShillerDir::saveDocuments(array $documents): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Es verwendet denselben Adapteraufruf wie save: `write([$document])` beziehungsweise `write($documents)`. Doppelte Identitäten, fremde ShillerDir-Instanzen und leere Listen werden abgewiesen. Alle Rechte, Feldwerte, Quell-/Zielzuordnungen und endgültigen Routen werden gemeinsam vorab validiert; ein Revisionsvergleich gehört erst zur späteren Erweiterung. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. Die Batch-/Wiederherstellungsregeln aus § 8 gelten; eine Schleife aus unabhängigen Einzelschreibvorgängen erfüllt diesen Vertrag nicht.
+`ShillerRepository::saveDocuments(array $documents): void` speichert ausdrücklich mehrere Documents als eine vorbereitete Operation. Es verwendet denselben Adapteraufruf wie save: `write([$document])` beziehungsweise `write($documents)`. Doppelte Identitäten, fremde ShillerRepository-Instanzen und leere Listen werden abgewiesen. Alle Rechte, Feldwerte, Quell-/Zielzuordnungen und endgültigen Routen werden gemeinsam vorab validiert; ein Revisionsvergleich gehört erst zur späteren Erweiterung. Nicht aufgeführte Sprachvarianten werden nicht still mitgespeichert. Die Batch-/Wiederherstellungsregeln aus § 8 gelten; eine Schleife aus unabhängigen Einzelschreibvorgängen erfüllt diesen Vertrag nicht.
 
 ### § 5.2 Objektzustand und erneute Abfragen
 
-Pro ShillerDir und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException.
+Pro ShillerRepository und ID/Sprache gibt es genau eine verwaltete Instanz. `getPage()` und `getTranslation()` liefern auch einen bereits in dieser Instanz vorbereiteten Entwurf; `getTranslation(..., false)` bedeutet „keinen neuen Entwurf erzeugen“, nicht „nur gespeicherte Dateien“. Ohne gespeicherte Datei und ohne bekannten Entwurf liefert die Übersetzungsabfrage null, `getPage()` hingegen NotFoundException. Wiederholtes `createPage()` für eine bereits gespeicherte oder vorbereitete Identität wirft AlreadyExistsException.
 
 Listen und URL-Rückwärtsauflösung beruhen auf dem gespeicherten Bestand: ein Entwurf erscheint nicht als vorhandene Seite, seine TranslationInfo bleibt `exists=false`. Bei einer später extern entstandenen Datei scheitert die Neuanlage mit AlreadyExistsException, statt diese Datei zu übernehmen. Explizites Löschen entfernt die gelöschte Instanz aus der Verwaltung und macht alte Referenzen ungültig. `getTranslation(null)` erfindet weiterhin kein fehlendes Original.
 
-ShillerDir ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer ShillerDir lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen.
+ShillerRepository ist für eine begrenzte Bearbeitungseinheit vorgesehen, im HTTP-Editor normalerweise pro Request. Abbrechen bedeutet, die bearbeitete Instanz zu verwerfen; ein neuer ShillerRepository lädt den gespeicherten Stand. Erneutes getPage an derselben Instanz ist kein Reload und verwirft keine Änderungen. Nach externen Konfigurations-/Speicherkonflikten lädt die Anwendung in einer neuen Bearbeitungseinheit und entscheidet sichtbar über erneutes Anwenden ihrer Änderungen.
 
 ## § 6 Polyglot und Übersetzungen
 
@@ -373,7 +373,7 @@ Das Listing lädt keine vollständigen Dokumentinhalte. Verborgene vorhandene Va
 
 Ohne Sprachargument, mit `null` oder mit der konfigurierten Standardsprache liefert `getTranslation()` am Original dieselbe Objektinstanz und an einer Übersetzung das Stammdokument. Bei `default_lang: de` sind also `getTranslation()`, `getTranslation(null)` und `getTranslation('de')` gleichbedeutend; die Regel gilt entsprechend für jede andere konfigurierte Standardsprache. Fehlt dessen Datei oder Leserecht, wird `NotFoundException` geworfen. Ein neu erzeugtes Original liefert vor dem ersten Speichern ebenfalls sich selbst. Bei einer anderen Sprache bleibt der Rückgabewert ohne Anlageoption `null`, sofern weder eine gespeicherte Variante noch ein bereits vorbereiteter Entwurf bekannt ist (§ 5.2).
 
-Die Methoden getTranslation und getTranslations gehören zu Document/ShillerDir, nicht zum Adapter-Interface. Shiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab.
+Die Methoden getTranslation und getTranslations gehören zu Document/ShillerRepository, nicht zum Adapter-Interface. Shiller normalisiert die gewünschte Sprache, verwendet den gemeinsamen Dokumentbestand und lädt bei Bedarf über `load(id, language)`. Bei einer fehlenden erlaubten Variante kopiert es die gespeicherten Root-Header/-Inhalte, setzt published=false und ruft `create(id, language, header, content)` auf. Der Adapter berechnet Ablage und eigenen Anlagezustand und setzt seine Grenzen durch; Legacy lehnt create stets ab.
 
 Für das Listing liefert buildTree einen PageTree aus id/label/children/data-Knoten. Vorhandene lesbare Varianten liegen in `data.translations`, die bevorzugte Quelle in `data.file`, Kategorienmetadaten in `data.metadata`. Shiller ergänzt anhand der konfigurierten Sprachen und `getSourcePath(id, language)` die fehlenden lesbaren Kandidaten mit exists=false. Der Quellpfad allein beweist keine Existenz und erteilt kein Leserecht. getSourcePath legt nichts an und meldet mehrdeutige Quellzuordnungen über ValidationException. Somit benötigt kein Adapter eine zweite Implementierung von getTranslation/getTranslations. [geändert]
 
@@ -507,7 +507,7 @@ Beispielprojektion einer Felddefinition:
 }
 ```
 
-`getHeaderDefinitions()` ist auch als `ShillerDir::getHeaderDefinitions($id, $language = null)` verfügbar, damit ein Editor das Formular vor einer Neuanlage aufbauen kann. Die ID bezeichnet die geplante Seite, nicht den Elternordner. Shiller prüft Lesbarkeit des Kandidaten und berechnet dessen tatsächliche Zielablage; es erzeugt keine Datei und benötigt zum reinen Lesen der Definitionen kein Anlagerecht. Das Document delegiert mit seiner Identität.
+`getHeaderDefinitions()` ist auch als `ShillerRepository::getHeaderDefinitions($id, $language = null)` verfügbar, damit ein Editor das Formular vor einer Neuanlage aufbauen kann. Die ID bezeichnet die geplante Seite, nicht den Elternordner. Shiller prüft Lesbarkeit des Kandidaten und berechnet dessen tatsächliche Zielablage; es erzeugt keine Datei und benötigt zum reinen Lesen der Definitionen kein Anlagerecht. Das Document delegiert mit seiner Identität.
 
 Felddefinitionen können optionale `presentation`-Angaben enthalten: `widget` (input, textarea, select, switch, checkboxes), `placeholder` und `checkLabel`. Beispiel: `description: {type: string, presentation: {widget: textarea}}` unter fields. `editable=false` ist serverseitig durchzusetzen, max_length bleibt eine Validierungsregel. Legacy bildet text/textarea/select/switch/multi und unterstützte Attribute aus `_section.yml` auf denselben Vertrag ab; Layout-Auswahl, Sortierung und ptags werden eingebaute Definitionen. Trennlinien (`hr`) sind Kategorienmetadaten für das Formular, keine Header-Schlüssel. Unbekannte Darstellungshinweise bleiben als Metadaten erhalten und erzeugen Diagnosen; der Editor rendert sie nicht als ungeprüftes HTML.
 
@@ -557,7 +557,7 @@ $page->getTranslation('en')?->delete(); // sofort: nur die englische Datei
 $page->delete();                       // sofort: Root und verbleibende Übersetzungen
 ```
 
-`rename()` ist nur am Stammdokument zulässig; Übersetzungspfade folgen automatisch. Die Ziel-ID ist sprachneutral und endungslos. Reine Kategorien ohne Document werden über `ShillerDir::rename($id, $newId)` verschoben; `Document::rename($newId)` delegiert an denselben Ablauf. Vorhandene Ziele werden nicht überschrieben; notwendige Zielordner unterliegen der createDirectory-Prüfung. Natürliche URLs folgen dem neuen Pfad, ein expliziter Permalink bleibt bestehen. Geladene Dokumentreferenzen werden mitgeführt. Löschen einer Übersetzung lässt Root und andere Sprachen bestehen: anschließend liefert `getTranslation($gelöschteSprache)` am verbliebenen Original `null`, der Listeneintrag `exists: false`. Polyglot kann danach wieder einen Root-Fallback ausgeben.
+`rename()` ist nur am Stammdokument zulässig; Übersetzungspfade folgen automatisch. Die Ziel-ID ist sprachneutral und endungslos. Reine Kategorien ohne Document werden über `ShillerRepository::rename($id, $newId)` verschoben; `Document::rename($newId)` delegiert an denselben Ablauf. Vorhandene Ziele werden nicht überschrieben; notwendige Zielordner unterliegen der createDirectory-Prüfung. Natürliche URLs folgen dem neuen Pfad, ein expliziter Permalink bleibt bestehen. Geladene Dokumentreferenzen werden mitgeführt. Löschen einer Übersetzung lässt Root und andere Sprachen bestehen: anschließend liefert `getTranslation($gelöschteSprache)` am verbliebenen Original `null`, der Listeneintrag `exists: false`. Polyglot kann danach wieder einen Root-Fallback ausgeben.
 
 Gruppenoperationen prüfen vor dem ersten Schreiben sämtliche betroffenen Dateien, auch verborgene Varianten. Fehlt eine Berechtigung oder kollidiert ein Ziel, scheitert die ganze Aktion ohne Änderung und ohne Offenlegung verborgener Pfade. Rename benötigt `rename` und `write` an den Quellen sowie `createFile` und für Sprachziele `createTranslation` an den Zielen. Delete benötigt `delete` an allen betroffenen Dateien. `Capabilities` berücksichtigt bei Root-Dokumenten die vollständige Gruppe.
 
@@ -633,7 +633,7 @@ Die URL wird aus der aktuellen Dateiablage berechnet, nicht aus der endungslosen
 Diese Signaturen sind ein API-Entwurf, keine lauffähige Implementierung. Die normale Anwendung kennt Seiten-IDs und Documents; Dateinamen werden nur über die optionale FileEntry sichtbar.
 
 ```php
-final class ShillerDir
+final class ShillerRepository
 {
     public function __construct(
         PhoreDirectory|SiteStorage $root,
@@ -756,7 +756,7 @@ TreeNode ist ein Lesesnapshot. Seine `toArray()`-Projektion sowie PageTree/FileL
 
 ## § 11 Filesystem und austauschbare Formatadapter
 
-ShillerDir und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load/create, gemeinsames write, Quellpfade, vorhandenen Baum, URL-Zuordnung und strukturelle Dateioperationen. Übersetzungsauswahl, verfügbare Sprachen und Originalkopien orchestriert Shiller gemeinsam. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Shiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen.
+ShillerRepository und Document bilden die allgemeine Zugriffsschicht. Der Formatadapter übernimmt load/create, gemeinsames write, Quellpfade, vorhandenen Baum, URL-Zuordnung und strukturelle Dateioperationen. Übersetzungsauswahl, verfügbare Sprachen und Originalkopien orchestriert Shiller gemeinsam. Die Anwendung braucht keine zusätzliche Übersetzungsschicht vor Shiller. SiteStorage bleibt für rootgebundene Dateioperationen verantwortlich; der Adapter erhält einen kontrollierten Zugang, keine Möglichkeit zur Umgehung von Rechteprüfungen.
 
 PhoreDirectory und PhoreFile stellen Enumeration, Text, YAML und Front Matter bereit: genWalk(), get_contents(), get_yaml(), get_front_matter(), put_front_matter(). Die Header-Arrays werden direkt übernommen; kein zweiter YAML-Parser. Shiller prüft alle geplanten Quell-/Zielzugriffe, auch die vom Adapter intern berechneten. Wiederverwendbare Abläufe dürfen intern in einer AbstractAdapter-Basis liegen.
 
@@ -790,7 +790,7 @@ Legacy erlaubt das Bearbeiten vorhandener Seiten und Übersetzungen einschließl
 
 Das Adapter-Interface enthält genau einen Schreibauftrag `write(array $documents): void`. Es gibt weder writeMany noch Revisionsargumente. Jeder Adapter entscheidet selbst über seinen freien adapterState. Die mitgelieferten Adapter benötigen im ersten Ausbau keinen Revisionsstand und keinen Versionsvergleich. Die gemeinsame Shiller-Schicht verwaltet Instanzen, Root-Beziehungen, Übersetzungsauswahl und Originalkopien; der Adapter stellt load/create mit expliziter Sprache, getSourcePath und den vorhandenen Baum bereit.
 
-Der kontrollierte Storage muss Lesen, Existenz-/Inventarprüfung, Root-Grenzen, Rechte und gemeinsames Schreiben mit der beschriebenen Wiederherstellung ermöglichen. Bedingtes Schreiben anhand einer Revision bleibt eine spätere Fähigkeit. PhoreDirectory ist der Standardzugang; SiteStorage bleibt der vorgeschlagene Connector-Vertrag und benötigt bei der Implementierung noch konkrete Methodensignaturen und Fehlergarantien. Es wird hier kein bereits vorhandener Remote-Connector behauptet. Adapter werden ohne Argumente erzeugt und durch ShillerDir über bind(SiteStorage) initialisiert; erst danach dürfen ihre Methoden arbeiten. Die Konstruktor-Auswahl setzt keine Rechteprüfung außer Kraft.
+Der kontrollierte Storage muss Lesen, Existenz-/Inventarprüfung, Root-Grenzen, Rechte und gemeinsames Schreiben mit der beschriebenen Wiederherstellung ermöglichen. Bedingtes Schreiben anhand einer Revision bleibt eine spätere Fähigkeit. PhoreDirectory ist der Standardzugang; SiteStorage bleibt der vorgeschlagene Connector-Vertrag und benötigt bei der Implementierung noch konkrete Methodensignaturen und Fehlergarantien. Es wird hier kein bereits vorhandener Remote-Connector behauptet. Adapter werden ohne Argumente erzeugt und durch ShillerRepository über bind(SiteStorage) initialisiert; erst danach dürfen ihre Methoden arbeiten. Die Konstruktor-Auswahl setzt keine Rechteprüfung außer Kraft.
 
 ### § 11.2 Neue Unterseite: Blatt wird Kategorie mit Index
 
@@ -823,7 +823,7 @@ Konfigurationsfehler verhindern einen konsistenten Einstieg. Fehler einzelner le
 Die spätere Implementierung muss insbesondere diese Verhaltensfälle prüfen:
 
 - Ohne Adapterauswahl JekyllPolyglotAdapter; YAML wählt Legacy; explizite Instanz überschreibt YAML. Beide Klassen sind mitgeliefert und argumentlos erzeugbar.
-- ShillerDir bindet jede Adapterinstanz einmalig an kontrollierten Storage; doppelte Bindung oder Operation vor Bindung wird abgewiesen.
+- ShillerRepository bindet jede Adapterinstanz einmalig an kontrollierten Storage; doppelte Bindung oder Operation vor Bindung wird abgewiesen.
 - Lesen/Schreiben beider Adapter funktioniert im ersten Ausbau mit leerem adapterState ohne Revisionsvergleich; ConflictException bleibt als Erweiterungstyp erhalten.
 
 - Gemeinsame Übersetzungslogik mit beiden Adaptern; create bekommt explizite Sprache und frischen eigenen Zustand.
