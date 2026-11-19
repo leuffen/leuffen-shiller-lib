@@ -384,6 +384,14 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             throw new ValidationException("$path: fields must be a list");
         }
 
+        // Implizite Reihenfolge folgt den explizit sortierten Feldern.
+        $autoOrderStart = 0;
+        foreach ($definitions as $definition) {
+            if (is_array($definition) && is_int($definition['order'] ?? null)) {
+                $autoOrderStart = max($autoOrderStart, $definition['order'] + 1);
+            }
+        }
+
         $fields = [];
         $matcher = new EditableHeaderWhenMatcher();
         $sourcePath = $document->file?->path
@@ -418,7 +426,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             if ($regex !== null && (!is_string($regex) || @preg_match($regex, '') === false)) {
                 throw new ValidationException("$context.regex: invalid PCRE regex");
             }
-            $order = $definition['order'] ?? $index;
+            $order = $definition['order'] ?? ($autoOrderStart + $index);
             if (!is_int($order)) {
                 throw new ValidationException("$context.order: expected integer");
             }
