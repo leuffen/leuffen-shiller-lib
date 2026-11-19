@@ -115,6 +115,7 @@ YAML
 
         $site = $this->site();
         $page = $site->getPage('/leistungen');
+        self::assertSame([], $page->getHeaderDefinitions()->fields);
         $fields = $page->getEditableHeaders();
         self::assertSame(['published', 'title', 'teaser'], array_column($fields, 'name'));
         self::assertFalse($fields[0]['value']);

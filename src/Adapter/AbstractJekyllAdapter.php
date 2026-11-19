@@ -6,8 +6,6 @@ namespace Leuffen\Shiller\Adapter;
 
 use Leuffen\Shiller\Codec;
 use Leuffen\Shiller\Document;
-use Leuffen\Shiller\FieldDefinition;
-use Leuffen\Shiller\FieldSet;
 use Leuffen\Shiller\FileEntry;
 use Leuffen\Shiller\FileKind;
 use Leuffen\Shiller\NotFoundException;
@@ -75,21 +73,6 @@ abstract class AbstractJekyllAdapter implements Adapter
             [],
             true,
         );
-    }
-
-    protected function commonFields(array $extra = []): FieldSet
-    {
-        $fields = [
-            new FieldDefinition('layout', 'Layout', 'select'),
-            new FieldDefinition('published', 'Diese Seite veröffentlichen', 'checkbox'),
-            new FieldDefinition('permalink', 'Permanent-Link', 'text'),
-            new FieldDefinition('title', 'Seiten-Titel', 'text'),
-            new FieldDefinition('description', 'Meta-Description', 'text', [], ['maxlength' => 160]),
-            new FieldDefinition('order', 'Sortierung', 'integer'),
-            new FieldDefinition('ptags', 'Page-Tags', 'multiselect'),
-        ];
-
-        return new FieldSet(array_merge($fields, $extra));
     }
 
     protected function nodeTree(

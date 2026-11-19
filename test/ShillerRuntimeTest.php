@@ -74,6 +74,24 @@ final class ShillerRuntimeTest extends TestCase
         $page->getTranslation('en', true);
     }
 
+    public function testHeaderDefinitionsOnlyIncludeAdapterDefinedFields(): void
+    {
+        $site = new ShillerDir($this->dir, new JekyllLegacyAdapter());
+
+        $this->assertSame([], $site->getHeaderDefinitions('/home/home')->fields);
+
+        file_put_contents(
+            $this->dir . '/home/_section.yml',
+            "forms:\n  - key: custom_field\n    name: Individuelles Feld\n    type: text\n",
+        );
+
+        $definitions = $site->getHeaderDefinitions('/home/home');
+        $this->assertSame(['custom_field'], array_map(
+            static fn ($field): string => $field->key,
+            $definitions->fields,
+        ));
+    }
+
     public function testPolyglotCreatesTranslation(): void
     {
         file_put_contents(

@@ -234,7 +234,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
             }
         }
 
-        return $this->commonFields($extra);
+        return new FieldSet($extra);
     }
 
     public function capabilities(string $id, ?string $language = null): Capabilities

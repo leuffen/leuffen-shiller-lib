@@ -355,7 +355,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
-        return $this->commonFields();
+        return new FieldSet();
     }
 
 
