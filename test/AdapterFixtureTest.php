@@ -16,12 +16,12 @@ final class AdapterFixtureTest extends TestCase
         self::assertSame(
             ['pid', 'lang', 'layout', 'published', 'permalink', 'title',
                 'description', 'order', 'ptags', 'navi_title', 'navi_desc'],
-            array_map(static fn ($field): string => $field->key, $fields),
+            array_map(static fn($field): string => $field->key, $fields),
         );
         self::assertSame(
             ['text', 'text', 'select', 'switch', 'text', 'text',
                 'text', 'text', 'multi', 'text', 'textarea'],
-            array_map(static fn ($field): string => $field->type, $fields),
+            array_map(static fn($field): string => $field->type, $fields),
         );
         self::assertSame([
             ['text' => 'Startseite der Website (path/to/layout)', 'value' => 'path/to/layout'],
@@ -41,7 +41,7 @@ final class AdapterFixtureTest extends TestCase
         $site = new ShillerDir(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
         self::assertSame(
             ['pid', 'lang', 'layout', 'published', 'permalink', 'title', 'description', 'teaser'],
-            array_map(static fn ($field): string => $field->key, $site->getHeaderDefinitions('/angebot/seite')->fields),
+            array_map(static fn($field): string => $field->key, $site->getHeaderDefinitions('/angebot/seite')->fields),
         );
         self::assertSame([], $site->getHeaderDefinitions('/unknown/page')->fields);
     }

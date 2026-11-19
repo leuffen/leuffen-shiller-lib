@@ -456,8 +456,10 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             ];
         }
 
-        usort($fields, static fn(array $a, array $b): int =>
-            ($a['order'] <=> $b['order']) ?: ($a['_index'] <=> $b['_index'])
+        usort(
+            $fields,
+            static fn(array $a, array $b): int
+            => ($a['order'] <=> $b['order']) ?: ($a['_index'] <=> $b['_index']),
         );
         foreach ($fields as &$field) {
             unset($field['_index']);

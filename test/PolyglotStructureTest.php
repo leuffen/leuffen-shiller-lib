@@ -82,7 +82,9 @@ final class PolyglotStructureTest extends TestCase
     {
         $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
         $this->put('en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
-        $this->put('editable-headers.conf.yaml', <<<'YAML'
+        $this->put(
+            'editable-headers.conf.yaml',
+            <<<'YAML'
 fields:
   - name: title
     type: string
@@ -110,7 +112,7 @@ fields:
     type: integer
     when:
       exclude: '~^leistungen\.md$~'
-YAML
+YAML,
         );
 
         $site = $this->site();
@@ -124,7 +126,8 @@ YAML
         self::assertFalse($fields[2]['present']);
         self::assertArrayNotHasKey('teaser', $page->header);
         self::assertSame(['published', 'title', 'hidden'], array_column(
-            $site->getPage('/leistungen', 'en')->getEditableHeaders(), 'name'
+            $site->getPage('/leistungen', 'en')->getEditableHeaders(),
+            'name',
         ));
     }
 

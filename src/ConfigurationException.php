@@ -4,6 +4,4 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller;
 
-class ConfigurationException extends ShillerException
-{
-}
+class ConfigurationException extends ShillerException {}

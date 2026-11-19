@@ -87,7 +87,7 @@ final class ShillerRuntimeTest extends TestCase
 
         $definitions = $site->getHeaderDefinitions('/home/home');
         $this->assertSame(['pid', 'lang', 'layout', 'published', 'permalink', 'title', 'description', 'custom_field'], array_map(
-            static fn ($field): string => $field->key,
+            static fn($field): string => $field->key,
             $definitions->fields,
         ));
     }

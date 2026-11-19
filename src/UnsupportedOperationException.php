@@ -4,6 +4,4 @@ declare(strict_types=1);
 
 namespace Leuffen\Shiller;
 
-class UnsupportedOperationException extends ShillerException
-{
-}
+class UnsupportedOperationException extends ShillerException {}
