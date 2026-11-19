@@ -64,7 +64,7 @@ final class EditableHeaderWhenMatcher
                 $any = false;
                 foreach ($patterns as $index => $pattern) {
                     if (!is_string($pattern) || @preg_match($pattern, '') === false) {
-                        throw new ValidationException("$source: when.$condition[$index]: invalid PCRE regex");
+                        throw new ValidationException("$source: when.{$condition}[$index]: invalid PCRE regex");
                     }
                     if (preg_match($pattern, $path) === 1) {
                         $any = true;
