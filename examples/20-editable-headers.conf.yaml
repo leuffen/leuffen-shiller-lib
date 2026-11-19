@@ -53,7 +53,7 @@ fields:
     order: 70
     when:
       # Nur im Bereich Leistungen; Sprachversionen unter en/ ausnehmen.
-      include: ['~^leistungen/.*\\.md$~']
+      include: ['~^leistungen/.*\.md$~']
       exclude: ['~^en/~']
       # Das Feld erscheint nur, wenn der tatsächliche Header published=true enthält.
       on:
