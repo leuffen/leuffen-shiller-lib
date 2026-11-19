@@ -34,6 +34,11 @@ final class EditableHeaderWhenMatcher
         $matches = true;
 
         foreach ($when as $condition => $criteria) {
+            // PHP ext-yaml interpretiert den unquoted YAML-Schlüssel "on" als true (Key 1).
+            if ($condition === 1) {
+                $condition = 'on';
+            }
+
             if (!in_array($condition, ['include', 'exclude', 'on', 'not'], true)) {
                 throw new ValidationException("$source: when.$condition: unknown condition");
             }

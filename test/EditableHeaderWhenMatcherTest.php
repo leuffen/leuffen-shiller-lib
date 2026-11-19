@@ -22,6 +22,18 @@ final class EditableHeaderWhenMatcherTest extends TestCase
         self::assertFalse($matcher->matches(['published' => null], ['not' => ['published' => null]], 'index.md'));
     }
 
+    public function testUnquotedYamlOnKeyIsRecognized(): void
+    {
+        $config = \Leuffen\Shiller\Codec::yaml(
+            "when:\n  on:\n    published: true\n",
+            'editable-headers.conf.yaml',
+        );
+
+        $matcher = new EditableHeaderWhenMatcher();
+        self::assertTrue($matcher->matches(['published' => true], $config['when'], 'index.md'));
+        self::assertFalse($matcher->matches(['published' => false], $config['when'], 'index.md'));
+    }
+
     public function testPathsIncludeExcludeAndOrLists(): void
     {
         $matcher = new EditableHeaderWhenMatcher();
