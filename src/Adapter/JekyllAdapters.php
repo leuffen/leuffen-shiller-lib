@@ -8,6 +8,7 @@ use Leuffen\Shiller\Capabilities;
 use Leuffen\Shiller\Codec;
 use Leuffen\Shiller\ConflictException;
 use Leuffen\Shiller\Document;
+use Leuffen\Shiller\EditableHeaderWhenMatcher;
 use Leuffen\Shiller\FieldDefinition;
 use Leuffen\Shiller\FieldSet;
 use Leuffen\Shiller\FileEntry;
@@ -879,47 +880,67 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
 
         $fields = [];
+        $matcher = new EditableHeaderWhenMatcher();
+        $sourcePath = $document->file?->path
+            ?? $this->getSourcePath($document->id, $document->language);
+
         foreach ($definitions as $index => $definition) {
-            if (!is_array($definition)) {
-                throw new ValidationException("$path: field $index must be a mapping");
+            $context = "$path: fields[$index]";
+            if (!is_array($definition) || array_is_list($definition)) {
+                throw new ValidationException("$context: expected field mapping");
             }
 
             $name = $definition['name'] ?? null;
             $type = $definition['type'] ?? null;
-            if (!is_string($name) || $name === '' || !is_string($type)
+            if (!is_string($name) || $name === '') {
+                throw new ValidationException("$context.name: expected non-empty string");
+            }
+            $context .= " ($name)";
+            if (!is_string($type)
                 || !in_array($type, ['switch', 'string', 'textarea', 'integer', 'select', 'multiselect'], true)) {
-                throw new ValidationException("$path: invalid name or type at field $index");
+                throw new ValidationException("$context.type: invalid field type");
             }
 
             $when = $definition['when'] ?? [];
-            if (!is_array($when)) {
-                throw new ValidationException("$path: when must be a mapping for $name");
+            if (!is_array($when) || ($when !== [] && array_is_list($when))) {
+                throw new ValidationException("$context.when: expected mapping");
             }
-            $sourcePath = $document->file?->path ?? $this->getSourcePath($document->id, $document->language);
-            if (!$this->matchesEditableHeaderWhen($when, $sourcePath, $document->header, $name)) {
-                continue;
-            }
-
             $options = $definition['options'] ?? [];
             if (!is_array($options) || (in_array($type, ['select', 'multiselect'], true) && !array_is_list($options))) {
-                throw new ValidationException("$path: invalid options for $name");
+                throw new ValidationException("$context.options: invalid options");
             }
             $regex = $definition['regex'] ?? null;
             if ($regex !== null && (!is_string($regex) || @preg_match($regex, '') === false)) {
-                throw new ValidationException("$path: invalid value regex for $name");
+                throw new ValidationException("$context.regex: invalid PCRE regex");
             }
             $order = $definition['order'] ?? $index;
             if (!is_int($order)) {
-                throw new ValidationException("$path: order must be an integer for $name");
+                throw new ValidationException("$context.order: expected integer");
             }
+            foreach (['allowNull', 'allowEmpty'] as $flag) {
+                if (array_key_exists($flag, $definition) && !is_bool($definition[$flag])) {
+                    throw new ValidationException("$context.$flag: expected boolean");
+                }
+            }
+            foreach (['label', 'description'] as $attribute) {
+                if (array_key_exists($attribute, $definition) && !is_string($definition[$attribute])) {
+                    throw new ValidationException("$context.$attribute: expected string");
+                }
+            }
+
+            // Der Matcher prüft sämtliche Bedingungen auch bei unsichtbaren Feldern.
+            if (!$matcher->matches($document->header, $when, $sourcePath, "$context.when")) {
+                continue;
+            }
+
             $present = array_key_exists($name, $document->header);
             $fields[] = [
                 'name' => $name,
                 'type' => $type,
-                'label' => (string) ($definition['label'] ?? $name),
-                'description' => (string) ($definition['description'] ?? ''),
-                'allowNull' => (bool) ($definition['allowNull'] ?? false),
-                'allowEmpty' => (bool) ($definition['allowEmpty'] ?? false),
+                'label' => $definition['label'] ?? $name,
+                'description' => $definition['description'] ?? '',
+                'allowNull' => $definition['allowNull'] ?? false,
+                'allowEmpty' => $definition['allowEmpty'] ?? false,
                 'regex' => $regex,
                 'options' => $options,
                 'default' => $definition['default'] ?? null,
@@ -939,54 +960,6 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         unset($field);
 
         return $fields;
-    }
-
-    /**
-     * @param array<string, mixed> $when
-     * @param array<string, mixed> $header
-     */
-    private function matchesEditableHeaderWhen(array $when, string $path, array $header, string $name): bool
-    {
-        foreach (['include', 'exclude'] as $condition) {
-            if (!array_key_exists($condition, $when)) {
-                continue;
-            }
-            $patterns = is_string($when[$condition]) ? [$when[$condition]] : $when[$condition];
-            if (!is_array($patterns) || !array_is_list($patterns)) {
-                throw new ValidationException("Invalid $condition patterns for $name");
-            }
-            $matched = false;
-            foreach ($patterns as $pattern) {
-                if (!is_string($pattern) || ($result = @preg_match($pattern, $path)) === false) {
-                    throw new ValidationException("Invalid $condition regex for $name");
-                }
-                if ($result === 1) {
-                    $matched = true;
-                }
-            }
-            if (($condition === 'include' && !$matched) || ($condition === 'exclude' && $matched)) {
-                return false;
-            }
-        }
-
-        foreach (['on', 'not'] as $condition) {
-            if (!array_key_exists($condition, $when)) {
-                continue;
-            }
-            $checks = $when[$condition];
-            if (!is_array($checks) || array_is_list($checks)) {
-                throw new ValidationException("Invalid $condition mapping for $name");
-            }
-            foreach ($checks as $key => $expected) {
-                $allowed = is_array($expected) && array_is_list($expected) ? $expected : [$expected];
-                $matched = array_key_exists($key, $header) && in_array($header[$key], $allowed, true);
-                if (($condition === 'on' && !$matched) || ($condition === 'not' && $matched)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
     }
 
     public function capabilities(string $id, ?string $language = null): Capabilities

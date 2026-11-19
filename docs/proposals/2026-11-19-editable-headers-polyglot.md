@@ -3,6 +3,7 @@
 | Datum | Benutzername | Kurzbeschreibung |
 |---|---|---|
 | 2026-11-19 | dermatthes | §§ 1–5: Polyglot-Entwurf und API angelegt |
+| 2026-11-19 | dermatthes | § 4, § 5: Matcher und Fehlerkontext ergänzt |
 
 ## § 1 Ziel
 
@@ -97,7 +98,29 @@ Nur die Sichtbarkeit wird beim Lesen ausgewertet. `regex`,
 `allowNull`, `allowEmpty` und Options sind Form-Metadaten, keine
 automatische Validierung bei `save()`. Ein Consumer darf eine
 Formularantwort nicht ungeprüft als vollständigen Header ersetzen.
-Ungültige Konfiguration wird als ValidationException gemeldet.
+Ungültige Konfiguration wird als ValidationException mit Dateiname,
+Feldindex und betroffenem Konfigurationsschlüssel gemeldet. Der Matcher
+validiert auch Bedingungen, die aufgrund anderer Regeln nicht greifen.
+
+Der wiederverwendbare `EditableHeaderWhenMatcher` ist in `src/Runtime.php`
+enthalten. Er erhält die tatsächlichen Headerwerte, das `when`-Struct,
+den Quellpfad und optional den Namen der Definitionsdatei:
+
+```php
+$matcher = new \Leuffen\Shiller\EditableHeaderWhenMatcher();
+$visible = $matcher->matches(
+    ['published' => true, 'category' => 'praxis'],
+    ['include' => '~^leistungen/.*\.md$~', 'on' => ['published' => true]],
+    'leistungen/diagnostik.md',
+    'editable-headers.conf.yaml',
+); // true
+```
+
+Bei unzulässigen `when`-Keys, fehlerhaften Regex oder ungültigen
+Felddefinitionen ist `ValidationException::getMessage()` diagnostisch
+lesbar (z. B. `editable-headers.conf.yaml: fields[2] (teaser).when:
+when.include[0]: invalid PCRE regex`).
+
 
 ## § 5 Scope und Ausblick
 

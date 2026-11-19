@@ -54,6 +54,30 @@ final class PolyglotStructureTest extends TestCase
         return new ShillerDir($this->dir, access: new AccessContext('user'));
     }
 
+
+    public function testEditableHeaderFieldErrorsIncludeConfigurationFile(): void
+    {
+        $this->put('index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: invalid\n");
+        try {
+            $this->site()->getPage('/')->getEditableHeaders();
+            self::fail('Invalid field type was accepted');
+        } catch (ValidationException $exception) {
+            self::assertStringContainsString('editable-headers.conf.yaml', $exception->getMessage());
+            self::assertStringContainsString('fields[0]', $exception->getMessage());
+            self::assertStringContainsString('.type', $exception->getMessage());
+        }
+    }
+
+    public function testEditableHeaderWhenErrorsIncludeConfigurationFile(): void
+    {
+        $this->put('index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: string\n    when:\n      include: '~[~'\n");
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('editable-headers.conf.yaml: fields[0] (title).when: when.include');
+        $this->site()->getPage('/')->getEditableHeaders();
+    }
+
     public function testEditableHeadersAreResolvedPerPolyglotDocument(): void
     {
         $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
