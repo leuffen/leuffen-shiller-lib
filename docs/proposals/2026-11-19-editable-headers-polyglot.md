@@ -53,7 +53,7 @@ fields:
     type: textarea
     label: Kurzbeschreibung
     when:
-      include: ['~^leistungen/.*\\.md$~', '~^leistungen\\.md$~']
+      include: ['~^leistungen/.*\.md$~', '~^leistungen\.md$~']
       exclude: '~^leistungen/intern/~'
       on:
         category: [praxis, news]
