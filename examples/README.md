@@ -145,6 +145,7 @@ Die Basisfixture enthält keine französische Übersetzung und keine leistungen/
 | [17-move-page-tree.php](17-move-page-tree.php) | Was geschieht beim Verschieben eines Teilbaums unter ein Blatt? |
 | [18-editor-save.php](18-editor-save.php) | Wie überlebt der Dokumentstand getrennte HTTP-Anfragen? |
 | [19-save-language-group.php](19-save-language-group.php) | Wie ändere ich den Permalink einer Sprachgruppe gemeinsam? |
+| [20-editable-headers.php](20-editable-headers.php) | Wie lese ich editierbare Headerfelder aus der [YAML-Konfiguration](20-editable-headers.conf.yaml) für eine Polyglot-Seite? |
 
 ## Gemeinsames Baumformat
 
