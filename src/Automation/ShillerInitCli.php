@@ -6,9 +6,12 @@ namespace Leuffen\Shiller\Automation;
 
 use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
+use Phore\Cli\Annotation\CliScope;
 use Phore\Log\Driver\PhoreConsoleLoggerDriver;
 use Phore\Log\PhoreLogger;
 
+/** CLI command for the first project initialization step. */
+#[CliScope('shiller')]
 final class ShillerInitCli
 {
     /**
