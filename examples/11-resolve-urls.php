@@ -1,4 +1,6 @@
 <?php
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
 
 // Verwendet den lesenden $site aus 01.
 $english = $site->getPage('/leistungen/diagnostik', 'en');

@@ -1,7 +1,9 @@
 <?php
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\ShillerRepository;
 
 // Vorhandene englische Seite bearbeiten; Ausgangsdaten und Rechte: README.
-$site = new ShillerDir(
+$site = new ShillerRepository(
     phore_dir('/srv/site/docs'),
     access: new AccessContext(role: 'user'),
 );

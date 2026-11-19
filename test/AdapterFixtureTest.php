@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
-use Leuffen\Shiller\ShillerDir;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\ShillerRepository;
 use PHPUnit\Framework\TestCase;
 
 final class AdapterFixtureTest extends TestCase
 {
     public function testLegacySectionProducesOriginalFormFieldsAndMetadata(): void
     {
-        $site = new ShillerDir(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
         $fields = $site->getPage('/home/home', 'de')->getHeaderDefinitions()->fields;
 
         self::assertSame(
@@ -38,7 +38,7 @@ final class AdapterFixtureTest extends TestCase
 
     public function testLegacyOptionalFieldsAreSectionSpecific(): void
     {
-        $site = new ShillerDir(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
         self::assertSame(
             ['pid', 'lang', 'layout', 'published', 'permalink', 'title', 'description', 'teaser'],
             array_map(static fn($field): string => $field->key, $site->getHeaderDefinitions('/angebot/seite')->fields),
@@ -48,7 +48,7 @@ final class AdapterFixtureTest extends TestCase
 
     public function testPolyglotYamlFieldTypesValuesAndDefaults(): void
     {
-        $site = new ShillerDir(dirname(__DIR__) . '/tests_mock/JekyllPolyglot');
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/JekyllPolyglot');
         $page = $site->getPage('/leistungen/diagnostik');
         $fields = $page->getEditableHeaders();
 
@@ -79,7 +79,7 @@ final class AdapterFixtureTest extends TestCase
 
     public function testPolyglotWhenConditionsDependOnLanguageAndPageHeaders(): void
     {
-        $site = new ShillerDir(dirname(__DIR__) . '/tests_mock/JekyllPolyglot');
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/JekyllPolyglot');
         foreach ([
             $site->getPage('/leistungen/diagnostik', 'en'),
             $site->getPage('/leistungen/verborgen'),

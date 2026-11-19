@@ -1,6 +1,9 @@
 <?php
+use Leuffen\Shiller\Access\Adapter\Adapter;
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\ShillerRepository;
 
-// Fortsetzung von Beispiel 01: $site ist ein ShillerDir mit Polyglot-Adapter.
+// Fortsetzung von Beispiel 01: $site ist ein ShillerRepository mit Polyglot-Adapter.
 // Die YAML aus 20-editable-headers.conf.yaml liegt im Document Root unter
 // editable-headers.conf.yaml, z. B. /srv/site/docs/editable-headers.conf.yaml.
 // Ausgangsseite: docs/leistungen/diagnostik.md (siehe examples/README.md).

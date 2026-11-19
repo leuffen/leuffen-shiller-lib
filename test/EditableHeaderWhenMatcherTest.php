@@ -1,9 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use Leuffen\Shiller\Access\Helper\Codec;
 
-use Leuffen\Shiller\EditableHeaderWhenMatcher;
-use Leuffen\Shiller\ValidationException;
+use Leuffen\Shiller\Access\Helper\EditableHeaderWhenMatcher;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 final class EditableHeaderWhenMatcherTest extends TestCase
@@ -24,7 +25,7 @@ final class EditableHeaderWhenMatcherTest extends TestCase
 
     public function testUnquotedYamlOnKeyIsRecognized(): void
     {
-        $config = \Leuffen\Shiller\Codec::yaml(
+        $config = \Leuffen\Shiller\Access\Helper\Codec::yaml(
             "when:\n  on:\n    published: true\n",
             'editable-headers.conf.yaml',
         );

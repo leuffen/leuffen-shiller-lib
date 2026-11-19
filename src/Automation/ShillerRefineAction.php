@@ -6,7 +6,7 @@ namespace Leuffen\Shiller\Automation;
 
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
-use Leuffen\Shiller\Codec;
+use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_QuoteFile;
 use Leuffen\Shiller\Types\T_Resolution;

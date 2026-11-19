@@ -11,9 +11,9 @@ Der erste ausführbare Ausbau ergänzt [Proposal §§ 8 und 11](proposals/2026-0
 
 ## Öffentliche Operation und Identität
 
-`Document::rename('/leistungen/vorsorge')` benennt um oder verschiebt, je nach Ziel-ID. Reine Kategorien ohne Document werden mit `ShillerDir::rename($id, $newId)` verschoben; Document::rename delegiert an dieselbe Operation. Es ist kein zusätzlicher Aufruf zum Anlegen von Zielordnern nötig. Die Methode schreibt sofort; createPage bereitet dagegen nur einen Entwurf vor und führt die entsprechende Umstellung erst beim save aus.
+`Document::rename('/leistungen/vorsorge')` benennt um oder verschiebt, je nach Ziel-ID. Reine Kategorien ohne Document werden mit `ShillerRepository::rename($id, $newId)` verschoben; Document::rename delegiert an dieselbe Operation. Es ist kein zusätzlicher Aufruf zum Anlegen von Zielordnern nötig. Die Methode schreibt sofort; createPage bereitet dagegen nur einen Entwurf vor und führt die entsprechende Umstellung erst beim save aus.
 
-Die ID enthält weder Dateiendung noch Sprache. Verschobene Teilbäume erhalten das neue ID-Präfix. Eine Ziel-Elternseite, die nur von einer Datei zur Indexablage umgestellt wird, behält ihre ID. Alle geladenen Documents werden innerhalb derselben ShillerDir-Instanz mitgeführt; bereits ausgegebene Tree-Listings werden erneut abgefragt.
+Die ID enthält weder Dateiendung noch Sprache. Verschobene Teilbäume erhalten das neue ID-Präfix. Eine Ziel-Elternseite, die nur von einer Datei zur Indexablage umgestellt wird, behält ihre ID. Alle geladenen Documents werden innerhalb derselben ShillerRepository-Instanz mitgeführt; bereits ausgegebene Tree-Listings werden erneut abgefragt.
 
 Die Root-ID / darf nicht umbenannt oder verschoben werden. Quelle und Ziel dürfen identisch sein (No-op, keine writes). Ein Ziel innerhalb des eigenen Teilbaums ist verboten; der Vergleich erfolgt auf ID-Segmenten, nicht als bloßer String-Präfixvergleich.
 
@@ -113,7 +113,7 @@ Ein rename-Button kann aus capabilities die Eignung der Quelle ableiten. Ohne Zi
 
 Eine Promotion beim save ist die ausdrücklich dokumentierte Nebenwirkung einer neuen Unterseite: alle betroffenen Elternvarianten werden bewegt, ihre Inhalte werden nicht mitgespeichert. Ein vorbereiteter, noch nicht gespeicherter Übersetzungsentwurf an einer betroffenen Elternseite verhindert die Strukturaktion wie andere ungespeicherte Änderungen. Auch saveDocuments muss sämtliche Promotionen gemeinsam planen und darf dieselbe Elternseite nicht mehrfach bewegen.
 
-Nach einer erfolgreichen Bewegung sind alte Listing-Objekte und die im Browser gespeicherten Dokumentstände veraltet. Die Anwendung liest Baum und bearbeitete Documents erneut für die nächste Anzeige; innerhalb derselben ShillerDir-Instanz sind IDs, FileEntries und Adapterzustände bereits aktualisiert. Die HTTP-Schicht nimmt IDs und Rollen nicht aus veränderbaren Headerfeldern.
+Nach einer erfolgreichen Bewegung sind alte Listing-Objekte und die im Browser gespeicherten Dokumentstände veraltet. Die Anwendung liest Baum und bearbeitete Documents erneut für die nächste Anzeige; innerhalb derselben ShillerRepository-Instanz sind IDs, FileEntries und Adapterzustände bereits aktualisiert. Die HTTP-Schicht nimmt IDs und Rollen nicht aus veränderbaren Headerfeldern.
 
 Löschen ist keine verkürzte Variante von rename: Das Stammdokument darf nur ohne Nachfahren in allen Sprachen gelöscht werden, die Root-Gruppe / niemals. Eine Übersetzung darf auch dann als einzelne Datei gelöscht werden, wenn Sprach-Unterseiten bestehen; diese bleiben erhalten. Begleitdateien und Ordner werden nicht rekursiv gelöscht. isLeaf im gefilterten Seitenbaum beweist keine vollständige physische Kinderlosigkeit.
 

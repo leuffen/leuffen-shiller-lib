@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use FilesystemIterator;
-use Leuffen\Shiller\AccessContext;
-use Leuffen\Shiller\Adapter\JekyllLegacyAdapter;
-use Leuffen\Shiller\ShillerDir;
-use Leuffen\Shiller\UnsupportedOperationException;
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\ShillerRepository;
+use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -52,7 +52,7 @@ final class ShillerRuntimeTest extends TestCase
             "---\npid: home/home\nlang: de\ntitle: Start\npublished: true\n---\nHallo\n",
         );
 
-        $site = new ShillerDir(
+        $site = new ShillerRepository(
             $this->dir,
             new JekyllLegacyAdapter(),
             new AccessContext('user'),
@@ -76,7 +76,7 @@ final class ShillerRuntimeTest extends TestCase
 
     public function testHeaderDefinitionsOnlyIncludeAdapterDefinedFields(): void
     {
-        $site = new ShillerDir($this->dir, new JekyllLegacyAdapter());
+        $site = new ShillerRepository($this->dir, new JekyllLegacyAdapter());
 
         $this->assertSame([], $site->getHeaderDefinitions('/home/home')->fields);
 
@@ -103,7 +103,7 @@ final class ShillerRuntimeTest extends TestCase
             "---\ntitle: Start\n---\nHallo\n",
         );
 
-        $site = new ShillerDir($this->dir, null, new AccessContext('user'));
+        $site = new ShillerRepository($this->dir, null, new AccessContext('user'));
         $root = $site->getPage('/');
         $english = $root->getTranslation('en', true);
 

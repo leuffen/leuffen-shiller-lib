@@ -1,4 +1,5 @@
 <?php
+use Leuffen\Shiller\Access\DTO\FileEntry;
 
 // Verwendet den lesenden $site aus 01; technische Ansicht der tatsächlichen Dateien.
 $listing = $site->files('leistungen');

@@ -1,4 +1,8 @@
 <?php
+use Leuffen\Shiller\Access\Adapter\Adapter;
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Exception\ConflictException;
+use Leuffen\Shiller\Access\ShillerRepository;
 
 // Zwei getrennte HTTP-Aktionen; GET verwendet den schreibenden $site aus 00.
 $page = $site->getPage('/leistungen/diagnostik');
@@ -8,7 +12,7 @@ $documentData = $page->toArray();
 
 // POST: ersetzt den GET-Abschnitt; JSON-Body enthält den zurückgesendeten Dokumentstand.
 $documentData = json_decode(file_get_contents('php://input'), true, flags: JSON_THROW_ON_ERROR);
-$site = new ShillerDir($root, access: new AccessContext(role: 'user'));
+$site = new ShillerRepository($root, access: new AccessContext(role: 'user'));
 $page = $site->restoreDocument($documentData);
 $page->save();
 $response = $page->toArray(); // Gespeicherter Stand für die nächste Bearbeitung.

@@ -1,9 +1,12 @@
 <?php
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\ShillerRepository;
 
 // Unabhängige Fixture: leistungen.md, en/leistungen.md als Ziel-Eltern;
 // vorsorge/index.md, vorsorge/kinder.md, vorsorge/bild.png;
 // en/vorsorge/index.md, en/vorsorge/kinder.md. fr fehlt.
-$site = new ShillerDir($root, access: new AccessContext(role: 'admin'));
+$site = new ShillerRepository($root, access: new AccessContext(role: 'admin'));
 $parent = $site->getPage('/leistungen');
 $category = $site->getPage('/vorsorge');
 $child = $site->getPage('/vorsorge/kinder');

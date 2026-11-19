@@ -107,7 +107,7 @@ enthalten. Er erhält die tatsächlichen Headerwerte, das `when`-Struct,
 den Quellpfad und optional den Namen der Definitionsdatei:
 
 ```php
-$matcher = new \Leuffen\Shiller\EditableHeaderWhenMatcher();
+$matcher = new \Leuffen\Shiller\Access\Helper\EditableHeaderWhenMatcher();
 $visible = $matcher->matches(
     ['published' => true, 'category' => 'praxis'],
     ['include' => '~^leistungen/.*\.md$~', 'on' => ['published' => true]],

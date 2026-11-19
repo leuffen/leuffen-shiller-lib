@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use FilesystemIterator;
-use Leuffen\Shiller\AccessContext;
-use Leuffen\Shiller\ConflictException;
-use Leuffen\Shiller\ShillerDir;
-use Leuffen\Shiller\Storage\NativeSiteStorage;
-use Leuffen\Shiller\StorageException;
-use Leuffen\Shiller\ValidationException;
+use Leuffen\Shiller\Access\DTO\AccessContext;
+use Leuffen\Shiller\Access\Exception\ConflictException;
+use Leuffen\Shiller\Access\ShillerRepository;
+use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
+use Leuffen\Shiller\Access\Exception\StorageException;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -49,9 +49,9 @@ final class PolyglotStructureTest extends TestCase
         file_put_contents($file, $content);
     }
 
-    private function site(): ShillerDir
+    private function site(): ShillerRepository
     {
-        return new ShillerDir($this->dir, access: new AccessContext('user'));
+        return new ShillerRepository($this->dir, access: new AccessContext('user'));
     }
 
 
