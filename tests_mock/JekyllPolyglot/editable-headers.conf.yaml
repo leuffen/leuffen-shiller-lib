@@ -1,0 +1,47 @@
+fields:
+  - name: title
+    type: string
+    label: Seitentitel
+    description: Überschrift der Seite
+    allowNull: false
+    allowEmpty: false
+    regex: '~^.{1,100}$~'
+    order: 10
+  - name: published
+    type: switch
+    label: Veröffentlicht
+    default: false
+    order: 20
+  - name: description
+    type: textarea
+    label: Beschreibung
+    allowNull: true
+    allowEmpty: true
+    order: 30
+  - name: order
+    type: integer
+    label: Sortierung
+    default: 0
+    order: 40
+  - name: layout
+    type: select
+    label: Layout
+    options: [default, landing]
+    default: default
+    order: 50
+  - name: ptags
+    type: multiselect
+    label: Seiten-Tags
+    options: [praxis, news, service]
+    default: []
+    order: 60
+  - name: featured
+    type: switch
+    label: Hervorgehoben
+    default: false
+    order: 70
+    when:
+      include: ['~^leistungen/.*\.md$~']
+      exclude: ['~^en/~']
+      on: {published: true}
+      not: {hidden: true}

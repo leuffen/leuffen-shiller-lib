@@ -1,0 +1,6 @@
+desc: Angebote
+is_sortable: false
+layouts:
+  - {layout: default, text: Standard}
+forms:
+  - {key: teaser, type: textarea, name: Kurztext}

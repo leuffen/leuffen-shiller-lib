@@ -210,31 +210,89 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
         return $this->nodeTree($groups, $id, $config, $metadata);
     }
 
+    /**
+     * Erstellt Editor-Felder aus der Legacy-Section nach dem MICX Page Builder.
+     *
+     * Die sieben Basisfelder entstehen in diesem Adapter. Sortierung und Tags
+     * werden nur angeboten, wenn die Section sie konfiguriert. Die eigenen
+     * forms-Einträge folgen danach. Ohne _section.yml gibt es keine Felder.
+     *
+     * @param string $id Seiten-ID innerhalb der Legacy-Section.
+     * @param string|null $language Optionale Seitensprache.
+     * @return FieldSet Der aktuellen Section zugeordnete Form-Definitionen.
+     * @see FieldDefinition
+     * @example $fields = $site->getHeaderDefinitions('/home/home')->fields;
+     */
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
-        $extra = [];
         $section = explode('/', trim($id, '/'))[0] ?? '';
         $path = $section === '' ? '_section.yml' : $section . '/_section.yml';
-
-        if ($this->s()->exists($path)) {
-            $sectionData = Codec::yaml($this->s()->read($path), $path);
-
-            foreach (($sectionData['forms'] ?? []) as $field) {
-                if (!is_array($field) || !isset($field['key'])) {
-                    continue;
-                }
-
-                $extra[] = new FieldDefinition(
-                    (string) $field['key'],
-                    (string) ($field['name'] ?? $field['key']),
-                    (string) ($field['type'] ?? 'text'),
-                    (array) ($field['options'] ?? []),
-                    (array) ($field['attrs'] ?? []),
-                );
-            }
+        if (!$this->s()->exists($path)) {
+            return new FieldSet();
         }
 
-        return new FieldSet($extra);
+        $data = Codec::yaml($this->s()->read($path), $path);
+        $layoutOptions = [];
+        foreach (($data['layouts'] ?? []) as $layout) {
+            if (!is_array($layout) || !isset($layout['layout'])) {
+                continue;
+            }
+            $layoutOptions[] = [
+                'text' => ($layout['text'] ?? $layout['layout']) . ' (' . $layout['layout'] . ')',
+                'value' => $layout['layout'],
+            ];
+        }
+
+        // Entspricht getDefaultSet(section) im bisherigen Page-Builder-Editor.
+        $fields = [
+            new FieldDefinition('pid', 'Page-Id', 'text', [], ['attrs' => ['disabled' => true]]),
+            new FieldDefinition('lang', 'Sprache', 'text', [], ['attrs' => ['disabled' => true]]),
+            new FieldDefinition('layout', 'Layout', 'select', $layoutOptions),
+            new FieldDefinition('published', '', 'switch', [], [
+                'checklabel' => 'Diese Seite veröffentlichen',
+            ]),
+            new FieldDefinition('permalink', 'Permanent-Link', 'text', [], [
+                'desc' => 'Bitte freilassen, wenn links automatisch angelegt werden sollen.',
+                'title' => "Festen Link in der Form '/sektion/seite' setzen. Bitte freilassen, um die Link-URL automatisch anzulegen",
+            ]),
+            new FieldDefinition('title', 'Seiten-Titel', 'text', [], [
+                'title' => 'Titel im Header des Browsers und in Suchergebnissen',
+            ]),
+            new FieldDefinition('description', 'Meta-Description', 'text', [], [
+                'attrs' => ['maxlength' => 160],
+                'title' => 'Kurzbeschreibung: So erscheint Ihre Website in den Suchergebnissen. (Max. 160 Zeichen)',
+            ]),
+        ];
+        if (($data['is_sortable'] ?? false) === true) {
+            $fields[] = new FieldDefinition('order', 'Sortierung', 'text', [], [
+                'attrs' => ['type' => 'number'],
+                'title' => 'Kleinere Werte werden zuerst angezeigt (Nur für Listen)',
+            ]);
+        }
+        if (isset($data['ptags']) && is_array($data['ptags']) && $data['ptags'] !== []) {
+            $fields[] = new FieldDefinition('ptags', 'Page-Tags', 'multi', $data['ptags'], [
+                'title' => 'Optionen, wie die Seite angezeigt wird',
+            ]);
+        }
+
+        // Section-eigene Formularfelder bleiben in der YAML-Reihenfolge.
+        foreach (($data['forms'] ?? []) as $field) {
+            if (!is_array($field) || !isset($field['key'])) {
+                continue;
+            }
+            $fields[] = new FieldDefinition(
+                (string) $field['key'],
+                (string) ($field['name'] ?? $field['key']),
+                (string) ($field['type'] ?? 'text'),
+                (array) ($field['options'] ?? []),
+                array_merge(
+                    ['attrs' => (array) ($field['attrs'] ?? [])],
+                    array_intersect_key($field, array_flip(['title', 'desc', 'checklabel'])),
+                ),
+            );
+        }
+
+        return new FieldSet($fields);
     }
 
     public function capabilities(string $id, ?string $language = null): Capabilities
