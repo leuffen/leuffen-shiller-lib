@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Access\DTO;
 
 use Leuffen\Shiller\Access\ShillerRepository;
-
 use Leuffen\Shiller\Access\Adapter\Adapter;
 
 final class Document

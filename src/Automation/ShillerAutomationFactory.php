@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
-
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\Log\PhoreLogger;

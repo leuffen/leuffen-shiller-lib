@@ -1,4 +1,5 @@
 <?php
+
 use Leuffen\Shiller\Access\DTO\Document;
 
 // Verwendet den schreibenden $site aus 00; Definitionen: README / Proposal § 7.

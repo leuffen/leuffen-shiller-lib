@@ -1,4 +1,5 @@
 <?php
+
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Info\Diagnostic;
 

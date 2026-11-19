@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
-
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;

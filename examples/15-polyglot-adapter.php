@@ -9,7 +9,6 @@ use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;
 use Leuffen\Shiller\Access\DTO\TreeNode;
 use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
 use Leuffen\Shiller\Access\ShillerRepository;
-
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\DTO\Document;
 use Leuffen\Shiller\Access\DTO\FieldSet;

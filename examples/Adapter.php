@@ -8,7 +8,6 @@ use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
-
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\DTO\Document;
 use Leuffen\Shiller\Access\DTO\FieldSet;

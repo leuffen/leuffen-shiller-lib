@@ -24,7 +24,6 @@ use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Info\FileKind;
 use Leuffen\Shiller\Access\Info\TranslationInfo;
 use Leuffen\Shiller\Access\Storage\SiteStorage;
-
 use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
 use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;

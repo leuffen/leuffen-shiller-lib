@@ -1,4 +1,5 @@
 <?php
+
 use Leuffen\Shiller\Access\DTO\AccessContext;
 use Leuffen\Shiller\Access\ShillerRepository;
 

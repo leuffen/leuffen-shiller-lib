@@ -1,4 +1,5 @@
 <?php
+
 use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
 use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;

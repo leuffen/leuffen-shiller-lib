@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 use Leuffen\Shiller\Access\Helper\Codec;
-
 use Leuffen\Shiller\Access\Helper\EditableHeaderWhenMatcher;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 use PHPUnit\Framework\TestCase;
