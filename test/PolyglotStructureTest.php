@@ -54,7 +54,6 @@ final class PolyglotStructureTest extends TestCase
         return new ShillerDir($this->dir, access: new AccessContext('user'));
     }
 
-
     public function testEditableHeadersAreResolvedPerPolyglotDocument(): void
     {
         $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
@@ -78,7 +77,7 @@ fields:
     label: Teaser
     default: Hallo
     when:
-      include: ['~^leistungen\\.md$~']
+      include: ['~^leistungen\.md$~']
       on:
         category: [praxis, news]
       not:
@@ -86,7 +85,7 @@ fields:
   - name: hidden
     type: integer
     when:
-      exclude: '~^leistungen\\.md$~'
+      exclude: '~^leistungen\.md$~'
 YAML
         );
 
