@@ -24,6 +24,5 @@ final class DocumentReference
         public readonly string $id,
         public readonly string $language,
         public readonly bool $exists,
-    ) {
-    }
+    ) {}
 }

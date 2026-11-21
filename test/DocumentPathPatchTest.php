@@ -23,12 +23,10 @@ final class DocumentPathPatchTest extends TestCase
         $files += [
             'shiller.yaml' => "languages: [de, en, fr]\ndefault_lang: de\n",
         ];
-        $storage = new class($files) implements SiteStorage {
+        $storage = new class ($files) implements SiteStorage {
             public array $writes = [];
 
-            public function __construct(public array $files)
-            {
-            }
+            public function __construct(public array $files) {}
 
             public function exists(string $path): bool
             {
