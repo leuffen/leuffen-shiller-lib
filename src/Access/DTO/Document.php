@@ -6,6 +6,7 @@ namespace Leuffen\Shiller\Access\DTO;
 
 use Leuffen\Shiller\Access\ShillerRepository;
 use Leuffen\Shiller\Access\Adapter\Adapter;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 
 final class Document
 {
@@ -114,6 +115,46 @@ final class Document
 
         $this->originalHeader = $this->header;
         $this->originalContent = $this->content;
+    }
+
+    /**
+     * Übernimmt einen partiellen Header- und optionalen Content-Patch.
+     *
+     * Nur gesendete Top-Level-Header werden ersetzt; null entfernt den
+     * jeweiligen Schlüssel und setzt damit auf einen möglichen Default zurück.
+     * Nicht gesendete Header, Identität und Adapterzustand bleiben erhalten.
+     * Die Identitätsheader pid/lang sind auch als null nicht patchbar.
+     * Content null erhält den bisherigen Text, ein leerer String leert ihn.
+     * Die Methode verändert nur dieses Dokument; erst save() persistiert es.
+     *
+     * @param array<string, mixed> $header Gesendete Headerwerte, null entfernt.
+     * @param string|null $content Neuer Inhalt oder null zum Beibehalten.
+     * @return self Dieses bearbeitete Dokument zur anschließenden Speicherung.
+     * @throws ValidationException Wenn pid oder lang im Header-Patch enthalten ist.
+     * @example $page->patch(['title' => 'Neu', 'layout' => null])->save();
+     * @see self::save()
+     * @see ShillerRepository::getDocumentByPath()
+     */
+    public function patch(array $header = [], ?string $content = null): self
+    {
+        // Identitätsänderungen vor jeder Mutation des Dokuments zurückweisen.
+        foreach (['pid', 'lang'] as $key) {
+            if (array_key_exists($key, $header)) {
+                throw new ValidationException("Identity header cannot be patched: $key");
+            }
+        }
+
+        foreach ($header as $key => $value) {
+            if ($value === null) {
+                unset($this->header[$key]);
+            } else {
+                $this->header[$key] = $value;
+            }
+        }
+        if ($content !== null) {
+            $this->content = $content;
+        }
+        return $this;
     }
 
     public function save(): void

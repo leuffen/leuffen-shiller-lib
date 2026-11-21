@@ -8,12 +8,14 @@ use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\DocumentReference;
 use Leuffen\Shiller\Access\DTO\FieldDefinition;
 use Leuffen\Shiller\Access\DTO\FieldSet;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\DTO\PageTree;
 use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
+use Leuffen\Shiller\Access\Exception\ValidationException;
 
 final class JekyllLegacyAdapter extends AbstractJekyllAdapter
 {
@@ -56,6 +58,55 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
             (string) ($jekyll['url'] ?? ''),
             (string) ($jekyll['baseurl'] ?? ''),
         );
+    }
+
+    /**
+     * Ermittelt die Legacy-Identität aus dem konfigurierten Sprachsuffix.
+     *
+     * Die Datei muss dem Format name.<sprache>.md oder name.<sprache>.html
+     * entsprechen. Fehlende Varianten bleiben reine Referenzen.
+     *
+     * @param string $path Exakter Sourcepfad relativ zum Document Root.
+     * @return DocumentReference Identität und Existenz ohne Neuanlage.
+     * @throws ValidationException Bei unbekanntem Sprachsuffix oder ungültigem Dateiformat.
+     * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
+     * @example $reference = $adapter->resolveDocumentPath('home/home.en.md');
+     * @see Adapter::resolveDocumentPath()
+     */
+    public function resolveDocumentPath(string $path): DocumentReference
+    {
+        if (str_contains($path, '\\') || !preg_match('/^(.+)\.(md|html)$/D', $path, $matches)) {
+            throw new ValidationException("Unsupported legacy page file: $path");
+        }
+
+        // Nur konfigurierte Sprachsuffixe gehören zum Legacy-Seitenformat.
+        $language = null;
+        $name = $matches[1];
+        foreach ($this->loadConfig()->languages as $candidate) {
+            if (str_ends_with($name, '.' . $candidate)) {
+                $language = $candidate;
+                $name = substr($name, 0, -strlen('.' . $candidate));
+                break;
+            }
+        }
+        if ($language === null || $name === '') {
+            throw new ValidationException("Unknown legacy page language: $path");
+        }
+
+        $index = $name === 'index' || str_ends_with($name, '/index');
+        $id = Codec::id($index ? substr($name, 0, -5) : $name);
+        $source = ($id === '/' ? 'index' : trim($id, '/') . ($index ? '/index' : ''))
+            . '.' . $language . '.' . $matches[2];
+        if ($source !== $path) {
+            throw new ValidationException("Non-canonical legacy page file: $path");
+        }
+
+        // Existenz und Dateigrenzen verbleiben im zuständigen Storage.
+        $exists = $this->s()->exists($path);
+        if ($exists && $this->s()->isDirectory($path)) {
+            throw new ValidationException("Expected a legacy page file: $path");
+        }
+        return new DocumentReference($path, $id, $language, $exists);
     }
 
     public function getSourcePath(string $id, string $language): string
