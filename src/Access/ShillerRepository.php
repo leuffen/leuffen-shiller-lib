@@ -6,6 +6,7 @@ namespace Leuffen\Shiller\Access;
 
 use Leuffen\Shiller\Access\DTO\AccessContext;
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\DocumentReference;
 use Leuffen\Shiller\Access\DTO\FieldSet;
 use Leuffen\Shiller\Access\DTO\FileEntry;
 use Leuffen\Shiller\Access\DTO\FileListing;
@@ -139,6 +140,64 @@ final class ShillerRepository
         return $this->documents[$key] ??= $this->adapter->load($id, $language)->attach($this);
     }
 
+    /**
+     * Löst eine Source-Datei ohne vorherige Seiten-ID oder Sprache auf.
+     *
+     * Die Referenz beschreibt auch fehlende Übersetzungen. Die Auflösung ist
+     * lesend und benötigt keine Schreibrechte; es wird keine Datei angelegt.
+     *
+     * @param string $path Exakter Dateipfad relativ zum Document Root.
+     * @return DocumentReference Vom Adapter bestimmte Identität und Existenz.
+     * @throws ValidationException Bei einem für den Adapter ungültigen Dateipfad.
+     * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
+     * @example $reference = $site->resolveDocumentPath('en/leistungen.md');
+     * @see Adapter::resolveDocumentPath()
+     * @see self::translations()
+     */
+    public function resolveDocumentPath(string $path): DocumentReference
+    {
+        return $this->adapter->resolveDocumentPath($path);
+    }
+
+    /**
+     * Lädt genau die angefragte Source-Datei frisch aus dem Storage.
+     *
+     * Saubere Cache-Einträge werden ersetzt, damit ein anschließender Patch
+     * zwischenzeitliche Änderungen an nicht gesendeten Feldern erhält.
+     * Ungespeicherte Dokumente werden niemals still verworfen. Fehlende Dateien
+     * werden weder angelegt noch durch eine andere Endung/Indexdatei ersetzt.
+     *
+     * @param string $path Exakter Dateipfad relativ zum Document Root.
+     * @return Document Frischer, an dieses Repository gebundener Dokumentzustand.
+     * @throws NotFoundException Wenn genau diese Source-Datei nicht existiert.
+     * @throws ConflictException Bei ungespeichertem Cache-Zustand oder mehrdeutiger Quelle.
+     * @throws ValidationException Bei ungültigem Pfad oder Dokumentinhalt.
+     * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Lesefehler.
+     * @example $page = $site->getDocumentByPath('leistungen.md');
+     * @see self::resolveDocumentPath()
+     * @see Document::patch()
+     */
+    public function getDocumentByPath(string $path): Document
+    {
+        $reference = $this->resolveDocumentPath($path);
+        if (!$reference->exists) {
+            throw new NotFoundException("Page file not found: $path");
+        }
+
+        // Bewusst bearbeitete Library-Dokumente vor einem Reload schützen.
+        $key = $reference->id . '|' . $reference->language;
+        $cached = $this->documents[$key] ?? null;
+        if ($cached !== null && (!$cached->isPersisted() || $cached->hasChanges())) {
+            throw new ConflictException("Unsaved document prevents file reload: $path");
+        }
+
+        $document = $this->adapter->load($reference->id, $reference->language);
+        if ($document->file?->path !== $reference->path) {
+            throw new ConflictException("Source file changed while loading: $path");
+        }
+        return $this->documents[$key] = $document->attach($this);
+    }
+
     public function createPage(string $id, array $header = [], string $content = ''): Document
     {
         if (!$this->access->canWrite()) {
@@ -188,7 +247,21 @@ final class ShillerRepository
         }
     }
 
-    public function translations(Document $root): array
+    /**
+     * Liefert vorhandene und fehlende Sprachvarianten mit ihren Sourcepfaden.
+     *
+     * Eine Referenz auf eine fehlende Datei genügt; es wird weder eine Seite
+     * angelegt noch Schreibzugriff benötigt. Vorhandene Dokumente verwenden
+     * weiterhin den Repository-Cache.
+     *
+     * @param Document|DocumentReference $root Dokument oder aufgelöste Dateireferenz.
+     * @return array<string, TranslationInfo> Varianten nach konfigurierter Sprache.
+     * @throws \Leuffen\Shiller\Access\Exception\ShillerException Bei einer ungültigen oder unlesbaren Quelle.
+     * @example $translations = $site->translations($site->resolveDocumentPath('en/leistungen.md'));
+     * @see Document::getTranslations()
+     * @see self::resolveDocumentPath()
+     */
+    public function translations(Document|DocumentReference $root): array
     {
         $translations = [];
         $config = $this->config();

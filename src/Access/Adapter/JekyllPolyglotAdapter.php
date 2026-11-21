@@ -8,6 +8,7 @@ use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\DocumentReference;
 use Leuffen\Shiller\Access\Helper\EditableHeaderWhenMatcher;
 use Leuffen\Shiller\Access\DTO\FieldSet;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
@@ -137,6 +138,55 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         return $language === $this->loadConfig()->defaultLanguage
             ? ''
             : $language . '/';
+    }
+
+    /**
+     * Ermittelt die Polyglot-Identität aus einer Markdown- oder HTML-Datei.
+     *
+     * Sprachverzeichnisse und index-Dateien werden nach der Site-Konfiguration
+     * aufgelöst; Front Matter mit pid/lang wird dafür nicht benötigt.
+     *
+     * @param string $path Exakter Sourcepfad relativ zum Document Root.
+     * @return DocumentReference Lesende Referenz, auch wenn die Datei noch fehlt.
+     * @throws ValidationException Bei ungültigem oder nicht kanonischem Seitenpfad.
+     * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
+     * @example $reference = $adapter->resolveDocumentPath('en/leistungen/index.md');
+     * @see Adapter::resolveDocumentPath()
+     */
+    public function resolveDocumentPath(string $path): DocumentReference
+    {
+        if (str_contains($path, '\\') || !preg_match('/^(.+)\.(md|html)$/D', $path, $matches)) {
+            throw new ValidationException("Unsupported page file: $path");
+        }
+
+        // Die konfigurierte Sprache aus dem Sourcepfad lösen.
+        $config = $this->loadConfig();
+        $language = $config->defaultLanguage;
+        $name = $matches[1];
+        foreach ($config->languages as $candidate) {
+            if ($candidate !== $config->defaultLanguage && str_starts_with($name, $candidate . '/')) {
+                $language = $candidate;
+                $name = substr($name, strlen($candidate) + 1);
+                break;
+            }
+        }
+
+        $index = $name === 'index' || str_ends_with($name, '/index');
+        $id = Codec::id($index ? substr($name, 0, -5) : $name);
+        $this->assertId($id);
+        $source = ($language === $config->defaultLanguage ? '' : $language . '/')
+            . ($id === '/' ? 'index' : trim($id, '/') . ($index ? '/index' : ''))
+            . '.' . $matches[2];
+        if ($source !== $path) {
+            throw new ValidationException("Non-canonical page file: $path");
+        }
+
+        // Die Storage-Grenze prüft den Pfad; keine Datei wird angelegt.
+        $exists = $this->s()->exists($path);
+        if ($exists && $this->s()->isDirectory($path)) {
+            throw new ValidationException("Expected a page file: $path");
+        }
+        return new DocumentReference($path, $id, $language, $exists);
     }
 
     public function getSourcePath(string $id, string $language): string

@@ -6,6 +6,7 @@ namespace Leuffen\Shiller\Access\Adapter;
 
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\DTO\DocumentReference;
 use Leuffen\Shiller\Access\DTO\FieldSet;
 use Leuffen\Shiller\Access\DTO\PageTree;
 use Leuffen\Shiller\Access\DTO\SiteConfig;
@@ -22,6 +23,21 @@ interface Adapter
     public function bind(SiteStorage $storage): void;
 
     public function loadConfig(): SiteConfig;
+
+    /**
+     * Löst einen exakten Sourcepfad auch für eine noch fehlende Variante auf.
+     *
+     * Die Auflösung liest nur Konfiguration und Storage-Metadaten. Sie erzeugt
+     * kein Dokument und wechselt nicht zu einer anderen Endung oder Indexdatei.
+     *
+     * @param string $path Dateipfad relativ zum Document Root.
+     * @return DocumentReference Identität und Existenz der angefragten Datei.
+     * @throws \Leuffen\Shiller\Access\Exception\ValidationException Bei ungültigem Dateiformat.
+     * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
+     * @example $reference = $adapter->resolveDocumentPath('en/leistungen.md');
+     * @see \Leuffen\Shiller\Access\ShillerRepository::resolveDocumentPath()
+     */
+    public function resolveDocumentPath(string $path): DocumentReference;
 
     public function getSourcePath(string $id, string $language): string;
 
