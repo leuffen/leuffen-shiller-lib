@@ -255,12 +255,6 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             $language === $this->loadConfig()->defaultLanguage,
         );
 
-        if (isset($document->header['pid']) || isset($document->header['lang'])) {
-            throw new ConflictException(
-                "Polyglot pages must not contain pid/lang identity headers: $path",
-            );
-        }
-
         return $document;
     }
 

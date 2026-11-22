@@ -55,6 +55,21 @@ final class PolyglotStructureTest extends TestCase
     }
 
 
+    public function testIdentityHeadersAreAllowedWithoutOverridingPolyglotIdentity(): void
+    {
+        $this->put('magazin/amd.md', "---\npid: legacy-page\nlang: fr\n---\nText\n");
+        $this->put('en/magazin/amd.md', "---\npid: legacy-translation\nlang: de\n---\nText\n");
+        $site = $this->site();
+
+        foreach (['de' => 'legacy-page', 'en' => 'legacy-translation'] as $language => $pid) {
+            $page = $site->getPage('/magazin/amd', $language);
+            self::assertSame('/magazin/amd', $page->id);
+            self::assertSame($language, $page->language);
+            self::assertSame($pid, $page->header['pid']);
+            self::assertSame($language === 'de' ? 'fr' : 'de', $page->header['lang']);
+        }
+    }
+
     public function testEditableHeaderFieldErrorsIncludeConfigurationFile(): void
     {
         $this->put('index.md', "---\ntitle: Home\n---\nText\n");
