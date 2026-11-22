@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use JsonException;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
@@ -185,6 +186,7 @@ final class ShillerContextAction
         $context = new AiContext(options: ['model' => $this->model]);
         $result = $context->text($prompts, input: $this->projectFile->get_contents());
         $this->projectFile->set_contents($result);
+        SharedWritePermissions::apply($this->projectFile, $this->projectRoot);
         foreach ($selected as $sourceFile) {
             $relative = $this->relativePath($sourceFile);
             $state[$relative] = $hashes[$relative];
@@ -303,15 +305,14 @@ final class ShillerContextAction
     private function writeState(array $state): void
     {
         ksort($state);
-        $this->contextDirectory
-            ->withSubPath('.raw-state.json')
-            ->asFile()
-            ->set_contents(
-                json_encode(
-                    $state,
-                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
-                ) . "\n",
-            );
+        $stateFile = $this->contextDirectory->withSubPath('.raw-state.json')->asFile();
+        $stateFile->set_contents(
+            json_encode(
+                $state,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+            ) . "\n",
+        );
+        SharedWritePermissions::apply($stateFile, $this->projectRoot);
     }
 
     private function relativePath(PhoreFile $file): string

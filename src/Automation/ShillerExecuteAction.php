@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Types\T_EditExecution;
 use Leuffen\Shiller\Types\T_ExecutedFile;
 use Phore\AiHarness\AiContext;
@@ -259,14 +260,19 @@ final class ShillerExecuteAction
             $written = [];
             try {
                 foreach ($edits as $name => $content) {
-                    $this->root->withSubPath($name)->asFile()->set_contents($content);
+                    $targetFile = $this->root->withSubPath($name)->asFile();
+                    $targetFile->set_contents($content);
+                    SharedWritePermissions::apply($targetFile, $this->root);
                     $written[] = $name;
                 }
                 $ledger['changes'] = [...$ledger['changes'], ...$entries];
                 $ledgerFile->set_contents(Codec::emitYaml($ledger));
+                SharedWritePermissions::apply($ledgerFile, $this->root);
             } catch (Throwable $error) {
                 foreach ($written as $name) {
-                    $this->root->withSubPath($name)->asFile()->set_contents($originals[$name]);
+                    $targetFile = $this->root->withSubPath($name)->asFile();
+                    $targetFile->set_contents($originals[$name]);
+                    SharedWritePermissions::apply($targetFile, $this->root);
                 }
                 throw $error;
             }
@@ -293,7 +299,9 @@ final class ShillerExecuteAction
                 echo 'Geaendert: ' . $name . "\n";
             }
             if ($changedFiles > 0) {
-                $this->root->withSubPath($diffPath)->asFile()->set_contents($patch);
+                $diffFile = $this->root->withSubPath($diffPath)->asFile();
+                $diffFile->set_contents($patch);
+                SharedWritePermissions::apply($diffFile, $this->root);
                 echo "Gesamtdiff: {$diffPath} ({$changedFiles} Dateien)\n";
             } else {
                 // Vorhandene Reports nicht durch einen leeren Wiederholungslauf

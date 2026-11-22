@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_QuoteFile;
 use Leuffen\Shiller\Types\T_Resolution;
@@ -113,6 +114,7 @@ final class ShillerRefineAction
             }
             if ($command === ':save') {
                 $file->set_contents(Codec::emitYaml($working));
+                SharedWritePermissions::apply($file, $this->root);
                 return $relative;
             }
             if ($command === '') {

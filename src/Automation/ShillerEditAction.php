@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_Quote;
 use Leuffen\Shiller\Types\T_QuoteFile;
@@ -151,6 +152,7 @@ final class ShillerEditAction
         }
         $this->assertValidChanges($changes, $originals);
         $target->mkdir()->set_contents(Codec::emitYaml($changes->toArray()));
+        SharedWritePermissions::apply($target, $this->projectRoot);
 
         $relativeTarget = str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
         $this->logger?->step('Schreibe Edit-Ergebnis: {}', [$relativeTarget]);
