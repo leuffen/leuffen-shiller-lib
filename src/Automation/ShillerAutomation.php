@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\FileSystem\PhoreFile;
@@ -261,6 +262,7 @@ final class ShillerAutomation
             /** @var PhoreFile $target */
             $target = $targets[$relative];
             $target->mkdir()->set_contents($content);
+            SharedWritePermissions::apply($target, $this->projectRoot);
             $this->logger?->success('Geschrieben: {}', [$relative]);
         }
 
