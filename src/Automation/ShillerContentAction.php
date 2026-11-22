@@ -6,6 +6,7 @@ namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
 use Phore\AiHarness\Usage\GlobalUsage;
@@ -236,6 +237,7 @@ final class ShillerContentAction
                 );
                 $task?->detail('Schreibe Datei ins Filesystem');
                 $target->set_contents($content);
+                SharedWritePermissions::apply($target, $this->projectRoot);
                 $written[] = $relative;
                 $task?->success();
                 $afterFile = $usage->getStats();
