@@ -8,6 +8,7 @@ use Leuffen\Shiller\Access\DTO\Document;
 use Closure;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Types\T_Changes;
 use Leuffen\Shiller\Types\T_Resolution;
 use Leuffen\Shiller\Types\T_Task;
@@ -276,6 +277,7 @@ final class ShillerResolveAction
 
         // Ausschliesslich die bestehende YAML erhaelt die neuen Planungsdaten.
         $target->set_contents(Codec::emitYaml($data));
+        SharedWritePermissions::apply($target, $this->projectRoot);
         return str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
     }
 
