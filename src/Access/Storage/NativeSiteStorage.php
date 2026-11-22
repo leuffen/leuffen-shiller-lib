@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Access\Storage;
 
 use FilesystemIterator;
+use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Access\Storage\MoveCapableStorage;
 use Leuffen\Shiller\Access\Exception\StorageException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
@@ -127,6 +128,8 @@ final class NativeSiteStorage implements MoveCapableStorage
                 ) {
                     throw new StorageException("Cannot write file: $path");
                 }
+                $root = phore_dir($this->root, ['rootDir' => $this->root]);
+                SharedWritePermissions::apply($root->withSubPath((string) $path)->asFile(), $root);
             }
         } catch (Throwable $exception) {
             // Bei einem Fehler alle bereits berührten Pfade auf ihren Ausgangszustand zurücksetzen.
@@ -169,9 +172,10 @@ final class NativeSiteStorage implements MoveCapableStorage
             $missing[] = $directory;
         }
         foreach (array_reverse($missing) as $directory) {
-            if (!mkdir($directory, 0770)) {
-                throw new StorageException("Cannot create directory: $directory");
-            }
+            phore_dir($directory, ['rootDir' => $this->root])
+                ->mkdir(0777)
+                ->asFile()
+                ->chmod(0777);
             $createdDirectories[] = $directory;
         }
     }
