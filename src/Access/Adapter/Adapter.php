@@ -20,7 +20,7 @@ use Leuffen\Shiller\Access\Storage\SiteStorage;
  */
 interface Adapter
 {
-    public function bind(SiteStorage $storage): void;
+    public function bind(SiteStorage $storage, array $projectConfig = []): void;
 
     public function loadConfig(): SiteConfig;
 

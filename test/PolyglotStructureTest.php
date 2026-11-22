@@ -21,7 +21,7 @@ final class PolyglotStructureTest extends TestCase
     {
         $this->dir = sys_get_temp_dir() . '/shiller-structure-' . bin2hex(random_bytes(6));
         mkdir($this->dir, 0770, true);
-        $this->put('shiller.yaml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\n");
+        $this->put('.shiller.yml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\n");
     }
 
     protected function tearDown(): void
@@ -47,6 +47,21 @@ final class PolyglotStructureTest extends TestCase
             mkdir(dirname($file), 0770, true);
         }
         file_put_contents($file, $content);
+    }
+
+    public function testProjectConfigurationIsSeparateFromDocumentRoot(): void
+    {
+        $this->put('docs/index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('docs/.shiller.yml', "adapter: invalid\n");
+        $this->put('docs/shiller.yaml', "adapter: invalid\n");
+        $site = new ShillerRepository(
+            $this->dir . '/docs',
+            access: new AccessContext('user'),
+            projectRoot: $this->dir,
+        );
+
+        self::assertSame(['de', 'en', 'fr'], $site->adapter()->loadConfig()->languages);
+        self::assertSame('Home', $site->getPage('/')->header['title']);
     }
 
     private function site(): ShillerRepository
@@ -299,7 +314,7 @@ YAML,
             }
         }
 
-        symlink($this->dir . '/shiller.yaml', $this->dir . '/baum/link');
+        symlink($this->dir . '/.shiller.yml', $this->dir . '/baum/link');
         $this->expectException(ValidationException::class);
         $site->rename('/baum', '/neu');
     }

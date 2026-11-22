@@ -77,6 +77,15 @@ Installation von Theme-Vorlagen über `Leuffen\Shiller\Automation\ShillerAutomat
 Projekt-, Document-Root- und Template-Konfiguration werden über
 `Leuffen\Shiller\Automation\ShillerAutomationFactory` aufgelöst.
 
+Automatisierung und Website-Zugriff verwenden gemeinsam `<Projekt>/.shiller.yml`.
+Website-Einstellungen wie `adapter`, `languages`, `default_lang` und
+`language_labels` stehen ebenfalls dort, nicht in `docs/shiller.yaml`.
+Beim Seitenzugriff bezeichnet das erste Konstruktorargument weiterhin den
+Document-Root; bei getrennten Verzeichnissen wird die Projektwurzel zusätzlich
+über das benannte Argument `projectRoot` übergeben. Ohne dieses Argument gilt
+der übergebene Inhalts-Storage zugleich als Projektwurzel. `_config.yml` bleibt
+im Document-Root. Das Öffnen einer Website erzeugt keine Konfigurationsdateien.
+
 ## CLI: Kundenänderungen erfassen und Lösungen planen
 
 `shiller edit create` sammelt Kundenwünsche als `T_Changes`-YAML, ohne

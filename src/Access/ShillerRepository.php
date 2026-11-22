@@ -33,6 +33,7 @@ use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
 final class ShillerRepository
 {
     private SiteStorage $storage;
+    private array $projectConfig;
     private AccessContext $access;
     private Adapter $adapter;
     private ?SiteConfig $config = null;
@@ -44,17 +45,22 @@ final class ShillerRepository
         SiteStorage|string $root,
         ?Adapter $adapter = null,
         ?AccessContext $access = null,
+        SiteStorage|string|null $projectRoot = null,
     ) {
         $this->storage = is_string($root) ? new NativeSiteStorage($root) : $root;
+        $projectStorage = is_string($projectRoot) ? new NativeSiteStorage($projectRoot) : ($projectRoot ?? $this->storage);
+        $this->projectConfig = $projectStorage->exists('.shiller.yml')
+            ? Codec::yaml($projectStorage->read('.shiller.yml'), '.shiller.yml')
+            : [];
         $this->access = $access ?? new AccessContext();
         $this->adapter = $adapter ?? $this->selectAdapter();
-        $this->adapter->bind($this->storage);
+        $this->adapter->bind($this->storage, $this->projectConfig);
     }
 
     private function selectAdapter(): Adapter
     {
-        if ($this->storage->exists('shiller.yaml')) {
-            $config = Codec::yaml($this->storage->read('shiller.yaml'), 'shiller.yaml');
+        if ($this->projectConfig !== []) {
+            $config = $this->projectConfig;
             $id = $config['adapter']['id'] ?? $config['adapter'] ?? null;
 
             if ($id === 'micx-legacy') {

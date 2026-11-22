@@ -92,9 +92,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
 
     public function loadConfig(): SiteConfig
     {
-        $shiller = $this->s()->exists('shiller.yaml')
-            ? Codec::yaml($this->s()->read('shiller.yaml'), 'shiller.yaml')
-            : [];
+        $shiller = $this->projectConfig;
         $jekyll = $this->s()->exists('_config.yml')
             ? Codec::yaml($this->s()->read('_config.yml'), '_config.yml')
             : [];
