@@ -307,11 +307,11 @@ final class ShillerContextAction
         ksort($state);
         $stateFile = $this->contextDirectory->withSubPath('.raw-state.json')->asFile();
         $stateFile->set_contents(
-                json_encode(
-                    $state,
-                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
-                ) . "\n",
-            );
+            json_encode(
+                $state,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+            ) . "\n",
+        );
         SharedWritePermissions::apply($stateFile, $this->projectRoot);
     }
 
