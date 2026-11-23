@@ -203,11 +203,13 @@ final class ShillerRepository
     public function getPage(string $id, ?string $language = null): Document
     {
         $config = $this->config();
-        // Öffentliche Datei-IDs enthalten die tatsächliche Sprachvariante.
+        // Datei-IDs bezeichnen immer genau diese physische Sprachvariante.
         if (str_ends_with($id, '.md') || str_ends_with($id, '.html')) {
             $reference = $this->resolveDocumentPath($id);
-            $language ??= $reference->language;
-            $id = $reference->id;
+            if ($language !== null && $language !== $reference->language) {
+                throw new ValidationException("Language conflicts with page file: $id");
+            }
+            return $this->getDocumentByPath($id);
         }
         $language ??= $config->defaultLanguage;
         $id = Codec::id($id);
