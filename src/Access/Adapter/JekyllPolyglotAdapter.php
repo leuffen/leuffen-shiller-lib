@@ -338,15 +338,20 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
     }
 
-    public function buildTree(string $id = '/'): PageTree
+    public function buildTree(string $id = '/', ?string $language = null): PageTree
     {
         $config = $this->loadConfig();
         $groups = [];
+        $selectedLanguage = $language ?? $config->defaultLanguage;
+        if (!in_array($selectedLanguage, $config->languages, true)) {
+            throw new ValidationException("Unknown language: $selectedLanguage");
+        }
 
         // Gespiegelte Sprachverzeichnisse wieder auf sprachneutrale Seiten-IDs abbilden.
         foreach ($this->all() as $path) {
             if (
-                !preg_match('/\.(md|html)$/', $path)
+                !str_ends_with($path, '.md')
+                || preg_match('#(^|/)[_.][^/]+/#', $path)
                 || str_starts_with(basename($path), '_')
             ) {
                 continue;
@@ -369,7 +374,11 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
                 }
             }
 
-            $name = preg_replace('/\.(md|html)$/', '', $relativePath);
+            if ($language !== $selectedLanguage) {
+                continue;
+            }
+
+            $name = preg_replace('/\.md$/', '', $relativePath);
             if (!$name) {
                 continue;
             }
@@ -380,9 +389,16 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             }
 
             try {
-                [$header] = Codec::frontMatter($this->s()->read($path), $path);
+                $source = $this->s()->read($path);
+                if (!preg_match('/\A---\r?\n/', $source)) {
+                    continue;
+                }
+                [$header] = Codec::frontMatter($source, $path);
+                if ($header === []) {
+                    continue;
+                }
             } catch (\Throwable) {
-                $header = [];
+                continue;
             }
 
             $groups[$pageId][$language] = [
