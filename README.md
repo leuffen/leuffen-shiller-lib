@@ -423,7 +423,9 @@ andere Sprache; HTML sowie interne Ordner wie `_includes` werden nicht
 berücksichtigt. Jeder tatsächliche Seitenknoten hat als `id` den
 Document-Root-relativen Quelldateinamen, zum Beispiel
 `en/leistungen/diagnostik.md`. `data.path` ist der Quelldateipfad,
-`data.linkUrl` die öffentliche URL. `getPage($node->id)` lädt die Datei;
+`data.linkUrl` die öffentliche URL. `data.translations` hält die
+Dateipfade und `linkUrl`-Werte aller konfigurierten Sprachversionen,
+ohne diese als weitere Seitenknoten aufzulisten. `getPage($node->id)` lädt die Datei;
 `resolveDocumentPath($node->id)` ermittelt die logische Seitengruppe
 und Sprache. Wenn keine Root-Seite existiert, verwendet der Baum einen
 virtuellen Container mit leerer ID.
