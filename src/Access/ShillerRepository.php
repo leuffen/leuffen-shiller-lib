@@ -95,9 +95,73 @@ final class ShillerRepository
         return $this->config = $this->adapter->loadConfig();
     }
 
-    public function pages(string $id = '/'): PageTree
+    /**
+     * Liefert nur Markdown-Seiten mit Front Matter der gewählten Sprache.
+     *
+     * Die TreeNode-ID entspricht dem tatsächlichen Dateipfad relativ zum
+     * Document Root, einschließlich Sprachverzeichnis und .md-Endung.
+     * Verzeichnisse ohne eigene Seite werden nicht als Seiten ausgegeben.
+     * Ohne index.md kann ein virtueller Root mit leerer ID nötig sein.
+     *
+     * @param string $id Optionaler Root-relativer Dateiname oder Seitenpfad.
+     * @param string|null $language Gewünschte Sprache; null verwendet default_lang.
+     * @return PageTree Dateibasierter Seitenbaum mit Ziel-URL in data.linkUrl.
+     * @see self::getPage()
+     * @see self::resolveDocumentPath()
+     * @example $tree = $site->pages(language: 'en');
+     */
+    public function pages(string $id = '/', ?string $language = null): PageTree
     {
-        return $this->adapter->buildTree(Codec::id($id));
+        if (str_ends_with($id, '.md')) {
+            $reference = $this->resolveDocumentPath($id);
+            $language ??= $reference->language;
+            $id = $reference->id;
+        }
+
+        $language ??= $this->config()->defaultLanguage;
+        $tree = $this->adapter->buildTree(Codec::id($id), $language);
+
+        // Kategorien ohne Source-Datei überspringen und deren Seiten hoisten.
+        $collect = function (TreeNode $node) use (&$collect, $language): array {
+            $children = [];
+            foreach ($node->children as $child) {
+                array_push($children, ...$collect($child));
+            }
+
+            $translation = $node->data->translations[$language] ?? null;
+            if ($translation === null || !$translation->exists) {
+                return $children;
+            }
+
+            $document = $this->adapter->load($node->id, $language)->attach($this);
+            $path = $translation->path;
+            $data = new ShillerTreeData(
+                $path,
+                FileKind::page,
+                new FileEntry($path, FileKind::page),
+                $node->data->metadata,
+                [$language => $translation],
+                $children !== [],
+                true,
+                $this->adapter->getUrl($document),
+            );
+
+            return [new TreeNode($path, $node->label, $children, $data, $document)];
+        };
+
+        $pages = $collect($tree->root);
+        if (count($pages) === 1) {
+            return new PageTree($pages[0], $tree->diagnostics);
+        }
+
+        // PageTree besitzt einen Root-Knoten, auch wenn kein index.md existiert.
+        $root = new TreeNode(
+            '',
+            '/',
+            $pages,
+            new ShillerTreeData(null, FileKind::directory, null, [], [], $pages !== [], true),
+        );
+        return new PageTree($root, $tree->diagnostics);
     }
 
     public function files(string $path = '', bool $recursive = false): FileListing
@@ -139,6 +203,12 @@ final class ShillerRepository
     public function getPage(string $id, ?string $language = null): Document
     {
         $config = $this->config();
+        // Öffentliche Datei-IDs enthalten die tatsächliche Sprachvariante.
+        if (str_ends_with($id, '.md') || str_ends_with($id, '.html')) {
+            $reference = $this->resolveDocumentPath($id);
+            $language ??= $reference->language;
+            $id = $reference->id;
+        }
         $language ??= $config->defaultLanguage;
         $id = Codec::id($id);
         $key = "$id|$language";
