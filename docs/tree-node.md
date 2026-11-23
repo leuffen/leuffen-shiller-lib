@@ -55,6 +55,7 @@ export interface TranslationInfo {
   exists: boolean;
   isRootDocument: boolean;
   published: boolean | null;
+  linkUrl: string | null;
 }
 
 export interface ShillerTreeData {
@@ -145,7 +146,9 @@ Die Implementierung muss beide Adapter und das Dateilisting gegen dieselbe Struk
 
 Die Implementierung von `pages()` gibt standardmäßig nur Markdown-Seiten
 mit YAML Front Matter der konfigurierten Standardsprache zurück.
-`pages(language: 'en')` wählt Englisch. Interne Ordner, insbesondere
+`pages(language: 'en')` wählt Englisch. `data.translations` enthält
+alle konfigurierten Sprachversionen mit Dateipfad, Existenz und Ziel-URL,
+aber keine zusätzlichen TreeNodes für andere Sprachen. Interne Ordner, insbesondere
 `_includes`, und HTML-Dateien erscheinen nicht als Seiten. Die ID jedes
 Seitenknotens enthält den tatsächlichen root-relativen Dateinamen samt
 Sprachverzeichnis und `.md`-Endung; sie ist direkt mit `getPage()` nutzbar.
