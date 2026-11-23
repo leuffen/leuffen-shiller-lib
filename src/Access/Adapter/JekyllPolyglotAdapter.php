@@ -348,7 +348,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
 
         // Gespiegelte Sprachverzeichnisse wieder auf sprachneutrale Seiten-IDs abbilden.
-        foreach ($this->all() as $path) {
+        foreach ($this->markdownPages() as $path) {
             if (
                 !str_ends_with($path, '.md')
                 || preg_match('#(^|/)[_.][^/]+/#', $path)
