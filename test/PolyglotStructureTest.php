@@ -49,6 +49,33 @@ final class PolyglotStructureTest extends TestCase
         file_put_contents($file, $content);
     }
 
+    public function testLanguageDefaultsToGermanOnly(): void
+    {
+        $this->put('.shiller.yml', "{}\n");
+        $config = $this->site()->adapter()->loadConfig();
+
+        self::assertSame(['de'], $config->languages);
+        self::assertSame('de', $config->defaultLanguage);
+    }
+
+    public function testDefaultLanguageDoesNotDependOnLanguageOrder(): void
+    {
+        $this->put('.shiller.yml', "languages: [en, de]\n");
+        $config = $this->site()->adapter()->loadConfig();
+
+        self::assertSame(['en', 'de'], $config->languages);
+        self::assertSame('de', $config->defaultLanguage);
+    }
+
+    public function testExplicitDefaultLanguageIsPreserved(): void
+    {
+        $this->put('.shiller.yml', "default_lang: en\n");
+        $config = $this->site()->adapter()->loadConfig();
+
+        self::assertSame(['en'], $config->languages);
+        self::assertSame('en', $config->defaultLanguage);
+    }
+
     public function testProjectConfigurationIsSeparateFromDocumentRoot(): void
     {
         $this->put('docs/index.md', "---\ntitle: Home\n---\nText\n");
@@ -73,7 +100,7 @@ final class PolyglotStructureTest extends TestCase
     public function testIdentityHeadersAreAllowedWithoutOverridingPolyglotIdentity(): void
     {
         $this->put('magazin/amd.md', "---\npid: legacy-page\nlang: fr\n---\nText\n");
-        $this->put('en/magazin/amd.md', "---\npid: legacy-translation\nlang: de\n---\nText\n");
+        $this->put('_intl/en/magazin/amd.md', "---\npid: legacy-translation\nlang: de\n---\nText\n");
         $site = $this->site();
 
         foreach (['de' => 'legacy-page', 'en' => 'legacy-translation'] as $language => $pid) {
@@ -111,7 +138,7 @@ final class PolyglotStructureTest extends TestCase
     public function testEditableHeadersAreResolvedPerPolyglotDocument(): void
     {
         $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
-        $this->put('en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
+        $this->put('_intl/en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
         $this->put(
             'editable-headers.conf.yaml',
             <<<'YAML'
@@ -166,7 +193,7 @@ YAML,
         $german = "---\ntitle: Leistungen\ncustom: {nested: yes}\n---\n# Inhalt\n";
         $english = "---\ntitle: Services\n---\n# Body\n";
         $this->put('leistungen.md', $german);
-        $this->put('en/leistungen.html', $english);
+        $this->put('_intl/en/leistungen.html', $english);
         $site = $this->site();
         $parent = $site->getPage('/leistungen');
 
@@ -175,11 +202,11 @@ YAML,
         $child->save();
 
         self::assertFileDoesNotExist($this->dir . '/leistungen.md');
-        self::assertFileDoesNotExist($this->dir . '/en/leistungen.html');
+        self::assertFileDoesNotExist($this->dir . '/_intl/en/leistungen.html');
         self::assertSame($german, file_get_contents($this->dir . '/leistungen/index.md'));
-        self::assertSame($english, file_get_contents($this->dir . '/en/leistungen/index.html'));
+        self::assertSame($english, file_get_contents($this->dir . '/_intl/en/leistungen/index.html'));
         self::assertFileExists($this->dir . '/leistungen/kinder.md');
-        self::assertFileDoesNotExist($this->dir . '/fr/leistungen/index.md');
+        self::assertFileDoesNotExist($this->dir . '/_intl/fr/leistungen/index.md');
         self::assertSame('leistungen/index.md', $parent->file?->path);
         self::assertSame('/leistungen/', $parent->getUrl());
         self::assertSame('/leistungen/kinder.html', $child->getUrl());
@@ -191,8 +218,8 @@ YAML,
         $this->put('alt/kind.md', "---\ntitle: Kind\n---\nKind\n");
         $this->put('alt/bild.png', "binary\0data");
         $this->put('alt/.hidden', 'kept');
-        $this->put('en/alt/index.md', "---\ntitle: Old\n---\nHome\n");
-        $this->put('en/alt/kind.md', "---\ntitle: Child\n---\nChild\n");
+        $this->put('_intl/en/alt/index.md', "---\ntitle: Old\n---\nHome\n");
+        $this->put('_intl/en/alt/kind.md', "---\ntitle: Child\n---\nChild\n");
         mkdir($this->dir . '/alt/empty');
 
         $site = $this->site();
@@ -202,7 +229,7 @@ YAML,
 
         self::assertFileDoesNotExist($this->dir . '/alt/index.md');
         self::assertFileExists($this->dir . '/neu/index.md');
-        self::assertFileExists($this->dir . '/en/neu/kind.md');
+        self::assertFileExists($this->dir . '/_intl/en/neu/kind.md');
         self::assertSame("binary\0data", file_get_contents($this->dir . '/neu/bild.png'));
         self::assertSame('kept', file_get_contents($this->dir . '/neu/.hidden'));
         self::assertDirectoryExists($this->dir . '/neu/empty');
@@ -215,32 +242,32 @@ YAML,
     public function testMoveBelowLeafPromotesTargetInAllLanguages(): void
     {
         $this->put('ziel.md', "---\ntitle: Ziel\n---\nZiel\n");
-        $this->put('en/ziel.html', "---\ntitle: Target\n---\nTarget\n");
+        $this->put('_intl/en/ziel.html', "---\ntitle: Target\n---\nTarget\n");
         $this->put('quelle/index.md', "---\ntitle: Quelle\n---\nQuelle\n");
         $this->put('quelle/kind.md', "---\ntitle: Kind\n---\nKind\n");
-        $this->put('en/quelle/index.md', "---\ntitle: Source\n---\nSource\n");
+        $this->put('_intl/en/quelle/index.md', "---\ntitle: Source\n---\nSource\n");
 
         $this->site()->rename('/quelle', '/ziel/quelle');
 
         self::assertFileExists($this->dir . '/ziel/index.md');
-        self::assertFileExists($this->dir . '/en/ziel/index.html');
+        self::assertFileExists($this->dir . '/_intl/en/ziel/index.html');
         self::assertFileExists($this->dir . '/ziel/quelle/kind.md');
-        self::assertFileExists($this->dir . '/en/ziel/quelle/index.md');
+        self::assertFileExists($this->dir . '/_intl/en/ziel/quelle/index.md');
         self::assertFileDoesNotExist($this->dir . '/quelle/index.md');
-        self::assertFileDoesNotExist($this->dir . '/fr/ziel/index.md');
+        self::assertFileDoesNotExist($this->dir . '/_intl/fr/ziel/index.md');
     }
 
     public function testLeafRenameKeepsLanguageVariantsAndRejectsAlternateExtension(): void
     {
         $this->put('seite.md', "---\ntitle: Seite\n---\nText\n");
-        $this->put('en/seite.html', "---\ntitle: Page\n---\nText\n");
+        $this->put('_intl/en/seite.html', "---\ntitle: Page\n---\nText\n");
         $site = $this->site();
         $site->rename('/seite', '/neu');
 
         self::assertFileExists($this->dir . '/neu.md');
-        self::assertFileExists($this->dir . '/en/neu.html');
+        self::assertFileExists($this->dir . '/_intl/en/neu.html');
         self::assertFileDoesNotExist($this->dir . '/seite.md');
-        self::assertFileDoesNotExist($this->dir . '/en/seite.html');
+        self::assertFileDoesNotExist($this->dir . '/_intl/en/seite.html');
 
         $this->put('anders.html', "---\ntitle: Occupied\n---\nText\n");
         $this->expectException(ConflictException::class);
@@ -284,7 +311,7 @@ YAML,
     {
         $source = "---\ntitle: Original\n---\nText\n";
         $this->put('quelle.md', $source);
-        $this->put('en/ziel.md', "---\ntitle: Belegt\n---\nText\n");
+        $this->put('_intl/en/ziel.md', "---\ntitle: Belegt\n---\nText\n");
         $site = $this->site();
 
         try {

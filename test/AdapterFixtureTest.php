@@ -8,6 +8,51 @@ use PHPUnit\Framework\TestCase;
 
 final class AdapterFixtureTest extends TestCase
 {
+    public function testPageTreesOnlyListMainLanguageMarkdownPages(): void
+    {
+        foreach ([false, true] as $legacy) {
+            $directory = phore_dir(sys_get_temp_dir() . '/shiller-list-' . bin2hex(random_bytes(6)))->mkdir();
+            try {
+                $files = $legacy ? [
+                    '_data/languages.yml' => "de: Deutsch\nen: English\n",
+                    'page.de.md' => "---\ntitle: Hauptseite\n---\n",
+                    'page.en.md' => '# Translation',
+                    'orphan.en.md' => '# Translation only',
+                    'html.de.html' => '<p>HTML</p>',
+                    '_includes/hidden.de.md' => '# Include',
+                    'nested/_drafts/hidden.de.md' => '# Draft',
+                    '_helper.de.md' => '# Helper',
+                ] : [
+                    '.shiller.yml' => "schema_version: 1\nlanguages: [de, en]\ndefault_lang: de\n",
+                    'page.md' => "---\ntitle: Hauptseite\n---\n",
+                    '_intl/en/page.md' => "---\ntitle: Translation\n---\nText\n",
+                    '_intl/en/orphan.md' => '# Translation only',
+                    '_intl/fr/unknown.md' => '# Unconfigured translation',
+                    'html.html' => '<p>HTML</p>',
+                    '_includes/hidden.md' => '# Include',
+                    'nested/_drafts/hidden.md' => '# Draft',
+                    '_helper.md' => '# Helper',
+                ];
+                foreach ($files as $path => $content) {
+                    $file = $directory->withSubPath($path)->asFile();
+                    $file->withDirName()->mkdir();
+                    $file->set_contents($content);
+                }
+                $site = $legacy
+                    ? new ShillerRepository((string) $directory, new JekyllLegacyAdapter())
+                    : new ShillerRepository((string) $directory);
+                $tree = $site->pages();
+                self::assertSame(['/page'], array_map(static fn($node) => $node->id, $tree->root->children));
+                if (!$legacy) {
+                    self::assertSame('_intl/en/page.md', $site->getPage('/page', 'en')->file->path);
+                    self::assertSame('/page', $site->adapter()->resolveDocumentPath('_intl/en/page.md')->id);
+                }
+            } finally {
+                $directory->rmDir(true);
+            }
+        }
+    }
+
     public function testLegacySectionProducesOriginalFormFieldsAndMetadata(): void
     {
         $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());

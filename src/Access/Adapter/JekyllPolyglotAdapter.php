@@ -102,13 +102,12 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             (array) (
                 $shiller['languages']
                 ?? $jekyll['languages']
-                ?? [$shiller['default_lang'] ?? 'de', 'en']
+                ?? [$shiller['default_lang'] ?? $shiller['default_language'] ?? 'de']
             ),
         ));
         $defaultLanguage = (string) (
             $shiller['default_lang']
             ?? $shiller['default_language']
-            ?? $languages[0]
             ?? 'de'
         );
 
@@ -135,7 +134,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
     {
         return $language === $this->loadConfig()->defaultLanguage
             ? ''
-            : $language . '/';
+            : '_intl/' . $language . '/';
     }
 
     /**
@@ -148,7 +147,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
      * @return DocumentReference Lesende Referenz, auch wenn die Datei noch fehlt.
      * @throws ValidationException Bei ungültigem oder nicht kanonischem Seitenpfad.
      * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
-     * @example $reference = $adapter->resolveDocumentPath('en/leistungen/index.md');
+     * @example $reference = $adapter->resolveDocumentPath('_intl/en/leistungen/index.md');
      * @see Adapter::resolveDocumentPath()
      */
     public function resolveDocumentPath(string $path): DocumentReference
@@ -162,9 +161,9 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         $language = $config->defaultLanguage;
         $name = $matches[1];
         foreach ($config->languages as $candidate) {
-            if ($candidate !== $config->defaultLanguage && str_starts_with($name, $candidate . '/')) {
+            if ($candidate !== $config->defaultLanguage && str_starts_with($name, $this->prefix($candidate))) {
                 $language = $candidate;
-                $name = substr($name, strlen($candidate) + 1);
+                $name = substr($name, strlen($this->prefix($candidate)));
                 break;
             }
         }
@@ -172,7 +171,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         $index = $name === 'index' || str_ends_with($name, '/index');
         $id = Codec::id($index ? substr($name, 0, -5) : $name);
         $this->assertId($id);
-        $source = ($language === $config->defaultLanguage ? '' : $language . '/')
+        $source = $this->prefix($language)
             . ($id === '/' ? 'index' : trim($id, '/') . ($index ? '/index' : ''))
             . '.' . $matches[2];
         if ($source !== $path) {
@@ -346,8 +345,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         // Gespiegelte Sprachverzeichnisse wieder auf sprachneutrale Seiten-IDs abbilden.
         foreach ($this->all() as $path) {
             if (
-                !preg_match('/\.(md|html)$/', $path)
-                || str_starts_with(basename($path), '_')
+                !str_ends_with($path, '.md')
             ) {
                 continue;
             }
@@ -358,18 +356,22 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
             foreach ($config->languages as $candidateLanguage) {
                 if (
                     $candidateLanguage !== $config->defaultLanguage
-                    && str_starts_with($relativePath, $candidateLanguage . '/')
+                    && str_starts_with($relativePath, $this->prefix($candidateLanguage))
                 ) {
                     $language = $candidateLanguage;
                     $relativePath = substr(
                         $relativePath,
-                        strlen($candidateLanguage) + 1,
+                        strlen($this->prefix($candidateLanguage)),
                     );
                     break;
                 }
             }
 
-            $name = preg_replace('/\.(md|html)$/', '', $relativePath);
+            if (preg_match('~(^|/)[_.]~', $relativePath)) {
+                continue;
+            }
+
+            $name = substr($relativePath, 0, -3);
             if (!$name) {
                 continue;
             }
@@ -391,6 +393,8 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
                 'published' => $header['published'] ?? true,
             ];
         }
+
+        $groups = array_filter($groups, static fn(array $languages): bool => isset($languages[$config->defaultLanguage]));
 
         return $this->nodeTree($groups, $id, $config);
     }

@@ -218,11 +218,11 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
                 continue;
             }
 
-            if (!preg_match('/\.(md|html)$/', $path)) {
+            if (!str_ends_with($path, '.md') || preg_match('~(^|/)[_.]~', $path)) {
                 continue;
             }
 
-            $name = preg_replace('/\.(md|html)$/', '', $path);
+            $name = substr($path, 0, -3);
             if (!$name) {
                 continue;
             }
@@ -257,6 +257,8 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
                 'published' => $header['published'] ?? true,
             ];
         }
+
+        $groups = array_filter($groups, static fn(array $languages): bool => isset($languages[$config->defaultLanguage]));
 
         return $this->nodeTree($groups, $id, $config, $metadata);
     }
