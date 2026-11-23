@@ -17,12 +17,14 @@ final class ShillerTreeData
         public readonly array $translations = [],
         public readonly bool $hasChildren = false,
         public readonly bool $childrenLoaded = true,
+        public readonly ?string $linkUrl = null,
     ) {}
 
     public function toArray(): array
     {
         return [
             'path' => $this->path,
+            'linkUrl' => $this->linkUrl,
             'kind' => $this->kind->value,
             'file' => $this->file?->toArray(),
             'metadata' => (object) $this->metadata,
