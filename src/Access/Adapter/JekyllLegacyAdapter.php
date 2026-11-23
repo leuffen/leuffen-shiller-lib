@@ -197,10 +197,14 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
         $this->s()->writeBatch($changes);
     }
 
-    public function buildTree(string $id = '/'): PageTree
+    public function buildTree(string $id = '/', ?string $language = null): PageTree
     {
         $config = $this->loadConfig();
         $groups = [];
+        $selectedLanguage = $language ?? $config->defaultLanguage;
+        if (!in_array($selectedLanguage, $config->languages, true)) {
+            throw new ValidationException("Unknown language: $selectedLanguage");
+        }
         $metadata = [];
 
         // Legacy-Seiten und _section.yml-Metadaten in die gemeinsame Baumstruktur überführen.
@@ -218,7 +222,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
                 continue;
             }
 
-            if (!preg_match('/\.(md|html)$/', $path)) {
+            if (!str_ends_with($path, '.md') || preg_match('#(^|/)[_.][^/]+/#', $path)) {
                 continue;
             }
 
@@ -236,7 +240,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
                 }
             }
 
-            if (!$matchedLanguage) {
+            if (!$matchedLanguage || $matchedLanguage !== $selectedLanguage) {
                 continue;
             }
 
@@ -246,9 +250,16 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
             }
 
             try {
-                [$header] = Codec::frontMatter($this->s()->read($path), $path);
+                $source = $this->s()->read($path);
+                if (!preg_match('/\A---\r?\n/', $source)) {
+                    continue;
+                }
+                [$header] = Codec::frontMatter($source, $path);
+                if ($header === []) {
+                    continue;
+                }
             } catch (\Throwable) {
-                $header = [];
+                continue;
             }
 
             $groups[$pageId][$matchedLanguage] = [
