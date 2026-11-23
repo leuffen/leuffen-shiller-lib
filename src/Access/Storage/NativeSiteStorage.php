@@ -27,6 +27,12 @@ final class NativeSiteStorage implements MoveCapableStorage
         $this->root = rtrim($real, DIRECTORY_SEPARATOR);
     }
 
+    /** Returns the absolute source root of this filesystem storage. */
+    public function getRootDirectory(): string
+    {
+        return $this->root === '' ? DIRECTORY_SEPARATOR : $this->root;
+    }
+
     private function path(string $path): string
     {
         $path = str_replace('\\', '/', $path);

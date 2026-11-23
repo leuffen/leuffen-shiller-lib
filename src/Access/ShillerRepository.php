@@ -76,6 +76,19 @@ final class ShillerRepository
         return new JekyllPolyglotAdapter();
     }
 
+    /**
+     * Returns the absolute source directory for filesystem-backed sites.
+     *
+     * @throws \LogicException When the storage has no local filesystem directory.
+     */
+    public function getSourceDirectory(): string
+    {
+        if (!$this->storage instanceof NativeSiteStorage) {
+            throw new \LogicException('Site storage has no local source directory');
+        }
+        return $this->storage->getRootDirectory();
+    }
+
     public function storage(): SiteStorage
     {
         return $this->storage;
