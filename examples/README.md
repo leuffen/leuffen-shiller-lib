@@ -170,7 +170,8 @@ Matter aus `default_lang`. Mit `$site->pages(language: 'en')` wird gezielt
 die englische Variante aufgelistet. Die `TreeNode.id` ist der tatsächliche
 Dateipfad relativ zum Document Root (`en/leistungen/diagnostik.md`).
 `data.path` enthält denselben Sourcepfad und `data.linkUrl` die öffentliche
-Ziel-URL. HTML und interne Verzeichnisse wie `_includes` oder `_data` sind
+Ziel-URL. `data.translations` enthält die vorhandenen Sprachvarianten samt
+`linkUrl`, ohne zusätzliche Knoten in der gewählten Sprache zu erzeugen. HTML und interne Verzeichnisse wie `_includes` oder `_data` sind
 keine Seiten. Reine Verzeichnisse werden übersprungen; bei fehlender
 `index.md` verwendet `PageTree.root` einen virtuellen Knoten mit leerer ID.
 
