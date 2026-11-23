@@ -135,12 +135,35 @@ final class ShillerRepository
 
             $document = $this->adapter->load($node->id, $language)->attach($this);
             $path = $translation->path;
+
+            // Weitere Sprachen nur als Links, nicht als zusätzliche Baumknoten.
+            $translations = [];
+            $config = $this->config();
+            foreach ($config->languages as $candidate) {
+                $candidatePath = $this->adapter->getSourcePath($node->id, $candidate);
+                $exists = $this->storage->exists($candidatePath);
+                $candidateDocument = $exists
+                    ? $this->adapter->load($node->id, $candidate)
+                    : null;
+                $translations[$candidate] = new TranslationInfo(
+                    $candidate,
+                    $candidatePath,
+                    $exists,
+                    $candidate === $config->defaultLanguage,
+                    $candidateDocument === null
+                        ? null
+                        : (bool) ($candidateDocument->header['published'] ?? true),
+                    $candidateDocument === null
+                        ? null
+                        : $this->adapter->getUrl($candidateDocument),
+                );
+            }
             $data = new ShillerTreeData(
                 $path,
                 FileKind::page,
                 new FileEntry($path, FileKind::page),
                 $node->data->metadata,
-                [$language => $translation],
+                $translations,
                 $children !== [],
                 true,
                 $this->adapter->getUrl($document),
