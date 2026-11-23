@@ -12,6 +12,7 @@ final class TranslationInfo
         public readonly bool $exists,
         public readonly bool $isRootDocument,
         public readonly ?bool $published,
+        public readonly ?string $linkUrl = null,
     ) {}
 
     public function toArray(): array
