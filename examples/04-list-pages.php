@@ -2,33 +2,25 @@
 
 use Leuffen\Shiller\Access\DTO\Document;
 
-// Verwendet den lesenden $site aus 01; Basisfixture mit Kategorie und einer Unterseite.
-$tree = $site->pages('/leistungen');
-$category = $tree->root;
-$category->id;            // '/leistungen'
-$category->label;         // 'leistungen': ohne Titel gilt das letzte ID-Segment
-$category->data->file;    // null: Kategorie hat keine eigene Seite
-$category->getDocument(); // null: nur aufklappen, keinen Seiteneditor öffnen
-$category->isLeaf();      // false
+// Standard: nur Markdown-Seiten mit Front Matter in default_lang (de).
+$tree = $site->pages();
+$root = $tree->root;
+$root->id; // 'index.md', sofern eine Startseite existiert
 
-$node = $category->children[0];
-$node->id;                // '/leistungen/diagnostik'
-$node->label;             // 'Diagnostik': title der bevorzugten lesbaren Seite
-$node->data->file->path;  // 'leistungen/diagnostik.md'
-$node->isLeaf();          // true; unabhängig davon, ob eine eigene Seite existiert
+// Eine Sprache explizit auswählen: Die ID enthält den echten Sourcepfad.
+$englishTree = $site->pages(language: 'en');
+$englishRoot = $englishTree->root;
+// Ohne en/index.md ist die Root-ID '' (virtueller Container).
+// Darunter stehen ausschließlich echte Seiten, keine _includes oder HTML.
+$page = $site->getPage('en/leistungen/diagnostik.md');
+$page->file->path; // 'en/leistungen/diagnostik.md'
 
-foreach ($node->data->translations as $language => $info) {
-    echo $language;
-    $info->exists;    // de=true, en=true, fr=false
-    $info->published; // de=true, en=true, fr=null; kein Body-Laden nötig
-}
-$document = $node->getDocument(); // Document: id='/leistungen/diagnostik', language='de'
-// Mit leistungen/index.md zeigt category.data.file auf diese Datei; Index ist kein zusätzliches Kind.
-// data.metadata enthält ggf. Legacy-Section-Beschreibung/Formularhinweise.
+// data.path ist der Sourcepfad; data.linkUrl die aufrufbare Website-URL.
+// Die Datei-ID kann direkt an getPage übergeben werden.
+$node = $englishRoot->children[0] ?? $englishRoot;
+$node->id;
+$node->data->path;
+$node->data->linkUrl;
 
-// Für die Antwort eines bestehenden HTTP-Endpunkts:
-$payload = $tree->toArray(); // root: {id, label, children, data}, diagnostics: []
-$json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-// $json als application/json-Antwort senden; HTTP übernimmt die Anwendung.
-// Frontend: [payload.root] direkt als Tree-Items; keine rekursive Umformung.
-// Konvention v1 und Rendering-Beispiel: docs/tree-node.md.
+// Als JSON für einen bestehenden HTTP-Endpunkt:
+$json = json_encode($englishTree->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
