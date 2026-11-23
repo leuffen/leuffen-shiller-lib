@@ -54,7 +54,8 @@ final class ShillerRepository
             : [];
         $this->access = $access ?? new AccessContext();
         $this->adapter = $adapter ?? $this->selectAdapter();
-        $this->adapter->bind($this->storage, $this->projectConfig);
+        // Adapter benötigen für projektweite Dateien denselben Root wie die .shiller.yml.
+        $this->adapter->bind($this->storage, $this->projectConfig, $projectStorage);
     }
 
     private function selectAdapter(): Adapter

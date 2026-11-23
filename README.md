@@ -1,5 +1,14 @@
 # Shiller Library
 
+## Editierbare Header
+
+Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
+`.shiller.yml` den Pfad zur Header-Konfiguration relativ zum Verzeichnis dieser
+`.shiller.yml` fest (nicht relativ zum Document Root).
+Der Dateiname ist frei wählbar. Fehlt der Eintrag oder ist er leer beziehungsweise
+`null`, liefert `getEditableHeaders()` keine Felder — auch wenn eine
+Header-Konfigurationsdatei vorhanden ist. Es wird kein Standarddateiname gesucht.
+
 ## CLI: Neue Website anlegen
 
 Vor dem ersten Shiller-Aufruf muss im neuen Website-Projekt das

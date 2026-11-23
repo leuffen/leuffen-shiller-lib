@@ -21,7 +21,7 @@ final class PolyglotStructureTest extends TestCase
     {
         $this->dir = sys_get_temp_dir() . '/shiller-structure-' . bin2hex(random_bytes(6));
         mkdir($this->dir, 0770, true);
-        $this->put('.shiller.yml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\n");
+        $this->put('.shiller.yml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n");
     }
 
     protected function tearDown(): void
@@ -47,6 +47,17 @@ final class PolyglotStructureTest extends TestCase
             mkdir(dirname($file), 0770, true);
         }
         file_put_contents($file, $content);
+    }
+
+    // Selbst eine vorhandene Headerdatei aktiviert ohne konfigurierten Pfad keine Felder.
+    public function testEditableHeadersAreDisabledWithoutConfiguredFile(): void
+    {
+        $this->put('index.md', "---\ntitle: Home\n---\nText\n");
+        $this->put('editable-headers.conf.yml', "fields:\n  - {name: title, type: string}\n");
+        foreach (["{}\n", "editable_headers_file: ''\n", "editable_headers_file: null\n"] as $config) {
+            $this->put('.shiller.yml', $config);
+            self::assertSame([], $this->site()->getPage('/')->getEditableHeaders());
+        }
     }
 
     public function testLanguageDefaultsToGermanOnly(): void
@@ -91,6 +102,18 @@ final class PolyglotStructureTest extends TestCase
         self::assertSame('Home', $site->getPage('/')->header['title']);
     }
 
+    // Header-Konfiguration liegt neben .shiller.yml, während die Seiten unter docs liegen.
+    public function testEditableHeadersFileIsRelativeToProjectConfiguration(): void
+    {
+        $this->put('.shiller.yml', "editable_headers_file: config/headers.yml\n");
+        $this->put('config/headers.yml', "fields:\n  - {name: title, type: string}\n");
+        $this->put('docs/config/headers.yml', "fields:\n  - {name: wrong, type: string}\n");
+        $this->put('docs/index.md', "---\ntitle: Home\n---\nText\n");
+        $site = new ShillerRepository($this->dir . '/docs', projectRoot: $this->dir);
+
+        self::assertSame(['title'], array_column($site->getPage('/')->getEditableHeaders(), 'name'));
+    }
+
     private function site(): ShillerRepository
     {
         return new ShillerRepository($this->dir, access: new AccessContext('user'));
@@ -115,12 +138,12 @@ final class PolyglotStructureTest extends TestCase
     public function testEditableHeaderFieldErrorsIncludeConfigurationFile(): void
     {
         $this->put('index.md', "---\ntitle: Home\n---\nText\n");
-        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: invalid\n");
+        $this->put('editable-headers.conf.yml', "fields:\n  - name: title\n    type: invalid\n");
         try {
             $this->site()->getPage('/')->getEditableHeaders();
             self::fail('Invalid field type was accepted');
         } catch (ValidationException $exception) {
-            self::assertStringContainsString('editable-headers.conf.yaml', $exception->getMessage());
+            self::assertStringContainsString('editable-headers.conf.yml', $exception->getMessage());
             self::assertStringContainsString('fields[0]', $exception->getMessage());
             self::assertStringContainsString('.type', $exception->getMessage());
         }
@@ -129,9 +152,9 @@ final class PolyglotStructureTest extends TestCase
     public function testEditableHeaderWhenErrorsIncludeConfigurationFile(): void
     {
         $this->put('index.md', "---\ntitle: Home\n---\nText\n");
-        $this->put('editable-headers.conf.yaml', "fields:\n  - name: title\n    type: string\n    when:\n      include: '~[~'\n");
+        $this->put('editable-headers.conf.yml', "fields:\n  - name: title\n    type: string\n    when:\n      include: '~[~'\n");
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('editable-headers.conf.yaml: fields[0] (title).when: when.include');
+        $this->expectExceptionMessage('editable-headers.conf.yml: fields[0] (title).when: when.include');
         $this->site()->getPage('/')->getEditableHeaders();
     }
 
@@ -140,7 +163,7 @@ final class PolyglotStructureTest extends TestCase
         $this->put('leistungen.md', "---\ntitle: Leistungen\npublished: false\ncategory: praxis\n---\nText\n");
         $this->put('_intl/en/leistungen.md', "---\ntitle: Services\ncategory: other\n---\nText\n");
         $this->put(
-            'editable-headers.conf.yaml',
+            'editable-headers.conf.yml',
             <<<'YAML'
 fields:
   - name: title

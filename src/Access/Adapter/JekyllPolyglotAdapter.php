@@ -419,12 +419,21 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
      */
     public function getEditableHeaders(Document $document): array
     {
-        $path = 'editable-headers.conf.yaml';
-        if (!$this->s()->exists($path)) {
+        // Ohne expliziten Konfigurationspfad sind keine Header zur Bearbeitung freigegeben.
+        $path = $this->projectConfig['editable_headers_file'] ?? '';
+        if ($path === '') {
+            return [];
+        }
+        if (!is_string($path)) {
+            throw new ValidationException('.shiller.yml: editable_headers_file: expected string or null');
+        }
+        // Der konfigurierte Pfad bezieht sich auf das Verzeichnis der .shiller.yml.
+        $storage = $this->projectStorage ?? throw new \LogicException('Adapter not bound');
+        if (!$storage->exists($path)) {
             return [];
         }
 
-        $config = Codec::yaml($this->s()->read($path), $path);
+        $config = Codec::yaml($storage->read($path), $path);
         $definitions = $config['fields'] ?? [];
         if (!is_array($definitions) || !array_is_list($definitions)) {
             throw new ValidationException("$path: fields must be a list");

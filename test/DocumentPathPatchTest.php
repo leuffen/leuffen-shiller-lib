@@ -232,7 +232,8 @@ final class DocumentPathPatchTest extends TestCase
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\n---\nInhalt\n",
             'en/seite.md' => "---\ntitle: Page\n---\nBody\n",
-            'editable-headers.conf.yaml' => <<<'YAML'
+            '.shiller.yml' => "editable_headers_file: editable-headers.conf.yml\n",
+            'editable-headers.conf.yml' => <<<'YAML'
 fields:
   - name: title
     type: string
@@ -292,7 +293,8 @@ YAML,
     {
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\nlayout: landing\n---\nInhalt\n",
-            'editable-headers.conf.yaml' => "fields:\n  - {name: layout, type: string, default: default}\n",
+            '.shiller.yml' => "editable_headers_file: editable-headers.conf.yml\n",
+            'editable-headers.conf.yml' => "fields:\n  - {name: layout, type: string, default: default}\n",
         ]);
         $page = $site->getDocumentByPath('seite.md');
         $page->patch(['layout' => null])->save();

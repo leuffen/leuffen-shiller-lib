@@ -26,7 +26,7 @@ final class EditableHeaderWhenMatcherTest extends TestCase
     {
         $config = \Leuffen\Shiller\Access\Helper\Codec::yaml(
             "when:\n  on:\n    published: true\n",
-            'editable-headers.conf.yaml',
+            'editable-headers.conf.yml',
         );
 
         $matcher = new EditableHeaderWhenMatcher();
@@ -57,10 +57,10 @@ final class EditableHeaderWhenMatcherTest extends TestCase
             ['exclude' => [12]],
         ] as $when) {
             try {
-                $matcher->matches([], $when, 'index.md', 'docs/editable-headers.conf.yaml');
+                $matcher->matches([], $when, 'index.md', 'docs/editable-headers.conf.yml');
                 self::fail('Invalid condition was accepted');
             } catch (ValidationException $exception) {
-                self::assertStringContainsString('docs/editable-headers.conf.yaml', $exception->getMessage());
+                self::assertStringContainsString('docs/editable-headers.conf.yml', $exception->getMessage());
                 self::assertStringContainsString('when.', $exception->getMessage());
             }
         }

@@ -21,17 +21,20 @@ use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
 abstract class AbstractJekyllAdapter implements Adapter
 {
     protected ?SiteStorage $storage = null;
+    // Projektdateien werden relativ zur .shiller.yml statt zum Document Root gelesen.
+    protected ?SiteStorage $projectStorage = null;
 
     private bool $bound = false;
     protected array $projectConfig = [];
 
-    public function bind(SiteStorage $storage, array $projectConfig = []): void
+    public function bind(SiteStorage $storage, array $projectConfig = [], ?SiteStorage $projectStorage = null): void
     {
         if ($this->bound) {
             throw new \LogicException('Adapter already bound');
         }
 
         $this->storage = $storage;
+        $this->projectStorage = $projectStorage ?? $storage;
         $this->projectConfig = $projectConfig;
         $this->bound = true;
     }
