@@ -414,3 +414,16 @@ Unter [demo/](demo/) stehen Template und installierte Website getrennt.
 Die Beispiele zeigen den zentralen Projektkontext, konfigurierbares
 `skills_dir`, Markdown-Zieldateien und YAML-Sidecars. Bearbeitungsregeln
 werden ausschliesslich durch die ThemeJS2-Skills bereitgestellt.
+
+## Seitenbaum und Datei-IDs
+
+`ShillerRepository::pages()` listet Markdown-Seiten mit YAML Front Matter
+in der konfigurierten Standardsprache. `pages(language: 'en')` wählt eine
+andere Sprache; HTML sowie interne Ordner wie `_includes` werden nicht
+berücksichtigt. Jeder tatsächliche Seitenknoten hat als `id` den
+Document-Root-relativen Quelldateinamen, zum Beispiel
+`en/leistungen/diagnostik.md`. `data.path` ist der Quelldateipfad,
+`data.linkUrl` die öffentliche URL. `getPage($node->id)` lädt die Datei;
+`resolveDocumentPath($node->id)` ermittelt die logische Seitengruppe
+und Sprache. Wenn keine Root-Seite existiert, verwendet der Baum einen
+virtuellen Container mit leerer ID.
