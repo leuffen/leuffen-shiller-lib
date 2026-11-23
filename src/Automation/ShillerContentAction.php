@@ -236,8 +236,7 @@ final class ShillerContentAction
                     options: ['reasoning' => ['effort' => self::FILE_REASONING_EFFORT]],
                 );
                 $task?->detail('Schreibe Datei ins Filesystem');
-                $target->set_contents($content);
-                SharedWritePermissions::apply($target, $this->projectRoot);
+                SharedWritePermissions::write($target, $this->projectRoot, $content);
                 $written[] = $relative;
                 $task?->success();
                 $afterFile = $usage->getStats();

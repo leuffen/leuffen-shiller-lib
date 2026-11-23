@@ -185,8 +185,7 @@ final class ShillerContextAction
         $this->logger?->step('AI-Modell: {}', [$this->model]);
         $context = new AiContext(options: ['model' => $this->model]);
         $result = $context->text($prompts, input: $this->projectFile->get_contents());
-        $this->projectFile->set_contents($result);
-        SharedWritePermissions::apply($this->projectFile, $this->projectRoot);
+        SharedWritePermissions::write($this->projectFile, $this->projectRoot, $result);
         foreach ($selected as $sourceFile) {
             $relative = $this->relativePath($sourceFile);
             $state[$relative] = $hashes[$relative];
@@ -306,13 +305,12 @@ final class ShillerContextAction
     {
         ksort($state);
         $stateFile = $this->contextDirectory->withSubPath('.raw-state.json')->asFile();
-        $stateFile->set_contents(
+        SharedWritePermissions::write($stateFile, $this->projectRoot,
             json_encode(
                 $state,
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
             ) . "\n",
         );
-        SharedWritePermissions::apply($stateFile, $this->projectRoot);
     }
 
     private function relativePath(PhoreFile $file): string

@@ -261,18 +261,15 @@ final class ShillerExecuteAction
             try {
                 foreach ($edits as $name => $content) {
                     $targetFile = $this->root->withSubPath($name)->asFile();
-                    $targetFile->set_contents($content);
-                    SharedWritePermissions::apply($targetFile, $this->root);
+                    SharedWritePermissions::write($targetFile, $this->root, $content);
                     $written[] = $name;
                 }
                 $ledger['changes'] = [...$ledger['changes'], ...$entries];
-                $ledgerFile->set_contents(Codec::emitYaml($ledger));
-                SharedWritePermissions::apply($ledgerFile, $this->root);
+                SharedWritePermissions::write($ledgerFile, $this->root, Codec::emitYaml($ledger));
             } catch (Throwable $error) {
                 foreach ($written as $name) {
                     $targetFile = $this->root->withSubPath($name)->asFile();
-                    $targetFile->set_contents($originals[$name]);
-                    SharedWritePermissions::apply($targetFile, $this->root);
+                    SharedWritePermissions::write($targetFile, $this->root, $originals[$name]);
                 }
                 throw $error;
             }
@@ -300,8 +297,7 @@ final class ShillerExecuteAction
             }
             if ($changedFiles > 0) {
                 $diffFile = $this->root->withSubPath($diffPath)->asFile();
-                $diffFile->set_contents($patch);
-                SharedWritePermissions::apply($diffFile, $this->root);
+                SharedWritePermissions::write($diffFile, $this->root, $patch);
                 echo "Gesamtdiff: {$diffPath} ({$changedFiles} Dateien)\n";
             } else {
                 // Vorhandene Reports nicht durch einen leeren Wiederholungslauf

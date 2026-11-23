@@ -261,8 +261,7 @@ final class ShillerAutomation
         foreach ($plan as $relative => $content) {
             /** @var PhoreFile $target */
             $target = $targets[$relative];
-            $target->mkdir()->set_contents($content);
-            SharedWritePermissions::apply($target, $this->projectRoot);
+            SharedWritePermissions::write($target, $this->projectRoot, $content);
             $this->logger?->success('Geschrieben: {}', [$relative]);
         }
 

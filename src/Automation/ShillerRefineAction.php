@@ -113,8 +113,7 @@ final class ShillerRefineAction
                 continue;
             }
             if ($command === ':save') {
-                $file->set_contents(Codec::emitYaml($working));
-                SharedWritePermissions::apply($file, $this->root);
+                SharedWritePermissions::write($file, $this->root, Codec::emitYaml($working));
                 return $relative;
             }
             if ($command === '') {

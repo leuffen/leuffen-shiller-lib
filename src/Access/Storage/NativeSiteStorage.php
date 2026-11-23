@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Access\Storage;
 
 use FilesystemIterator;
-use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Leuffen\Shiller\Access\Storage\MoveCapableStorage;
 use Leuffen\Shiller\Access\Exception\StorageException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
@@ -121,15 +120,31 @@ final class NativeSiteStorage implements MoveCapableStorage
 
                 $this->ensureParent($resolvedPath, $createdDirectories);
 
-                $temporaryPath = $resolvedPath . '.shiller-' . bin2hex(random_bytes(4));
-                if (
-                    file_put_contents($temporaryPath, (string) $content, LOCK_EX) === false
-                    || !rename($temporaryPath, $resolvedPath)
-                ) {
-                    throw new StorageException("Cannot write file: $path");
-                }
+                // Bestehende Rechte übernehmen; chmod betrifft ausschließlich die eigene neue Tempdatei.
                 $root = phore_dir($this->root, ['rootDir' => $this->root]);
-                SharedWritePermissions::apply($root->withSubPath((string) $path)->asFile(), $root);
+                $target = $root->withSubPath((string) $path)->asFile();
+                $mode = 0666;
+                if ($target->exists()) {
+                    $stream = $target->fopen('r');
+                    try {
+                        $mode = $stream->fstat()['mode'] & 07777;
+                    } finally {
+                        $stream->close();
+                    }
+                }
+                $temporaryPath = $resolvedPath . '.shiller-' . bin2hex(random_bytes(4));
+                $temporary = $root->withSubPath((string) $path . substr($temporaryPath, strlen($resolvedPath)))->asFile();
+                try {
+                    $temporary->set_contents((string) $content);
+                    $temporary->chmod($mode);
+                    if (!rename($temporaryPath, $resolvedPath)) {
+                        throw new StorageException("Cannot write file: $path");
+                    }
+                } finally {
+                    if ($temporary->exists()) {
+                        $temporary->unlink();
+                    }
+                }
             }
         } catch (Throwable $exception) {
             // Bei einem Fehler alle bereits berührten Pfade auf ihren Ausgangszustand zurücksetzen.

@@ -151,8 +151,7 @@ final class ShillerEditAction
             throw new RuntimeException('Edit intake must return T_Changes.');
         }
         $this->assertValidChanges($changes, $originals);
-        $target->mkdir()->set_contents(Codec::emitYaml($changes->toArray()));
-        SharedWritePermissions::apply($target, $this->projectRoot);
+        SharedWritePermissions::write($target, $this->projectRoot, Codec::emitYaml($changes->toArray()));
 
         $relativeTarget = str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
         $this->logger?->step('Schreibe Edit-Ergebnis: {}', [$relativeTarget]);

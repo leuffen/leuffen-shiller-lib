@@ -276,8 +276,7 @@ final class ShillerResolveAction
         }
 
         // Ausschliesslich die bestehende YAML erhaelt die neuen Planungsdaten.
-        $target->set_contents(Codec::emitYaml($data));
-        SharedWritePermissions::apply($target, $this->projectRoot);
+        SharedWritePermissions::write($target, $this->projectRoot, Codec::emitYaml($data));
         return str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
     }
 
