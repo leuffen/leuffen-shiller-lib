@@ -61,6 +61,31 @@ abstract class AbstractJekyllAdapter implements Adapter
         return $files;
     }
 
+    /**
+     * Sucht nur Markdown-Seiten; interne Jekyll-Verzeichnisse werden
+     * weder betreten noch als Page-Kandidaten analysiert.
+     *
+     * @return list<string>
+     */
+    protected function markdownPages(string $directory = ''): array
+    {
+        $pages = [];
+        foreach ($this->s()->list($directory) as $entry) {
+            if (str_starts_with($entry['name'], '_') || str_starts_with($entry['name'], '.')) {
+                continue;
+            }
+
+            $path = ($directory === '' ? '' : $directory . '/') . $entry['name'];
+            if ($entry['type'] === 'directory') {
+                array_push($pages, ...$this->markdownPages($path));
+            } elseif (str_ends_with($path, '.md')) {
+                $pages[] = $path;
+            }
+        }
+
+        return $pages;
+    }
+
     protected function readDoc(string $id, string $language, string $path, bool $root): Document
     {
         [$header, $content] = Codec::frontMatter($this->s()->read($path), $path);
