@@ -60,6 +60,7 @@ export interface TranslationInfo {
 export interface ShillerTreeData {
   kind: FileKind;
   path: string | null;
+  linkUrl: string | null;
   file: FileEntry | null;
   metadata: Record<string, JsonValue>;
   translations: Record<string, TranslationInfo>;
@@ -84,8 +85,9 @@ PHP verwendet für data den vorgeschlagenen Typ `ShillerTreeData`; die Signature
 
 | Bedeutung | Seitenbaum | Physisches Dateilisting |
 |---|---|---|
-| ID | `/leistungen/diagnostik` | `file:leistungen/diagnostik.md` |
-| `data.path` | `null` | Root-relativer Quellpfad |
+| ID | `leistungen/diagnostik.md` (in Englisch: `en/leistungen/diagnostik.md`) | `file:leistungen/diagnostik.md` |
+| `data.path` | Root-relativer Quelldateipfad | Root-relativer Quellpfad |
+| `data.linkUrl` | Generierte öffentliche Ziel-URL | `null` |
 | `data.file` | Bevorzugte lesbare Seitendatei oder `null` | Datei oder `null` bei Ordnern |
 | `data.kind` | `page` bei eigener Seite, sonst `directory` | Tatsächliche Eintragsart |
 | `data.translations` | Alle lesbaren konfigurierten Sprachen mit exists | `{}` |
@@ -138,3 +140,16 @@ Für das vollständige physische Listing aus [Beispiel 03](../examples/03-list-f
 ## Spätere Vertragsprüfung
 
 Die Implementierung muss beide Adapter und das Dateilisting gegen dieselbe Struktur prüfen: eindeutige IDs, label als Text, geordnete Kinder, null-Datei bei Kategorien, vollständige lesbare Sprachzustände, Erhalt erlaubter Metadaten und sichere JSON-Projektion. Außerdem gehören vollständige und teilweise geladene Ordner sowie voneinander unabhängiges Aufklappen und Seitenöffnen in die Abnahme. JSON-Konformität allein belegt keine zugängliche UI.
+
+## Aktueller Seitenbaum
+
+Die Implementierung von `pages()` gibt standardmäßig nur Markdown-Seiten
+mit YAML Front Matter der konfigurierten Standardsprache zurück.
+`pages(language: 'en')` wählt Englisch. Interne Ordner, insbesondere
+`_includes`, und HTML-Dateien erscheinen nicht als Seiten. Die ID jedes
+Seitenknotens enthält den tatsächlichen root-relativen Dateinamen samt
+Sprachverzeichnis und `.md`-Endung; sie ist direkt mit `getPage()` nutzbar.
+Reine Kategorien werden übersprungen, Kinder an die nächste echte Seite
+angehängt. Fehlt eine Root-Seite, ist ein virtueller Container mit
+`id: ''` und `data.kind: directory` nötig.
+
