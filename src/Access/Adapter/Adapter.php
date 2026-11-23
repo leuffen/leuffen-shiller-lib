@@ -57,7 +57,7 @@ interface Adapter
      */
     public function write(array $documents): void;
 
-    public function buildTree(string $id = '/'): PageTree;
+    public function buildTree(string $id = '/', ?string $language = null): PageTree;
 
     public function getEffectiveHeader(Document $document): array;
 
