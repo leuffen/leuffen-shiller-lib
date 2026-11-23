@@ -9,14 +9,14 @@ $site = new ShillerRepository(
     '/srv/site/docs',
     access: new AccessContext(role: 'user'),
 );
-$page = $site->getPage('/leistungen/diagnostik');
+$page = $site->getPage('leistungen/diagnostik.md');
 $english = $page->getTranslation('en');
 $english->header['title'] = 'Our diagnostics';
 $english->save();
 echo $english->getUrl(); // /en/leistungen/diagnostik.html
 ```
 
-ShillerRepository ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Die Seiten-ID enthält weder Sprache noch Dateiendung; ein optionales FileEntry zeigt die tatsächliche Quelle. Sprache und Speicherzustand gehören zum Document. Der Adapter übernimmt die Ablage; eine eigene Revisionsprüfung ist erst für später vorgesehen. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
+ShillerRepository ist der Einstieg, Document die bearbeitbare Seite, header das YAML-Array und content der Body. Im Seitenbaum ist die ID der Source-Dateiname relativ zum Document Root, inklusive Sprachordner und .md-Endung. Über diese ID lädt getPage die Datei; Document selbst behält intern die logische Seitengruppe für Übersetzungs- und Schreiboperationen. Die Ziel-URL steht separat unter data.linkUrl. Der Adapter übernimmt die Ablage; eine eigene Revisionsprüfung ist erst für später vorgesehen. [00-read-edit-save.php](00-read-edit-save.php) enthält den Einstieg als PHP-Ausschnitt.
 
 ## Darstellungsform und gemeinsamer Kontext
 
@@ -162,3 +162,15 @@ Document.save und ShillerRepository.saveDocuments führen beide zum selben Adapt
 Document.getTranslation/getTranslations bleiben öffentliche Komfortmethoden. Ohne Argument, mit null oder mit der konfigurierten Standardsprache liefert getTranslation dasselbe Stammdokument; bei default_lang: de sind getTranslation(null) und getTranslation('de') gleichbedeutend. Am Original wird dieselbe Instanz zurückgegeben. createIfMissing erzeugt bei diesen Aufrufen kein neues Original. Shiller verwaltet Instanzen, konfigurierten Sprachumfang und Originalkopien. Adapter liefern vorhandene Quellen, laden/bereiten eine explizite Sprache vor und bestimmen auch fehlende Quellpfade. Das [Interface](Adapter.php) enthält deshalb keine zusätzlichen Übersetzungsmethoden.
 
 Legacy bearbeitet ausschließlich vorhandene Dateien. Polyglot unterstützt auch Anlage, Elternpromotion und Teilbaumoperationen; fehlende Übersetzungen werden bei Bewegungen nicht erzeugt. Die [Verschiebelogik](../docs/verschieben.md) beschreibt vollständige Reichweite und spätere Testfälle. Der [Page-Builder-Abgleich](../docs/pagebuilder-abgleich.md) trennt unterstützte Seitenabläufe von nötigen UI-Anpassungen und späteren Dateneditoren.
+
+### Aktuelle Page Discovery
+
+`$site->pages()` liefert standardmäßig nur Markdown-Dateien mit YAML Front
+Matter aus `default_lang`. Mit `$site->pages(language: 'en')` wird gezielt
+die englische Variante aufgelistet. Die `TreeNode.id` ist der tatsächliche
+Dateipfad relativ zum Document Root (`en/leistungen/diagnostik.md`).
+`data.path` enthält denselben Sourcepfad und `data.linkUrl` die öffentliche
+Ziel-URL. HTML und interne Verzeichnisse wie `_includes` oder `_data` sind
+keine Seiten. Reine Verzeichnisse werden übersprungen; bei fehlender
+`index.md` verwendet `PageTree.root` einen virtuellen Knoten mit leerer ID.
+
