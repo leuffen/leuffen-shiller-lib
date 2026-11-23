@@ -208,7 +208,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
         $metadata = [];
 
         // Legacy-Seiten und _section.yml-Metadaten in die gemeinsame Baumstruktur überführen.
-        foreach ($this->all() as $path) {
+        foreach ($this->markdownPages() as $path) {
             if (basename($path) === '_section.yml') {
                 $directory = dirname($path);
                 $sectionId = $directory === '.' ? '/' : Codec::id($directory);
