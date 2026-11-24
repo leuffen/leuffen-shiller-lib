@@ -25,6 +25,9 @@ Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
 offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
 `ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
 Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
+Mit `user_rules_file: user-rules.md` lassen sich globale und seitenspezifische
+Benutzerregeln dauerhaft hinterlegen. Der Editor liest sie vor Bearbeitungen
+und kann die einzelne Regeldatei auf ausdrücklichen Wunsch direkt aktualisieren.
 
 Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
 

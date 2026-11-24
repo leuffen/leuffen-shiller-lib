@@ -120,6 +120,10 @@ final class ShillerAiContextFactory
                 allowInstructions: true,
             );
         }
+        $userRules = UserRulesFile::fromConfig((string) $this->projectRoot, $config);
+        if ($userRules !== null) {
+            $prompts[] = $userRules->prompt();
+        }
         if ($instructionFile !== null && $instructionFile !== '') {
             $prompts[] = new SystemPrompt($this->resolveFile($instructionFile)->get_contents());
         }

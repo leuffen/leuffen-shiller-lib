@@ -18,6 +18,7 @@ final readonly class OnsiteEditResult
      * @param list<PendingTask> $pendingTasks Model-reported unfinished work.
      * @param list<string> $availableSkills Discovered skill names.
      * @param array<string,mixed> $usage Usage of the last provider response.
+     * @param bool $userRulesChanged Whether the persistent rules file changed during the call.
      */
     public function __construct(
         public string $status,
@@ -30,5 +31,6 @@ final readonly class OnsiteEditResult
         public array $pendingTasks,
         public array $availableSkills,
         public array $usage,
+        public bool $userRulesChanged = false,
     ) {}
 }

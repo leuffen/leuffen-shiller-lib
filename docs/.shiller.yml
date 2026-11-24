@@ -1,120 +1,83 @@
-# Shiller-Projektkonfiguration (.shiller.yml)
-# Diese Datei in die Projektwurzel kopieren (neben docs/ und package.json).
-# Relative Konfigurationspfade beziehen sich auf diesen Ordner.
-# Voraussetzung: ThemeJS2 ist unter node_modules/@leuffen/themejs2 installiert.
-# Optionale lokale Dateien und weitere Skill-Verzeichnisse erst nach Anlage aktivieren.
-#
-# Der Document Root wird separat über CLI --root/--document-root bzw.
-# ShillerRepository(root: ..., projectRoot: ...) festgelegt; Standard der CLI: docs/.
-# Jekyll-eigene Einstellungen (url, baseurl usw.) bleiben in docs/_config.yml.
+# .shiller.yml – Projektwurzel; relative Pfade ab dieser Datei.
+# Document Root separat festlegen (CLI-Standard: docs/).
 
-# --- Website und Adapter ---
+# --- Website ---
 
-# Optional; Standard: jekyll-polyglot. Alternative: micx-legacy.
-# Auch als Mapping adapter: {id: jekyll-polyglot} möglich.
+# Seitenadapter: jekyll-polyglot (Default) oder micx-legacy; auch {id: ...}.
 adapter: jekyll-polyglot
 
-# Polyglot: unterstützte Sprachcodes als Liste. Ohne Angabe werden languages
-# aus _config.yml verwendet, andernfalls nur die Standardsprache.
+# Polyglot: Sprachcodes; Default aus _config.yml, sonst Hauptsprache.
 languages: [de, en]
 
-# Polyglot: Hauptsprache im Document Root; weitere Sprachen unter _intl/<lang>/.
-# Standard: de. Alias: default_language; default_lang hat Vorrang.
+# Polyglot: Hauptsprache (Default: de); Alias: default_language.
 default_lang: de
 
-# Polyglot: optionale Anzeigebezeichnungen, Standard je Eintrag: Sprachcode.
-# Beim micx-legacy-Adapter stammen Sprachen, Labels und Hauptsprache stattdessen
-# aus docs/_data/languages.yml (erste Sprache ist die Hauptsprache).
+# Polyglot: Sprachlabels; Default: Sprachcode.
+# micx-legacy verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
 language_labels:
   de: Deutsch
   en: English
 
-# Optional, nur Polyglot: YAML-Datei mit editierbaren Front-Matter-Feldern.
-# Ohne Eintrag, bei null oder leerem String sind keine Header-Felder konfiguriert.
-# Der Pfad ist relativ zur .shiller.yml, nicht zu docs/.
+# Polyglot: YAML-Datei mit editierbaren Front-Matter-Feldern; Default: keine.
 # editable_headers_file: editable-headers.yml
 
-# --- Templates und Skills ---
+# --- Templates und AI-Kontext ---
 
-# Pfad zum _tpl-Verzeichnis des Theme-Pakets (nicht zum Paket-Root).
-# Für Template-Installation erforderlich, sofern nicht explizit übergeben.
+# _tpl-Verzeichnis: init/install/revert/adjust und Onsite-AI (read-only).
+# Zielstruktur für AI; Mock-Texte und Beispieldaten durch echte Inhalte ersetzen.
 template_dir: node_modules/@leuffen/themejs2/_tpl
 
-# Skill-Verzeichnisse: String oder Liste von Verzeichnissen.
-# Standard bei fehlender Angabe/leerem String: ThemeJS2-Skills.
-# Explizit angegebene Verzeichnisse müssen existieren und lesbar sein.
-# Der Harness entdeckt Skills rekursiv. Zusätzliche Skills sind optional.
+# AI-Skills: Verzeichnispfad oder Liste; Default: ThemeJS2-Skills.
 skills_dir:
   - node_modules/@leuffen/themejs2/skills
   # - .shiller-skills
 
-# --- Projektkontext ---
-#
-# Eine einzelne Datei (String) oder eine Liste von Dateien in Ladereihenfolge.
-# Gilt für kontextbezogene AI-Workflows (z. B. Onsite Editor, Adjust, Edit).
-# Relative Pfade gelten ab .shiller.yml; explizite Dateien müssen lesbar sein.
-# Ohne Feld: nur .shiller-context.d/project.md, sofern vorhanden.
-# Keine automatische Verzeichnissuche. [] deaktiviert den Projektkontext.
-# Adjust benötigt mindestens eine Kontextdatei. Explizite --context-Quellen
-# ergänzen den Projektkontext für einen Auftrag.
+# AI-Projektkontext: Datei oder geordnete Dateiliste; [] = aus.
+# Default: project.md wie unten, falls vorhanden. Adjust benötigt Kontext.
 context_files: .shiller-context.d/project.md
-# Alternative (anstelle des Strings):
+# Alternativ:
 # context_files:
 #   - .shiller-context.d/project.md
 #   - context/leistungen.md
 #   - context/schreibstil.md
-#
-# shiller context build arbeitet weiterhin in .shiller-context.d/ und
-# erzeugt project.md unabhängig von context_files.
+
+# AI-Benutzerregeln: vorhandene Markdown-Datei; null/'' = aus (Default).
+# Global / Page: <Quellpfad>; Onsite-Text-Edits dürfen Regeln speichern.
+# user_rules_file: user-rules.md
+user_rules_file: null
 
 # --- AI Harness ---
 
 ai:
-  # Optional: Modell-ID des konfigurierten Harness-Clients.
-  # Factory-Standard: gpt-6.1-sol. Einzelne Workflows/CLI-Argumente können
-  # das Modell überschreiben; Inline Completion verwendet ein eigenes Modell.
+  # Modell-ID; Factory-Default: gpt-6.1-sol; Workflow-Overrides möglich.
   # model: gpt-6.1-sol
 
-  # Optional: registrierte Harness-Client-Auswahl, kein API-Key.
-  # Ohne Angabe/null verwendet der Harness seine Standard-Client-Auswahl.
+  # Registrierter Harness-Client; Default: Standardclient.
   # client: 'openai:'
 
-  # Standard: medium. Erlaubt: none, minimal, low, medium, high, xhigh.
-  # Das gewählte Modell muss die Stufe unterstützen; einzelne Workflows
-  # (z. B. Inline Edit/Completion) setzen eigene Reasoning-Stufen.
+  # Reasoning: none, minimal, low, medium (Default), high, xhigh.
   reasoning_effort: medium
 
-  # Web-Tool bereitstellen? Standard: false. Der Onsite Editor weist die AI
-  # an, das Tool nur auf ausdrückliche Nutzeranfrage zu verwenden.
-  # true ist keine technische Beschränkung auf einzelne Anfragen.
+  # Web-Tool für AI; true/false (Default). Onsite: nur auf Nutzerwunsch.
   web_access: false
 
-  # Optional: positive ganze Sekunden für den HTTP-Request.
-  # Ohne Angabe/null gelten die Defaults des Harness-Clients.
+  # HTTP-Timeout in Sekunden (>0); Default: Harness-Client.
   # timeout: 90
 
-  # Optional: positive ganze Sekunden für den Verbindungsaufbau.
-  # Ohne Angabe/null gelten die Defaults des Harness-Clients.
+  # Connect-Timeout in Sekunden (>0); Default: Harness-Client.
   # connect_timeout: 12
 
 # --- Onsite Editor ---
 
 onsite_editor:
-  # Optional: vertrauenswürdige System-Anweisungen für den Onsite Editor.
-  # Relativ zur Projektwurzel; Datei muss existieren und lesbar sein.
-  # Ohne Angabe, bei null oder leerem String keine zusätzliche Anweisung.
+  # Zusätzlicher SystemPrompt aus Datei; null/'' = aus (Default).
   # instruction_file: .shiller-onsite-editor.md
   instruction_file: null
 
-# --- CLI-Initialisierung ---
+# --- CLI ---
 
 hooks:
   init:
-    # Optionale Listen nichtleerer Shell-Befehle, die shiller init im
-    # Startverzeichnis vor bzw. nach dem Kopieren der Vorlagen ausführt.
-    # Nur vertrauenswürdige Befehle eintragen: sie laufen mit Prozessrechten.
-    # Fehler (Exit-Code ungleich 0) brechen den Ablauf ab.
-    # Die Hooks werden aus der bereits vor init vorhandenen .shiller.yml
-    # geladen, nicht erst aus der während init kopierten Konfiguration.
+    # Shell-Befehlslisten vor/nach Template-Kopie bei shiller init.
     before: []
     after: []
