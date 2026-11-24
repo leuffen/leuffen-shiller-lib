@@ -116,7 +116,7 @@ PROMPT;
                 throw new RuntimeException('AI editor context did not produce a response ID.');
             }
         } else {
-            $context->setResponseId($responseId);
+            $context->resumeFromResponseId($responseId);
         }
 
         // Nur der dynamische Editorinhalt wird als Quelldaten des neuen Requests übergeben.
