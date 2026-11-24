@@ -6,7 +6,6 @@ namespace Leuffen\Shiller\Access\Adapter\V1_0;
 
 use Leuffen\Shiller\Access\Adapter\AbstractJekyllAdapter;
 use Leuffen\Shiller\Access\Adapter\Adapter;
-
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Access\Exception\ConflictException;
