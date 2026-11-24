@@ -8,4 +8,6 @@ namespace Leuffen\Shiller\Automation;
 final class ShillerAiDefaults
 {
     public const MODEL = 'gpt-6.1-sol';
+    public const EDITOR_COMPLETION_MODEL = 'gpt-6-luna';
+    public const EDITOR_EDIT_MODEL = 'gpt-6.2-sol';
 }
