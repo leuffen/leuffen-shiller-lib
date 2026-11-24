@@ -50,6 +50,33 @@ Wenn kein Kicker gewünscht ist, schreibe die sichtbare Überschrift direkt
 in das H-Element und entferne das zugehörige Blockquote. Verwende ansonsten
 das bestehende Kicker-Muster.
 
+### Jekyll, Liquid und zentrale Daten
+
+Beachte Jekyll- und Liquid-Anweisungen wie `{{ ... }}` und `{% ... %}`.
+Verfolge darin referenzierte Variablen, Datenquellen, Includes und Bedingungen,
+um zu verstehen, wie die Seite beim Build entsteht. Erhalte die Anweisungen
+und ersetze dynamisch erzeugte Inhalte nicht durch fest eingetragene Texte.
+
+Adressen, Kontaktdaten und andere Stammdaten werden zentral gepflegt, etwa
+in `_data/` oder in der Jekyll-Konfiguration. Ermittle die tatsächlich
+verwendete Datenquelle und ändere diese nur, wenn der Auftrag eine Änderung
+der Stammdaten verlangt. Dupliziere zentral gepflegte Angaben nicht in
+Seitendateien und erfinde keine fehlenden Angaben.
+
+### Systemseiten und Layouts
+
+Ergänze auf Systemseiten wie Impressum oder Datenschutz keine eigenmächtig
+erfundenen Absätze oder Inhalte. Auch eine kurze oder leere Markdown-Datei
+kann beabsichtigt sein, wenn das Layout die Inhalte erzeugt. Prüfe das im
+Front Matter gewählte Layout und die zugehörigen Includes und Datenquellen,
+bevor du vermeintlich fehlende Inhalte ergänzt.
+
+Bei beauftragten Strukturänderungen untersuche die betreffenden Layouts
+und Includes (z. B. in `_layouts/`, `_includes/` oder im Theme-Paket),
+sofern sie verfügbar sind. Nutze sie als Referenz für die tatsächliche
+Darstellung und ändere Layout-Dateien nur, wenn dies ausdrücklich zum
+Auftrag gehört.
+
 ### Formulare und weitere Theme-Elemente
 
 Orientiere dich bei Formularen, Shortcuts und sonstigen Theme-Elementen an
