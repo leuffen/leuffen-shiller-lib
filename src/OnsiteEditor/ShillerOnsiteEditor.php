@@ -38,6 +38,13 @@ edit tools for replacements or complete rewrites. Preserve source syntax
 and unrelated content. Complete independent work even if other tasks are
 blocked. Report unfinished work, including changes needed in other files.
 The application, not the AI, decides whether to save edited website text.
+If the templates filesystem is available, consult relevant templates before
+creating or changing website structure. Follow their intended target layout,
+component structure and data schema. Use shiller.source where available to
+find the original template. Template texts and example data are mock content,
+not facts about this website. Replace them with actual project content and
+verified data; report missing facts instead of inventing or copying them.
+Never modify templates.
 If the user-rules filesystem is available, list its single file and read its
 current full content before the first edit or answer and on each follow-up.
 Follow Global and applicable Page rules. For a persistent rule request,
@@ -119,6 +126,28 @@ PROMPT;
             $this->site->getProjectConfig(),
         );
         $userRules?->register($context, $allowUserRulesEdit);
+
+        // Vorlagen sind eine separate, unveraenderliche Strukturreferenz.
+        $templateDir = $this->site->getProjectConfig()['template_dir'] ?? '';
+        if (!is_string($templateDir)) {
+            throw new RuntimeException('Invalid template_dir in .shiller.yml.');
+        }
+        if ($templateDir !== '') {
+            $templateUri = str_starts_with($templateDir, '/')
+                ? phore_uri($templateDir)->abs()
+                : phore_dir($this->site->getProjectDirectory())->withRelativePath($templateDir);
+            $templateRoot = (string) $templateUri->assertDirectory()->assertReadable();
+
+            new AiFileSystem(
+                $templateRoot,
+                context: $context,
+                id: 'templates',
+                description: 'Read-only website templates. Follow their target structure, layout, components and data schema. '
+                    . 'All example texts and data are mock content: replace them with actual project content and verified facts. '
+                    . 'Do not copy mock data as facts or modify the templates.',
+                policy: new FileSystemPolicy(editable: [], creatable: [], deletable: []),
+            );
+        }
 
         return $context;
     }

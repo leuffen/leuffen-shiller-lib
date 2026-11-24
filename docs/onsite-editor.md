@@ -159,6 +159,14 @@ Fehler verändert; die Anwendung entscheidet, ob sie diese übernimmt.
 
 ## Kontext und Inline-Editor
 
+Das konfigurierte `template_dir` wird als separates Read-only-Filesystem
+`templates` eingebunden. Die AI kann Vorlagen auflisten, lesen und durchsuchen.
+Sie dienen als Referenz für Zielstruktur, Layout, Komponenten und Datenformat.
+Beispieltexte und Mock-Daten sind durch tatsächliche Projektinhalte und
+verifizierte Fakten zu ersetzen; fehlende Angaben dürfen nicht erfunden werden.
+Vorlagen selbst werden niemals geändert. Ohne `template_dir` entfällt dieses
+Filesystem; ein explizit konfigurierter Pfad muss lesbar sein.
+
 getFileIndex() liefert einen CSV-Index vorhandener Markdown-Seiten aus
 dem bestehenden Adapter-Seitenbaum mit Dateipfad, Titel, URL,
 Veröffentlichungsstatus und Sprache. Nicht veröffentlichte Seiten erhalten

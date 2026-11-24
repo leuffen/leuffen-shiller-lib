@@ -91,6 +91,40 @@ final class ShillerOnsiteEditorTest extends TestCase
         $fileSystem->edit('index.md', [['search' => 'Willkommen', 'replacement' => 'Changed']]);
     }
 
+    public function testTemplatesAreAvailableAsReadOnlyStructureReferences(): void
+    {
+        $config = phore_file($this->root . '/.shiller.yml');
+        $config->set_contents($config->get_contents() . "template_dir: templates/_tpl\n");
+        phore_dir($this->root . '/templates/_tpl/pages')->mkdir();
+        $template = phore_file($this->root . '/templates/_tpl/pages/index.md');
+        $template->set_contents("# Mock heading\n\nExample content.");
+
+        $site = new ShillerRepository($this->root . '/docs', projectRoot: $this->root);
+        $context = (new ShillerOnsiteEditor($site))->createContext(allowUserRulesEdit: true);
+        $fs = $context->getToolSet(AiFileSystemToolSet::class)->getFileSystem('templates');
+        self::assertNotNull($fs);
+        self::assertStringContainsString('mock content', $fs->describe()['description']);
+        self::assertStringContainsString('Mock heading', json_encode($fs->read('pages/index.md'), JSON_THROW_ON_ERROR));
+        self::assertStringContainsString('pages/index.md', json_encode($fs->list(recursive: true), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+        // Auch in einem Context mit freigegebenen User Rules sind alle
+        // direkten Mutationen an Vorlagen verboten.
+        foreach ([
+            fn() => $fs->edit('pages/index.md', [['search' => null, 'replacement' => 'Changed']]),
+            fn() => $fs->create('pages/new.md', 'New'),
+            fn() => $fs->delete('pages/index.md'),
+        ] as $mutation) {
+            try {
+                $mutation();
+                self::fail('Template mutation must be rejected.');
+            } catch (RuntimeException $error) {
+                self::assertStringContainsString('not ', $error->getMessage());
+            }
+        }
+        self::assertSame("# Mock heading\n\nExample content.", $template->get_contents());
+        self::assertFalse(phore_uri($this->root . '/templates/_tpl/pages/new.md')->exists());
+    }
+
     public function testMultipleTargetsAndPendingTasks(): void
     {
         $site = new ShillerRepository($this->root . '/docs', projectRoot: $this->root);

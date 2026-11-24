@@ -38,6 +38,9 @@ language_labels:
 
 # Pfad zum _tpl-Verzeichnis des Theme-Pakets (nicht zum Paket-Root).
 # Für Template-Installation erforderlich, sofern nicht explizit übergeben.
+# Im Onsite Editor als separates Read-only-Filesystem verfügbar, sofern gesetzt.
+# Vorlagen definieren die Zielstruktur; Beispieltexte und Mock-Daten sind
+# durch echte Projektinhalte zu ersetzen. Der Pfad muss lesbar sein.
 template_dir: node_modules/@leuffen/themejs2/_tpl
 
 # Skill-Verzeichnisse: String oder Liste von Verzeichnissen.
