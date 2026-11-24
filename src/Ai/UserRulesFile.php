@@ -14,9 +14,7 @@ use RuntimeException;
 /** @internal Explicitly configured, persistent user-authored editorial rules. */
 final readonly class UserRulesFile
 {
-    private function __construct(private PhoreFile $file)
-    {
-    }
+    private function __construct(private PhoreFile $file) {}
 
     /** @param array<string, mixed> $config */
     public static function fromConfig(string $projectRoot, array $config): ?self
