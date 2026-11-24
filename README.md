@@ -59,10 +59,12 @@ $site = new ShillerRepository($projectRoot . '/docs', projectRoot: $projectRoot)
 Der Updater liefert `true`, wenn er die fehlende `.shiller.yml` mit
 `jekyll-legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
 (auch alte Formate) bleiben unverändert. Er kopiert die Dateien aus `src/LegacyUpdate/_tpl/` in die Projektwurzel,
-insbesondere `.shiller.d/user-rules.md` mit globalen Regeln für ThemeJS1.
+insbesondere `.shiller.d/static-context.md` mit allgemeinen Website-Regeln
+und `.shiller.d/user-rules.md` für bestätigte individuelle Fakten und Regeln.
 Vorhandene Dateien bleiben erhalten; `.shiller.yml` wird zuletzt angelegt.
 Alte Kontextdateien bleiben unberührt, und der Updater deaktiviert
-deren automatische Einbindung über `context_files: []`. Webzugriff ist
+deren automatische Einbindung, indem `context_files` ausschließlich den
+neuen statischen Kontext lädt. Webzugriff ist
 aktiviert. Die Website selbst bleibt unverändert. Der Updater benötigt kein
 installiertes ThemeJS1-npm-Paket; dessen Template-Pfad kann später ergänzt
 werden.
@@ -83,9 +85,19 @@ Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
 offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
 `ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
 Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
-Mit `user_rules_file: user-rules.md` lassen sich globale und seitenspezifische
-Benutzerregeln dauerhaft hinterlegen. Der Editor liest sie vor Bearbeitungen
-und kann die einzelne Regeldatei auf ausdrücklichen Wunsch direkt aktualisieren.
+Unter `.shiller.d/` werden zwei Aufgaben getrennt:
+
+- `static-context.md`: technische Website-Struktur, Jekyll/Liquid, Markdown,
+  Layout- und Schreibregeln; über `context_files` nur lesend eingebunden,
+  ohne individuelle Projekt- oder Personendaten.
+- `user-rules.md`: zentrale Wissensquelle für bestätigte individuelle Daten
+  und dauerhafte globale oder seitenspezifische Regeln. Über `user_rules_file`
+  eingebunden; neue oder geänderte Fakten werden erst nach ausdrücklicher
+  Zustimmung oder einem direkten Speicherauftrag dauerhaft übernommen.
+
+Die Website-Datenquellen bleiben für die Darstellung maßgeblich. Die AI soll
+beide Datenstände konsistent halten und Entwicklungsaufgaben am Theme,
+CSS/SCSS oder TypeScript melden statt Markdown mit Workarounds zu erweitern.
 
 Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
 
@@ -514,7 +526,7 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 ## Vollstaendiges Demo-Projekt
 
 [demo/repo/](demo/repo/) stellt ein eigenständiges Website-Repository dar.
-Die `.shiller.yml`, der Document Root `docs/`, die Benutzerregeln unter
+Die `.shiller.yml`, der Document Root `docs/`, statischer Kontext und User Rules unter
 `.shiller.d/` und der Projektkontext unter `.shiller-context.d/` befinden sich
 innerhalb derselben Projektwurzel. Vorlagen und AI-Skills stammen bei Bedarf
 aus dem ThemeJS2-Paket unter `node_modules/` im Demo-Repository.

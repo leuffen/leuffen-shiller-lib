@@ -5,7 +5,9 @@ Dieses Verzeichnis stellt ein eigenständiges Website-Repository dar. Die
 beziehen sich auf dieses Verzeichnis, nicht auf `docs/`.
 
 - `docs/`: Website-Seiten und YAML-Sidecars mit fiktiven Beispieldaten.
-- `.shiller.d/user-rules.md`: dauerhaft gespeicherte Benutzerregeln.
+- `.shiller.d/static-context.md`: read-only Technik- und Bearbeitungsregeln.
+- `.shiller.d/user-rules.md`: bestätigte individuelle Fakten und dauerhafte
+  Benutzerregeln; Änderungen erst nach ausdrücklicher Zustimmung.
 - `.shiller-context.d/`: Projektkontext und Rohdaten für `context build`.
 - `node_modules/@leuffen/themejs2/`: optional bereitzustellendes Theme-Paket
   mit Vorlagen unter `_tpl/` und AI-Skills unter `skills/`.
@@ -25,7 +27,7 @@ php ../../bin/shiller context build
 php ../../bin/shiller adapt index.md _data/general.yml --debug
 ```
 
-Die Konfiguration lädt den Projektkontext aus
-`.shiller-context.d/project.md` und die Benutzerregeln aus
-`.shiller.d/user-rules.md`. `project.rules.md` enthält zusätzliche Regeln
+Die Konfiguration lädt den statischen Kontext aus `.shiller.d/static-context.md`
+und den aufbereiteten Projektkontext aus `.shiller-context.d/project.md` nur
+lesend. `.shiller.d/user-rules.md` ist separat editierbar. `project.rules.md` enthält zusätzliche Regeln
 für den Context-Build; die Rohdaten liegen unter `raw/`.

@@ -35,17 +35,17 @@ skills_dir:
   - node_modules/@leuffen/themejs2/skills
   # - .shiller-skills
 
-# AI-Projektkontext: Datei oder geordnete Dateiliste; [] = aus.
+# AI-Kontext (read-only): Datei oder geordnete Liste; [] = aus.
 # Default: project.md wie unten, falls vorhanden. Adjust benötigt Kontext.
 context_files: .shiller-context.d/project.md
 # Alternativ:
 # context_files:
-#   - .shiller-context.d/project.md
-#   - context/leistungen.md
-#   - context/schreibstil.md
+#   - .shiller.d/static-context.md # Technik und allgemeine Regeln, keine Stammdaten.
+#   - .shiller-context.d/project.md # Aufbereiteter Projektkontext.
 
-# AI-Benutzerregeln: vorhandene Markdown-Datei; null/'' = aus (Default).
-# Global / Page: <Quellpfad>; Onsite-Text-Edits dürfen Regeln speichern.
+# AI-User-Kontext: bestätigte individuelle Fakten und dauerhafte Benutzerregeln.
+# Global / Page: <Quellpfad>; Onsite-Text-Edits speichern nur nach Zustimmung.
+# Vorhandene Markdown-Datei; null/'' = aus (Default).
 # user_rules_file: .shiller.d/user-rules.md
 user_rules_file: null
 

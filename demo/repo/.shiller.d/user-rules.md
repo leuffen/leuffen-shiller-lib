@@ -1,16 +1,19 @@
 # User Rules
 
+Diese editierbare Datei ist die zentrale, dauerhaft gepflegte Wissensquelle
+für bestätigte individuelle Website- und Praxisdaten sowie besondere
+Benutzerregeln. Halte sie mit den tatsächlich verwendeten Website-Daten
+aktuell. Die technischen Datenquellen der Website (z. B. Jekyll-Daten)
+bleiben für die Darstellung maßgeblich; vermeide widersprüchliche Angaben.
+
+Wenn der Nutzer neue oder geänderte Stammdaten, etwa Adresse, Öffnungszeiten
+oder Praxisinformationen, mitteilt, frage ihn, ob diese auch dauerhaft in
+dieser Datei gespeichert werden sollen. Speichere oder aktualisiere sie erst
+nach ausdrücklicher Zustimmung bzw. einem ausdrücklichen Speicherauftrag.
+Ersetze veraltete Angaben, statt widersprüchliche Einträge anzuhäufen.
+Besondere dauerhafte Wünsche und Regeln können ebenso gespeichert werden.
+Einmalige Aufträge werden nicht automatisch übernommen. Ändere niemals den
+statischen Kontext.
+
 ## Global
 
-Schreibe verständliche, freundliche Texte und verwende ausschließlich die
-vorhandenen Projektinformationen. Erfinde keine Leistungen oder Kontaktdaten.
-Nutze lokale Dateien als Informationsquelle; recherchiere im Internet nur
-auf ausdrücklichen Wunsch des Nutzers.
-
-Ändere nur die beauftragten Textstellen und erhalte die vorhandene Struktur,
-Front Matter und Layout-Attribute. Brich neue Fließtexte möglichst bei etwa
-80 Zeichen an Wortgrenzen um.
-
-## Page: index.md
-
-Stelle die Demo Praxis Nord und ihren Schwerpunkt kurz und verständlich vor.

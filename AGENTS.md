@@ -114,6 +114,17 @@ nach `<projekt>/.shiller-context.d/raw/`. Der Befehl
 `shiller context build` aktualisiert daraus die `project.md`;
 bei unveraenderten Quellen ist dieser Schritt nicht erneut notwendig.
 
+### Static Context und User Rules
+
+Projektvorlagen sollen unter `.shiller.d/` zwei getrennte Dateien bereitstellen:
+`static-context.md` beschreibt ausschließlich Website-Technik, Layout- und
+allgemeine Bearbeitungsregeln und wird über `context_files` nur lesend geladen.
+`user-rules.md` ist die zentrale, editierbare Wissensquelle für bestätigte
+individuelle Fakten und dauerhafte Regeln; sie wird über `user_rules_file`
+konfiguriert. Neue oder geänderte Fakten werden nur nach ausdrücklicher
+Zustimmung oder direktem Speicherauftrag gespeichert. Keine individuellen
+Daten in den statischen Kontext übernehmen.
+
 ### Vorlagendateien und Skills
 
 Tag-gesteuerte Markdown-Vorlagen besitzen YAML Front Matter mit

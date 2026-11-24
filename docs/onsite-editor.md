@@ -18,8 +18,10 @@ Bei getrennten Roots beide beim Repository angeben.
 ```yaml
 version: 1.0
 adapter: jekyll-polyglot:1.0
-context_files: .shiller-context.d/project.md
-user_rules_file: user-rules.md
+context_files:
+  - .shiller.d/static-context.md
+  - .shiller-context.d/project.md
+user_rules_file: .shiller.d/user-rules.md
 skills_dir:
   - node_modules/@leuffen/themejs2/skills
   - .shiller-skills
@@ -40,10 +42,17 @@ automatisch als Projektkontext eingebunden.
 Webzugriff ist nur bei aktivierter Konfiguration und expliziter Nachfrage
 vorgesehen. Das ist eine AI-Anweisung, keine technische Web-Sperre je Prompt.
 
-## Dauerhafte User Rules
+## Static Context und dauerhafte User Rules
+
+`.shiller.d/static-context.md` beschreibt die technische Funktionsweise und
+allgemeinen Schreib- und Bearbeitungsregeln der Website, ohne individuelle
+Daten. Über `context_files` wird sie read-only als Kontext eingebunden.
+Design- und Entwicklungsaufgaben werden gemeldet; keine HTML-, CSS- oder
+Script-Workarounds in Markdown.
+
 
 Mit `user_rules_file` wird eine einzelne Markdown-Datei in der Projektwurzel
-als dauerhafte Sammlung von Benutzerregeln eingerichtet. Die Datei muss
+als dauerhafte Sammlung bestätigter Projektfakten und Benutzerregeln eingerichtet. Die Datei muss
 bereits existieren; ohne Eintrag oder mit `null` bleibt die Funktion aus.
 Verwende eine separate Regeldatei, keinen System-Prompt, Skill oder
 Konfigurationsdatei. Beispiel für ihren Inhalt:
@@ -68,10 +77,15 @@ Document-Root-relativen Quellpfad und haben dort bei Stilpräferenzen Vorrang.
 Die AI soll beim ersten Zugriff und bei jeder Folgeanfrage die aktuelle
 Regeldatei lesen, beachten und nur auf ausdrücklichen Benutzerwunsch ändern.
 Einmalige Änderungswünsche werden nicht automatisch zu dauerhaften Regeln.
+Bei neuen oder geänderten Stammdaten fragt die AI, ob diese dauerhaft in
+`user-rules.md` übernommen werden sollen. Erst nach ausdrücklicher Zustimmung
+oder direktem Speicherauftrag darf sie die Datei ändern. Die Datei ist die
+zentrale Wissensquelle für bestätigte Fakten; die tatsächlichen Datenquellen
+der Website bleiben für die Darstellung maßgeblich.
 
 Bei `editText()`, `editTexts()`, `editFile()` und `createFile()` ist die
 konfigurierte Regeldatei über das bestehende Harness-Tool `filesystem_edit`
-direkt bearbeitbar. Andere Dateien bleiben read-only. Die AI kann Regeln
+direkt bearbeitbar. Andere Dateien bleiben read-only. Die AI kann Fakten und Regeln
 ergänzen, aktualisieren und entfernen, aber keine weiteren Dateien anlegen
 oder löschen. Die Anwendung autorisiert den Benutzer vor diesen Aufrufen.
 `createContext()` und Inline Edit geben die Regeln nur lesend frei;
