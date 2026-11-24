@@ -19,6 +19,5 @@ final class AiEditorResponse
         public ?string $responseId,
         public array $usage,
         public ?array $initializationUsage = null,
-    ) {
-    }
+    ) {}
 }

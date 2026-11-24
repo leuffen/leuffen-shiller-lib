@@ -46,8 +46,7 @@ PROMPT;
         private readonly ?OpenAiClient $client = null,
         private readonly string $model = ShillerAiDefaults::MODEL,
         private readonly string $context = '',
-    ) {
-    }
+    ) {}
 
     /**
      * Returns a short insertion at the cursor, without changing any files.
@@ -117,7 +116,10 @@ PROMPT;
             $responseId = $initial->getId();
             if (!$initial->isCompleted() || $responseId === null) {
                 return new AiEditorResponse(
-                    '', $initial->getStatus() ?? 'unknown', null, $initializationUsage,
+                    '',
+                    $initial->getStatus() ?? 'unknown',
+                    null,
+                    $initializationUsage,
                 );
             }
         }
