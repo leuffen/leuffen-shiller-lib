@@ -96,8 +96,11 @@ context_files: .shiller-context.d/project.md
 `skills_dir` ist separat konfigurierbar; ohne Eintrag verwendet die
 Content-Action standardmaessig
 `node_modules/@leuffen/themejs2/skills` relativ zur Projektwurzel.
-Relative Pfade aus der Projektkonfiguration beziehen sich auf den Ort
-der `.shiller.yml`. Beim allerersten `init` ist der Template-Pfad
+Die `.shiller.yml` liegt stets in der Wurzel des Website-Repositories,
+nicht im Document Root. Alle relativen Konfigurationspfade beziehen sich
+auf diese Projektwurzel. Vorlagen, Skills und Kontextdateien befinden sich
+normalerweise innerhalb des Projekts; reguläre Konfigurationen verwenden
+keine `../`-Pfade aus dem Repository heraus. Beim allerersten `init` ist der Template-Pfad
 explizit mit `--template-dir` anzugeben, falls noch keine
 Projektkonfiguration existiert.
 

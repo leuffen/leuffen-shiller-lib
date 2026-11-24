@@ -493,12 +493,13 @@ Keys und Strukturen.
 dorthin kopiert. Andere Dateien aus `_tpl/_root/` bleiben relativ zur
 Projektwurzel, zum Beispiel `package.json`.
 
-Die Installation nutzt `.shiller.yml` **in der Projektwurzel**. Pfade in
-`template_dir` werden relativ dazu aufgelöst; beim mitgelieferten ThemeJS2
-ist das `node_modules/@leuffen/themejs2/_tpl`.
-Ein expliziter relativer `templateDir`-Wert der Factory wird dagegen relativ
-zur Projektwurzel aufgelöst. So kann jede Website in einem eigenen
-Projektverzeichnis neben anderen Websites liegen.
+Die `.shiller.yml` liegt **immer in der Wurzel des Website-Repositories**,
+nicht im Document Root. Alle relativen Konfigurationspfade werden von diesem
+Verzeichnis aus aufgelöst. Vorlagen, Skills und Kontextdateien liegen im
+Normalfall innerhalb des Projekts; verwende keine `../`-Pfade in regulären
+Projektkonfigurationen. Für ThemeJS2 ist `template_dir` beispielsweise
+`node_modules/@leuffen/themejs2/_tpl`. Auch ein expliziter relativer
+`templateDir`-Wert der Factory bezieht sich auf die Projektwurzel.
 
 ## Weitere Aufrufe
 
@@ -512,7 +513,8 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 
 ## Vollstaendiges Demo-Projekt
 
-Unter [demo/](demo/) stehen Template und installierte Website getrennt.
-Die Beispiele zeigen den zentralen Projektkontext, konfigurierbares
-`skills_dir`, Markdown-Zieldateien und YAML-Sidecars. Bearbeitungsregeln
-werden ausschliesslich durch die ThemeJS2-Skills bereitgestellt.
+[demo/repo/](demo/repo/) stellt ein eigenständiges Website-Repository dar.
+Die `.shiller.yml`, der Document Root `docs/`, lokale Vorlagen `_tpl/` und
+der Projektkontext befinden sich innerhalb derselben Projektwurzel.
+Die optional für AI-Anpassungen benötigten ThemeJS2-Skills liegen unter
+`node_modules/` im Demo-Repository.

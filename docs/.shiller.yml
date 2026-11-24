@@ -1,6 +1,7 @@
 version: 1.0
 
-# .shiller.yml – Projektwurzel; relative Pfade ab dieser Datei.
+# .shiller.yml liegt immer im Repository-/Projekt-Root, nicht im Document Root.
+# Relative Pfade ab hier; regulär innerhalb des Projekts (kein ../ nach außen).
 # Document Root separat festlegen (CLI-Standard: docs/).
 
 # --- Website ---

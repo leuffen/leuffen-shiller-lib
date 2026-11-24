@@ -1,6 +1,7 @@
 version: 1.0
 adapter: jekyll-polyglot:1.0
-template_dir: ../template/_tpl
+doc_root: docs
+template_dir: _tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 context_files: .shiller-context.d/project.md
 
