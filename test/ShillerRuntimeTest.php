@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use FilesystemIterator;
 use Leuffen\Shiller\Access\DTO\AccessContext;
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\Adapter\V1_0\JekyllLegacyAdapter;
 use Leuffen\Shiller\Access\ShillerRepository;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use PHPUnit\Framework\TestCase;
@@ -21,6 +21,7 @@ final class ShillerRuntimeTest extends TestCase
 
         mkdir($this->dir . '/home', 0777, true);
         mkdir($this->dir . '/_data', 0777, true);
+        file_put_contents($this->dir . '/.shiller.yml', "version: 1.0\nadapter: legacy:1.0\n");
     }
 
     protected function tearDown(): void
@@ -96,7 +97,7 @@ final class ShillerRuntimeTest extends TestCase
     {
         file_put_contents(
             $this->dir . '/.shiller.yml',
-            "schema_version: 1\nlanguages: [de, en]\ndefault_lang: de\nadapter: {id: jekyll-polyglot, version: 1}\n",
+            "version: 1.0\nadapter: polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\n",
         );
         file_put_contents(
             $this->dir . '/index.md',

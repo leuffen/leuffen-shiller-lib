@@ -9,6 +9,37 @@ Voraussetzungen und kann in die Website-Projektwurzel kopiert werden.
 Relative Pfade beziehen sich auf den Ort der Konfigurationsdatei. Für die
 separate Header-Konfiguration siehe [Beispiel](examples/20-editable-headers.conf.yaml).
 
+## Versionierte Adapter
+
+Die Projektdatei `.shiller.yml` beginnt mit den beiden Pflichtfeldern:
+
+```yaml
+version: 1.0
+adapter: polyglot:1.0
+```
+
+`version` bezeichnet die Version des Konfigurationsformats (derzeit ausschließlich
+`1.0`). `adapter` ist eine Zeichenkette aus Adaptername und Version, getrennt durch
+einen Doppelpunkt. Fehlende oder nicht unterstützte Werte führen zu einer
+`ConfigurationException`; es gibt keinen automatischen Adapter-Fallback.
+
+| Adapter | Version | Besonderheiten |
+| --- | --- | --- |
+| `legacy:1.0` | 1.0 | MICX-Bestand mit PID-/Sprachdateien, `_section.yml` und `_data/languages.yml`; vorhandene Seiten lesen und bearbeiten, keine neuen Seiten/Übersetzungen oder Strukturänderungen. |
+| `polyglot:1.0` | 1.0 | Jekyll-Quellstruktur, Übersetzungen unter `_intl/<sprache>/`, konfigurierbare Header; Seiten und Übersetzungen anlegen, verschieben und im Rahmen der Adapterregeln löschen. |
+
+Die Implementierungen liegen unter `src/Access/Adapter/V1_0/`; die explizite
+Zuordnung steht in `src/Access/Helper/ProjectConfig.php`. Neue Adapterversionen
+werden separat registriert, ohne die Auswahl bestehender Projekte umzubiegen.
+
+**Migration bestehender Projekte:** `version: 1.0` als erste Zeile ergänzen
+und bisherige Adapterangaben (`micx-legacy`, `jekyll-polyglot` oder die alte
+`{id: ..., version: 1}`-Form) durch `legacy:1.0` bzw. `polyglot:1.0` ersetzen.
+Auch bisher implizit verwendete Polyglot-Adapter müssen explizit eingetragen
+werden. Ein vorheriges `schema_version`-Feld wird nicht als `version` erkannt.
+Beim ersten `init` mit explizitem Template-Pfad darf die Projektdatei noch
+fehlen; die mitgelieferte Template-Konfiguration enthält beide Pflichtfelder.
+
 ## Editierbare Header
 
 Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
@@ -64,7 +95,7 @@ Nach `init` liegen die Website-Dateien in `docs/`
 (Standard-Document-Root). `_tpl/_root/docs/` wird dorthin kopiert;
 andere Dateien aus `_tpl/_root/` gehen in die Projektwurzel.
 `_tpl/_root/.shiller.yml` wird so zur Projektkonfiguration
-`.shiller.yml` mit `template_dir` und `skills_dir`.
+`.shiller.yml` mit `version`, `adapter`, `template_dir` und `skills_dir`.
 Die anderen Dateien unter `_tpl/` werden anhand ihrer
 `shiller.tags` installiert; `skills/` bleibt im npm-Paket.
 Die Reihenfolge lautet: **init → optional install → Kontext pflegen

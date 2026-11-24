@@ -1,3 +1,5 @@
+version: 1.0
+adapter: polyglot:1.0
 template_dir: ../template/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 context_files: .shiller-context.d/project.md

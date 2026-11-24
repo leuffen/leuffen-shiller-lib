@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Leuffen\Shiller\Access\Adapter\Adapter;
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\Adapter\V1_0\JekyllLegacyAdapter;
 use Leuffen\Shiller\Access\DTO\AccessContext;
 use Leuffen\Shiller\Access\Exception\AccessDeniedException;
 use Leuffen\Shiller\Access\Exception\ConflictException;
@@ -21,7 +21,7 @@ final class DocumentPathPatchTest extends TestCase
     private function site(array $files, ?Adapter $adapter = null, string $role = 'user'): array
     {
         $files += [
-            '.shiller.yml' => "languages: [de, en, fr]\ndefault_lang: de\n",
+            '.shiller.yml' => "version: 1.0\nadapter: polyglot:1.0\nlanguages: [de, en, fr]\ndefault_lang: de\n",
         ];
         $storage = new class ($files) implements SiteStorage {
             public array $writes = [];
@@ -209,6 +209,7 @@ final class DocumentPathPatchTest extends TestCase
         [$site, $storage] = $this->site([
             '_data/languages.yml' => "- {lang: de, name: Deutsch}\n- {lang: en, name: English}\n",
             'home/_section.yml' => "forms:\n  - {key: teaser, name: Teaser, type: textarea}\n",
+            '.shiller.yml' => "version: 1.0\nadapter: legacy:1.0\n",
             'home/home.de.html' => "---\npid: home/home\nlang: de\ntitle: Start\n---\nStart\n",
             'home/home.en.md' => "---\ntitle: Home\n---\nHome\n",
         ], new JekyllLegacyAdapter());
@@ -232,7 +233,7 @@ final class DocumentPathPatchTest extends TestCase
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\n---\nInhalt\n",
             '_intl/en/seite.md' => "---\ntitle: Page\n---\nBody\n",
-            '.shiller.yml' => "languages: [de, en]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n",
+            '.shiller.yml' => "version: 1.0\nadapter: polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n",
             'editable-headers.conf.yml' => <<<'YAML'
 fields:
   - name: title
@@ -293,7 +294,7 @@ YAML,
     {
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\nlayout: landing\n---\nInhalt\n",
-            '.shiller.yml' => "editable_headers_file: editable-headers.conf.yml\n",
+            '.shiller.yml' => "version: 1.0\nadapter: polyglot:1.0\neditable_headers_file: editable-headers.conf.yml\n",
             'editable-headers.conf.yml' => "fields:\n  - {name: layout, type: string, default: default}\n",
         ]);
         $page = $site->getDocumentByPath('seite.md');

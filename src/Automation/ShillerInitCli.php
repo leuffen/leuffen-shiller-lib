@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Phore\Cli\Annotation\CliCommand;
 use Phore\Cli\Annotation\CliParameter;
 use Phore\Cli\Annotation\CliScope;
@@ -67,10 +68,7 @@ final class ShillerInitCli
             return ['before' => [], 'after' => []];
         }
 
-        $config = $configFile->get_yaml();
-        if (!is_array($config)) {
-            throw new RuntimeException("Invalid Shiller config: $configFile");
-        }
+        $config = ProjectConfig::validate($configFile->get_yaml(), (string) $configFile);
 
         $hooks = [];
         foreach (['before', 'after'] as $phase) {

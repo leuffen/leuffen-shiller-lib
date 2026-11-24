@@ -1,10 +1,12 @@
+version: 1.0
+
 # .shiller.yml – Projektwurzel; relative Pfade ab dieser Datei.
 # Document Root separat festlegen (CLI-Standard: docs/).
 
 # --- Website ---
 
-# Seitenadapter: jekyll-polyglot (Default) oder micx-legacy; auch {id: ...}.
-adapter: jekyll-polyglot
+# Pflicht: Adaptername:Version; polyglot:1.0 oder legacy:1.0.
+adapter: polyglot:1.0
 
 # Polyglot: Sprachcodes; Default aus _config.yml, sonst Hauptsprache.
 languages: [de, en]
@@ -13,7 +15,7 @@ languages: [de, en]
 default_lang: de
 
 # Polyglot: Sprachlabels; Default: Sprachcode.
-# micx-legacy verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
+# legacy:1.0 verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
 language_labels:
   de: Deutsch
   en: English

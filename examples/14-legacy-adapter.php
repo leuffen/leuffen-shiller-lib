@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Adapter;
 
 use Leuffen\Shiller\Access\Adapter\Adapter;
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
 use Leuffen\Shiller\Access\DTO\TreeNode;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\ShillerRepository;
@@ -18,7 +17,8 @@ use Leuffen\Shiller\Access\Storage\SiteStorage;
 
 require_once __DIR__ . '/Adapter.php';
 
-// Implementierungsskizze für Framework-Entwickler; Verhalten steht jeweils am Methodenstumpf.
+// Implementierungsskizze für Framework-Entwickler; produktive Version 1.0:
+// src/Access/Adapter/V1_0/JekyllLegacyAdapter.php
 final class JekyllLegacyAdapter implements Adapter
 {
     private SiteStorage $storage;

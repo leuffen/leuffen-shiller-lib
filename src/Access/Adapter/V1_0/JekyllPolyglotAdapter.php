@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\Access\Adapter;
+namespace Leuffen\Shiller\Access\Adapter\V1_0;
+
+use Leuffen\Shiller\Access\Adapter\AbstractJekyllAdapter;
+use Leuffen\Shiller\Access\Adapter\Adapter;
 
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
@@ -121,7 +124,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
 
         return new SiteConfig(
-            ['id' => 'jekyll-polyglot', 'version' => 1],
+            ['id' => 'polyglot', 'version' => '1.0'],
             array_values(array_unique($languages)),
             $defaultLanguage,
             $labels,

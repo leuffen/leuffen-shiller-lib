@@ -7,6 +7,7 @@ use Leuffen\Shiller\Access\ShillerRepository;
 $site = new ShillerRepository(
     '/srv/site/docs',
     access: new AccessContext(role: 'user'),
+    projectRoot: '/srv/site',
 );
 $page = $site->getPage('/leistungen/diagnostik');
 $english = $page->getTranslation('en');

@@ -21,13 +21,12 @@ use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Info\FileKind;
 use Leuffen\Shiller\Access\Info\TranslationInfo;
 use Leuffen\Shiller\Access\Storage\SiteStorage;
 use Leuffen\Shiller\Access\Adapter\Adapter;
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
-use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;
 use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
 
 final class ShillerRepository
@@ -51,31 +50,27 @@ final class ShillerRepository
         $this->storage = is_string($root) ? new NativeSiteStorage($root) : $root;
         $projectStorage = is_string($projectRoot) ? new NativeSiteStorage($projectRoot) : ($projectRoot ?? $this->storage);
         $this->projectStorage = $projectStorage;
-        $this->projectConfig = $projectStorage->exists('.shiller.yml')
-            ? Codec::yaml($projectStorage->read('.shiller.yml'), '.shiller.yml')
-            : [];
+        $this->projectConfig = ProjectConfig::validate(
+            $projectStorage->exists('.shiller.yml')
+                ? Codec::yaml($projectStorage->read('.shiller.yml'), '.shiller.yml')
+                : [],
+        );
         $this->access = $access ?? new AccessContext();
-        $this->adapter = $adapter ?? $this->selectAdapter();
+        $this->adapter = $this->selectAdapter($adapter);
         // Adapter benötigen für projektweite Dateien denselben Root wie die .shiller.yml.
         $this->adapter->bind($this->storage, $this->projectConfig, $projectStorage);
     }
 
-    private function selectAdapter(): Adapter
+    private function selectAdapter(?Adapter $adapter): Adapter
     {
-        if ($this->projectConfig !== []) {
-            $config = $this->projectConfig;
-            $id = $config['adapter']['id'] ?? $config['adapter'] ?? null;
+        $id = $this->projectConfig['adapter'] ?? null;
 
-            if ($id === 'micx-legacy') {
-                return new JekyllLegacyAdapter();
-            }
-
-            if ($id !== null && $id !== 'jekyll-polyglot') {
-                throw new ConfigurationException("Unknown adapter: $id");
-            }
+        $class = ProjectConfig::adapterClass($id);
+        if ($adapter !== null && !$adapter instanceof $class) {
+            throw new ConfigurationException("Explicit adapter does not match .shiller.yml: $id");
         }
 
-        return new JekyllPolyglotAdapter();
+        return $adapter ?? new $class();
     }
 
     /**

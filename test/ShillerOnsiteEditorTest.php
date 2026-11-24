@@ -20,7 +20,7 @@ final class ShillerOnsiteEditorTest extends TestCase
         $this->root = sys_get_temp_dir() . '/shiller-onsite-' . bin2hex(random_bytes(6));
         phore_dir($this->root . '/docs/_intl/en')->mkdir();
         phore_file($this->root . '/.shiller.yml')->set_contents(
-            "languages: [de, en]\ndefault_lang: de\nskills_dir: [skills, extra-skills]\n"
+            "version: 1.0\nadapter: polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\nskills_dir: [skills, extra-skills]\n"
             . "onsite_editor:\n  instruction_file: instructions.md\n",
         );
         phore_file($this->root . '/instructions.md')->set_contents('Preserve factual content.');

@@ -1,7 +1,8 @@
 # Demo Template
 
 Dieses Verzeichnis repraesentiert ein eigenstaendiges Template-Projekt.
-`_tpl/_root/.shiller.yml` enthaelt die Projektkonfiguration;
+`_tpl/_root/.shiller.yml` enthaelt die Projektkonfiguration mit
+`version: 1.0` und `adapter: polyglot:1.0`;
 `_tpl/_root/docs/` enthaelt strukturierte Daten;
 `_tpl/pages/` enthaelt tag-basierte Markdown-Vorlagen. Die AI-Anpassung
 verwendet die Skills aus dem installierten ThemeJS2-npm-Paket.

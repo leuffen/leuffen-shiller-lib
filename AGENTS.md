@@ -83,11 +83,15 @@ Fuer die CLI nach der ersten Installation gehoert eine
 npm-Paketpfads enthaelt sie beispielsweise:
 
 ```yaml
+version: 1.0
+adapter: polyglot:1.0
 template_dir: node_modules/@leuffen/themejs2/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 context_files: .shiller-context.d/project.md
 ```
 
+`version` (derzeit nur `1.0`) und `adapter` (`polyglot:1.0` oder
+`legacy:1.0`) sind Pflichtfelder; die Konfiguration beginnt mit `version`.
 `template_dir` ist der Pfad zu `_tpl/`, nicht zum Paket-Root.
 `skills_dir` ist separat konfigurierbar; ohne Eintrag verwendet die
 Content-Action standardmaessig

@@ -20,8 +20,8 @@ Kontext geladen, außer Dateien mit dem Suffix `.rules.md`.
 `project.rules.md` enthält nur zusätzliche Regeln für `context build` und wird\nnicht als normaler Kontext geladen. `.shiller-context.d/raw/` enthaelt Rohdaten fuer
 `context build` und wird bei `adapt` nicht direkt eingebunden.
 
-`.shiller.yml` in der Projektwurzel konfiguriert `template_dir` und
-`skills_dir`. Das ThemeJS2-Paket muss vorher unter
+`.shiller.yml` in der Projektwurzel legt die Konfigurationsversion `1.0`,
+den Adapter `polyglot:1.0`, `template_dir` und `skills_dir` fest. Das ThemeJS2-Paket muss vorher unter
 `node_modules/@leuffen/themejs2/` bereitgestellt werden.
 Shiller analysiert den Projektkontext einmal und nutzt einen Checkpoint
 fuer die getrennte Anpassung jeder ausgewählten Datei. `--debug` zeigt
