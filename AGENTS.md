@@ -85,6 +85,7 @@ npm-Paketpfads enthaelt sie beispielsweise:
 ```yaml
 template_dir: node_modules/@leuffen/themejs2/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
+context_files: .shiller-context.d/project.md
 ```
 
 `template_dir` ist der Pfad zu `_tpl/`, nicht zum Paket-Root.
@@ -97,8 +98,11 @@ explizit mit `--template-dir` anzugeben, falls noch keine
 Projektkonfiguration existiert.
 
 Die Datei `_tpl/_root/.shiller-context.d/project.md` wird nach
-`<projekt>/.shiller-context.d/project.md` kopiert und ist der
-Startkontext fuer die Content-Anpassung. Neue Rohdaten gehoeren spaeter
+`<projekt>/.shiller-context.d/project.md` kopiert. Der allgemeine AI-Kontext
+wird mit `context_files` in `.shiller.yml` als einzelner Pfad oder geordnete
+Liste konfiguriert. Ohne Feld wird nur die vorhandene project.md geladen;
+andere Dateien werden nicht automatisch eingebunden. `[]` deaktiviert den
+Projektkontext. Der Context-Build bleibt davon unabhängig. Neue Rohdaten gehoeren spaeter
 nach `<projekt>/.shiller-context.d/raw/`. Der Befehl
 `shiller context build` aktualisiert daraus die `project.md`;
 bei unveraenderten Quellen ist dieser Schritt nicht erneut notwendig.

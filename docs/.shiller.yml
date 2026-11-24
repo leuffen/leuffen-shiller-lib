@@ -48,9 +48,24 @@ skills_dir:
   - node_modules/@leuffen/themejs2/skills
   # - .shiller-skills
 
-# Projektfakten werden automatisch aus .shiller-context.d/project.md und
-# weiteren Markdown-Dateien direkt in .shiller-context.d/ geladen.
-# raw/ und *.rules.md gehören nicht zum allgemeinen AI-Kontext.
+# --- Projektkontext ---
+#
+# Eine einzelne Datei (String) oder eine Liste von Dateien in Ladereihenfolge.
+# Gilt für kontextbezogene AI-Workflows (z. B. Onsite Editor, Adjust, Edit).
+# Relative Pfade gelten ab .shiller.yml; explizite Dateien müssen lesbar sein.
+# Ohne Feld: nur .shiller-context.d/project.md, sofern vorhanden.
+# Keine automatische Verzeichnissuche. [] deaktiviert den Projektkontext.
+# Adjust benötigt mindestens eine Kontextdatei. Explizite --context-Quellen
+# ergänzen den Projektkontext für einen Auftrag.
+context_files: .shiller-context.d/project.md
+# Alternative (anstelle des Strings):
+# context_files:
+#   - .shiller-context.d/project.md
+#   - context/leistungen.md
+#   - context/schreibstil.md
+#
+# shiller context build arbeitet weiterhin in .shiller-context.d/ und
+# erzeugt project.md unabhängig von context_files.
 
 # --- AI Harness ---
 

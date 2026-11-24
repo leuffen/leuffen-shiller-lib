@@ -40,11 +40,12 @@ final class ShillerContentAction
      *
      * @param string $documentRoot Document Root mit editierbaren Inhalten.
      * @param string $templateDir Template-Verzeichnis fuer Shiller-Vorlagen.
-     * @param list<string> $contextFiles Projektkontext-Dateien.
+     * @param list<string> $contextFiles Explizite Zusatzdateien zum konfigurierten Projektkontext.
      * @param string $skillFile Allgemeiner Shiller-Basis-Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model Modell des AI Harness.
      * @param string|list<string> $skillsDirectory Skill-Verzeichnisse; leerer String nutzt ThemeJS2.
+     * @param string|null $configurationRoot Verzeichnis der .shiller.yml; Standard: Projektwurzel.
      * @throws FilesystemException Bei unlesbaren Dateien oder Verzeichnissen.
      * @throws RuntimeException Bei fehlendem Kontext oder leerem Modell.
      * @see self::adapt()
@@ -61,6 +62,7 @@ final class ShillerContentAction
         string|array $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
         private readonly bool $webAccess = false,
+        private readonly ?string $configurationRoot = null,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
@@ -68,10 +70,6 @@ final class ShillerContentAction
         if (!in_array($reasoningEffort, ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'], true)) {
             throw new RuntimeException('Invalid reasoning effort: ' . $reasoningEffort);
         }
-        if ($contextFiles === []) {
-            throw new RuntimeException('At least one Shiller context file is required.');
-        }
-
         $documentUri = phore_uri($documentRoot)->abs();
         $documentPath = (string) $documentUri;
         $projectPath = (string) $documentUri->withParentDir();
@@ -143,7 +141,7 @@ final class ShillerContentAction
             [$this->model, $this->reasoningEffort, self::FILE_REASONING_EFFORT],
         );
 
-        $context = (new ShillerAiContextFactory((string) $this->projectRoot))->create(
+        $context = (new ShillerAiContextFactory($this->configurationRoot ?? (string) $this->projectRoot))->create(
             additionalContextFiles: array_map(
                 static fn(PhoreFile $file): string => (string) $file,
                 $this->contextFiles,

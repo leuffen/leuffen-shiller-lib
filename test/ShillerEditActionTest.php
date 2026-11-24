@@ -240,6 +240,46 @@ final class ShillerEditActionTest extends TestCase
         $action->analyze(stdinText: 'Text');
     }
 
+    public function testConfiguredContextFilesReplaceDefaultAndPreserveOrder(): void
+    {
+        phore_dir($this->dir . '/.shiller-context.d')->mkdir();
+        phore_file($this->dir . '/.shiller-context.d/project.md')->set_contents('Default');
+        phore_file($this->dir . '/.shiller-context.d/unlisted.md')->set_contents('Not selected');
+        phore_file($this->dir . '/facts.md')->set_contents('Facts');
+        phore_file($this->dir . '/style.md')->set_contents('Style');
+        $config = phore_file($this->dir . '/.shiller.yml');
+        $factory = new ShillerAiContextFactory($this->dir);
+        $contents = static function (AiContext $context): array {
+            $items = (new ReflectionProperty(AiContext::class, 'prompts'))->getValue($context);
+
+            return array_values(array_map(
+                static fn(FilePrompt $file): string => $file->content,
+                array_filter($items, static fn(mixed $item): bool => $item instanceof FilePrompt),
+            ));
+        };
+
+        self::assertSame(['Default'], $contents($factory->create()));
+
+        $config->set_contents("context_files: facts.md\n");
+        self::assertSame(['Facts'], $contents($factory->create()));
+
+        $config->set_contents("context_files: [style.md, facts.md]\n");
+        self::assertSame(['Style', 'Facts'], $contents($factory->create()));
+        self::assertSame(['Style', 'Facts', 'Default'], $contents($factory->create(
+            additionalContextFiles: ['facts.md', '.shiller-context.d/project.md'],
+        )));
+
+        $config->set_contents("context_files: []\n");
+        self::assertSame([], $contents($factory->create()));
+    }
+
+    public function testMissingExplicitContextFileFails(): void
+    {
+        phore_file($this->dir . '/.shiller.yml')->set_contents("context_files: missing.md\n");
+        $this->expectException(\Phore\FileSystem\Exception\FilesystemException::class);
+        (new ShillerAiContextFactory($this->dir))->create();
+    }
+
     public function testFactoryBuildsDefaultsFromShillerYamlWithoutHarnessExtension(): void
     {
         phore_file($this->dir . '/.shiller.yml')->set_contents(

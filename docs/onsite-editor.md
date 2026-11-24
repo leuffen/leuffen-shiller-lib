@@ -16,6 +16,7 @@ Die Projektwurzel ist der Ordner der .shiller.yml, nicht der Document Root.
 Bei getrennten Roots beide beim Repository angeben.
 
 ```yaml
+context_files: .shiller-context.d/project.md
 skills_dir:
   - node_modules/@leuffen/themejs2/skills
   - .shiller-skills
@@ -29,7 +30,10 @@ skills_dir akzeptiert weiterhin einen einzelnen String. Der Harness entdeckt
 alle Skills rekursiv; Skripte werden nicht freigegeben. Ohne Angabe gilt der
 bisherige ThemeJS2-Default. Die optionale Instruction-Datei wird relativ zur
 Projektwurzel aufgelöst und als SystemPrompt gesendet. Projektkontext aus
-.shiller-context.d und die vorhandenen AI-Einstellungen bleiben aktiv.
+`context_files` (Dateipfad oder geordnete Liste) und die vorhandenen
+AI-Einstellungen bleiben aktiv. Ohne Feld wird nur eine vorhandene
+`.shiller-context.d/project.md` geladen. Andere Dateien werden nicht
+automatisch als Projektkontext eingebunden.
 Webzugriff ist nur bei aktivierter Konfiguration und expliziter Nachfrage
 vorgesehen. Das ist eine AI-Anweisung, keine technische Web-Sperre je Prompt.
 

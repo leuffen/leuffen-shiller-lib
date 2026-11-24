@@ -38,9 +38,7 @@ final class ShillerAutomationFactory
      * Erstellt die AI-Harness-Action fuer bereits installierte Website-Inhalte.
      *
      * Die Konfiguration wird aus .shiller.yml in der Projektwurzel gelesen.
-     * Projektkontext kommt aus .shiller-context.d: project.md wird zuerst
-     * geladen, danach alle weiteren Markdown-Dateien direkt in diesem
-     * Verzeichnis. raw/ wird nicht automatisch als aktiver Kontext geladen.
+     * Die gemeinsame AI Context Factory laedt context_files aus .shiller.yml.
      * Zusaetzliche Kontextdateien sind relativ zur Projektwurzel.
      *
      * @param string $documentRoot Relativer oder absoluter Document Root.
@@ -111,30 +109,8 @@ final class ShillerAutomationFactory
             $skillsPaths[] = (string) $skillsUri->assertDirectory()->assertReadable();
         }
 
-        $contextDirectory = $projectRoot
-            ->withSubPath('.shiller-context.d')
-            ->assertDirectory()
-            ->assertReadable();
-        $projectContext = $contextDirectory
-            ->withSubPath('project.md')
-            ->asFile()
-            ->assertFile()
-            ->assertReadable();
-
-        $contextFiles = [(string) $projectContext];
-        foreach ($contextDirectory->listFiles(recursive: false, sort: 'path') as $contextFile) {
-            $relative = str_replace('\\', '/', (string) $contextFile->getRelPath($contextDirectory));
-            if (
-                $relative === 'project.md'
-                || str_ends_with(strtolower($relative), '.rules.md')
-                || !str_ends_with(strtolower($relative), '.md')
-            ) {
-                continue;
-            }
-
-            $contextFiles[] = (string) $contextFile->assertReadable();
-        }
-
+        // Nur auftragsbezogene Zusatzdateien vorbereiten. Projektkontext laedt der AiContext.
+        $contextFiles = [];
         foreach ($additionalContextFiles as $additionalContextFile) {
             if (!is_string($additionalContextFile) || $additionalContextFile === '') {
                 throw new RuntimeException('Additional context filenames must be non-empty strings.');
@@ -147,10 +123,6 @@ final class ShillerAutomationFactory
         }
 
         $contextFiles = array_values(array_unique($contextFiles));
-        if ($contextFiles === []) {
-            throw new RuntimeException('No Shiller context files found.');
-        }
-
         if ($skillFile === '') {
             $skillFile = dirname(__DIR__, 2) . '/resources/skills/adapt-content/SKILL.md';
         } elseif (!str_starts_with($skillFile, '/')) {
@@ -180,6 +152,7 @@ final class ShillerAutomationFactory
             $skillsPaths,
             $reasoningEffort,
             $webAccess,
+            configurationRoot: (string) $configDir,
         );
     }
 

@@ -45,9 +45,9 @@ final class ShillerAiContextFactory
     /**
      * Erstellt einen wiederverwendbaren AiContext fuer eine Shiller-Action.
      *
-     * Automatisch aktive Projektkontexte sind project.md und weitere Markdown-
-     * Dateien direkt unter .shiller-context.d, aber keine raw/-Quellen oder
-     * *.rules.md. Weitere Dateien und Skills koennen uebergeben werden.
+     * context_files in .shiller.yml bestimmt die Projektkontext-Dateien.
+     * Ohne Angabe wird nur eine vorhandene .shiller-context.d/project.md geladen.
+     * Weitere Dateien und Skills koennen explizit uebergeben werden.
      * Die AI-Konfiguration stammt aus .shiller.yml, die Argumente haben Vorrang.
      * Workflow-Skills werden nur fuer die dafuer vorgesehenen Actions geladen.
      *
@@ -111,7 +111,7 @@ final class ShillerAiContextFactory
 
         // Projektinformationen werden als vorbereiteter Context geladen.
         $prompts = [];
-        foreach ($this->contextFiles($additionalContextFiles, $requireContext) as $file) {
+        foreach ($this->contextFiles($config, $additionalContextFiles, $requireContext) as $file) {
             $prompts[] = new FilePrompt(
                 (string) $file,
                 $file->get_contents(),
@@ -178,28 +178,36 @@ final class ShillerAiContextFactory
     }
 
     /**
+     * @param array<string, mixed> $config
      * @param list<string> $additionalContextFiles
      * @return list<PhoreFile>
      */
-    private function contextFiles(array $additionalContextFiles, bool $required): array
+    private function contextFiles(array $config, array $additionalContextFiles, bool $required): array
     {
         $files = [];
-        $contextPath = $this->projectRoot->withSubPath('.shiller-context.d');
-        if ($contextPath->exists()) {
-            $dir = $contextPath->assertDirectory()->assertReadable();
-            $projectFile = $dir->withSubPath('project.md')->asFile();
-            if ($projectFile->exists()) {
-                $files[(string) $projectFile] = $projectFile->assertReadable();
+        // Nur konfigurierte Dateien laden; der Default ist eine einzelne
+        // optionale Datei, keine automatische Verzeichnissuche.
+        if (array_key_exists('context_files', $config)) {
+            $paths = $config['context_files'];
+            $paths = is_string($paths) ? [$paths] : $paths;
+            if (!is_array($paths) || !array_is_list($paths)) {
+                throw new RuntimeException('Invalid context_files in ' . $this->projectRoot . '/.shiller.yml');
             }
-            foreach ($dir->listFiles(recursive: false, sort: 'path') as $file) {
-                $relative = str_replace('\\', '/', (string) $file->getRelPath($dir));
-                if ($relative === 'project.md' || !str_ends_with(strtolower($relative), '.md')
-                    || str_ends_with(strtolower($relative), '.rules.md')) {
-                    continue;
+            foreach ($paths as $path) {
+                if (!is_string($path) || trim($path) === '') {
+                    throw new RuntimeException('context_files entries must be non-empty file paths in ' . $this->projectRoot . '/.shiller.yml');
                 }
-                $files[(string) $file] = $file->assertReadable();
+                $file = $this->resolveFile($path);
+                $files[(string) $file] = $file;
+            }
+        } else {
+            $projectFile = $this->projectRoot->withSubPath('.shiller-context.d/project.md')->asFile();
+            if ($projectFile->exists()) {
+                $files[(string) $projectFile] = $projectFile->assertFile()->assertReadable();
             }
         }
+
+        // Explizite Quellen eines einzelnen Auftrags folgen dem Projektkontext.
         foreach ($additionalContextFiles as $path) {
             if (!is_string($path) || trim($path) === '') {
                 throw new RuntimeException('Context file paths must be non-empty strings.');
