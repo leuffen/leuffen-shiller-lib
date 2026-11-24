@@ -21,7 +21,7 @@ final class DocumentPathPatchTest extends TestCase
     private function site(array $files, ?Adapter $adapter = null, string $role = 'user'): array
     {
         $files += [
-            'shiller.yaml' => "languages: [de, en, fr]\ndefault_lang: de\n",
+            '.shiller.yml' => "languages: [de, en, fr]\ndefault_lang: de\n",
         ];
         $storage = new class ($files) implements SiteStorage {
             public array $writes = [];
@@ -107,16 +107,16 @@ final class DocumentPathPatchTest extends TestCase
     {
         [$site] = $this->site([
             'index.md' => "---\ntitle: Start\n---\nStart\n",
-            'en/index.html' => "---\ntitle: Home\n---\nHome\n",
+            '_intl/en/index.html' => "---\ntitle: Home\n---\nHome\n",
             'leistungen/index.html' => "---\ntitle: Leistungen\n---\nInhalt\n",
-            'en/leistungen/index.md' => "---\ntitle: Services\n---\nBody\n",
+            '_intl/en/leistungen/index.md' => "---\ntitle: Services\n---\nBody\n",
         ]);
 
         foreach ([
             ['index.md', '/', 'de'],
-            ['en/index.html', '/', 'en'],
+            ['_intl/en/index.html', '/', 'en'],
             ['leistungen/index.html', '/leistungen', 'de'],
-            ['en/leistungen/index.md', '/leistungen', 'en'],
+            ['_intl/en/leistungen/index.md', '/leistungen', 'en'],
         ] as [$path, $id, $language]) {
             $reference = $site->resolveDocumentPath($path);
             self::assertSame($path, $reference->path);
@@ -133,7 +133,7 @@ final class DocumentPathPatchTest extends TestCase
             'leistungen.md' => "---\ntitle: Leistungen\n---\nInhalt\n",
         ], role: 'reader');
 
-        $reference = $site->resolveDocumentPath('en/leistungen.md');
+        $reference = $site->resolveDocumentPath('_intl/en/leistungen.md');
         self::assertFalse($reference->exists);
         self::assertSame('/leistungen', $reference->id);
         self::assertSame('en', $reference->language);
@@ -141,16 +141,16 @@ final class DocumentPathPatchTest extends TestCase
         self::assertTrue($translations['de']->exists);
         self::assertSame('leistungen.md', $translations['de']->path);
         self::assertFalse($translations['en']->exists);
-        self::assertSame('en/leistungen.md', $translations['en']->path);
+        self::assertSame('_intl/en/leistungen.md', $translations['en']->path);
         self::assertFalse($translations['fr']->exists);
-        self::assertSame('fr/leistungen.md', $translations['fr']->path);
+        self::assertSame('_intl/fr/leistungen.md', $translations['fr']->path);
 
         try {
-            $site->getDocumentByPath('en/leistungen.md');
+            $site->getDocumentByPath('_intl/en/leistungen.md');
             self::fail('Missing translation was loaded or prepared for creation');
         } catch (NotFoundException $exception) {
-            self::assertStringContainsString('en/leistungen.md', $exception->getMessage());
-            self::assertArrayNotHasKey('en/leistungen.md', $storage->files);
+            self::assertStringContainsString('_intl/en/leistungen.md', $exception->getMessage());
+            self::assertArrayNotHasKey('_intl/en/leistungen.md', $storage->files);
             self::assertSame([], $storage->writes);
         }
     }
@@ -190,11 +190,11 @@ final class DocumentPathPatchTest extends TestCase
     {
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\n---\nInhalt\n",
-            'en/seite.md' => "---\ntitle: Page\n---\nBody\n",
+            '_intl/en/seite.md' => "---\ntitle: Page\n---\nBody\n",
             'ordner.md/child.md' => "---\ntitle: Child\n---\nChild\n",
         ]);
 
-        foreach (['seite.txt', '/seite.md', 'en//seite.md', 'en\\seite.md', 'ordner.md'] as $path) {
+        foreach (['seite.txt', '/seite.md', '_intl/en//seite.md', '_intl/en\\seite.md', 'ordner.md'] as $path) {
             try {
                 $site->resolveDocumentPath($path);
                 self::fail("Invalid page filename was accepted: $path");
@@ -231,8 +231,8 @@ final class DocumentPathPatchTest extends TestCase
     {
         [$site] = $this->site([
             'seite.md' => "---\ntitle: Seite\n---\nInhalt\n",
-            'en/seite.md' => "---\ntitle: Page\n---\nBody\n",
-            '.shiller.yml' => "editable_headers_file: editable-headers.conf.yml\n",
+            '_intl/en/seite.md' => "---\ntitle: Page\n---\nBody\n",
+            '.shiller.yml' => "languages: [de, en]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n",
             'editable-headers.conf.yml' => <<<'YAML'
 fields:
   - name: title
@@ -240,7 +240,7 @@ fields:
   - name: english_note
     type: textarea
     when:
-      include: '~^en/~'
+      include: '~^_intl/en/~'
 YAML,
         ]);
 
@@ -249,7 +249,7 @@ YAML,
             'name',
         ));
         self::assertSame(['title', 'english_note'], array_column(
-            $site->getDocumentByPath('en/seite.md')->getEditableHeaders(),
+            $site->getDocumentByPath('_intl/en/seite.md')->getEditableHeaders(),
             'name',
         ));
     }

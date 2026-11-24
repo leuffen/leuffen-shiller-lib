@@ -95,7 +95,7 @@ final class ShillerRuntimeTest extends TestCase
     public function testPolyglotCreatesTranslation(): void
     {
         file_put_contents(
-            $this->dir . '/shiller.yaml',
+            $this->dir . '/.shiller.yml',
             "schema_version: 1\nlanguages: [de, en]\ndefault_lang: de\nadapter: {id: jekyll-polyglot, version: 1}\n",
         );
         file_put_contents(
@@ -112,6 +112,6 @@ final class ShillerRuntimeTest extends TestCase
         $english->header['title'] = 'Home';
         $english->save();
 
-        $this->assertFileExists($this->dir . '/en/index.md');
+        $this->assertFileExists($this->dir . '/_intl/en/index.md');
     }
 }

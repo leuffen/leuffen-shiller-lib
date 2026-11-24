@@ -42,6 +42,6 @@ fields:
     order: 70
     when:
       include: ['~^leistungen/.*\.md$~']
-      exclude: ['~^en/~']
+      exclude: ['~^_intl/en/~']
       on: {published: true}
       not: {hidden: true}

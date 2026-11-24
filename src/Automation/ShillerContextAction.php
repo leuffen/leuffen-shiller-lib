@@ -305,7 +305,9 @@ final class ShillerContextAction
     {
         ksort($state);
         $stateFile = $this->contextDirectory->withSubPath('.raw-state.json')->asFile();
-        SharedWritePermissions::write($stateFile, $this->projectRoot,
+        SharedWritePermissions::write(
+            $stateFile,
+            $this->projectRoot,
             json_encode(
                 $state,
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
