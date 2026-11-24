@@ -40,6 +40,29 @@ werden. Ein vorheriges `schema_version`-Feld wird nicht als `version` erkannt.
 Beim ersten `init` mit explizitem Template-Pfad darf die Projektdatei noch
 fehlen; die mitgelieferte Template-Konfiguration enthält beide Pflichtfelder.
 
+## Legacy-Checkout initialisieren
+
+Für bestehende ThemeJS1-Websites kann die Anwendung direkt nach dem Checkout
+einmalig den eigenständigen Updater aufrufen, bevor sie das Repository öffnet:
+
+```php
+use Leuffen\Shiller\LegacyUpdate\LegacyUpdater;
+use Leuffen\Shiller\Access\ShillerRepository;
+
+$projectRoot = '/srv/site';
+$initialized = (new LegacyUpdater())->update($projectRoot);
+$site = new ShillerRepository($projectRoot . '/docs', projectRoot: $projectRoot);
+```
+
+Der Updater liefert `true`, wenn er die fehlende `.shiller.yml` mit
+`legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
+(auch alte Formate) bleiben unverändert. Er legt bei Bedarf
+`.shiller-user-rules.md` an, lässt alte Kontextdateien unberührt und deaktiviert
+deren automatische Einbindung über `context_files: []`. Webzugriff ist
+aktiviert. Die Website selbst bleibt unverändert. Der Updater benötigt kein
+installiertes ThemeJS1-npm-Paket; dessen Template-Pfad kann später ergänzt
+werden.
+
 ## Editierbare Header
 
 Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
