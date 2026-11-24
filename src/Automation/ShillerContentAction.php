@@ -25,7 +25,8 @@ final class ShillerContentAction
     private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
-    private readonly PhoreDirectory $skillsDirectory;
+    /** @var list<string> */
+    private readonly array $skillsDirectories;
     private readonly PhoreFile $skillFile;
 
     /** @var list<PhoreFile> */
@@ -43,7 +44,7 @@ final class ShillerContentAction
      * @param string $skillFile Allgemeiner Shiller-Basis-Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model Modell des AI Harness.
-     * @param string $skillsDirectory Skill-Verzeichnis; leer nutzt ThemeJS2.
+     * @param string|list<string> $skillsDirectory Skill-Verzeichnisse; leerer String nutzt ThemeJS2.
      * @throws FilesystemException Bei unlesbaren Dateien oder Verzeichnissen.
      * @throws RuntimeException Bei fehlendem Kontext oder leerem Modell.
      * @see self::adapt()
@@ -57,7 +58,7 @@ final class ShillerContentAction
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
         private readonly string $model = ShillerAiDefaults::MODEL,
-        string $skillsDirectory = '',
+        string|array $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
         private readonly bool $webAccess = false,
     ) {
@@ -86,9 +87,17 @@ final class ShillerContentAction
             $skillsDirectory = (string) $this->documentRoot->withParentDir()
                 ->withSubPath('node_modules/@leuffen/themejs2/skills');
         }
-        $skillsPath = (string) phore_uri($skillsDirectory)->abs();
-        $this->skillsDirectory = phore_dir($skillsPath, ['rootDir' => $skillsPath])
-            ->assertDirectory()->assertReadable();
+        $paths = is_string($skillsDirectory) ? [$skillsDirectory] : $skillsDirectory;
+        $directories = [];
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') {
+                throw new RuntimeException('Skill directory must be a non-empty string.');
+            }
+            $skillsPath = (string) phore_uri($path)->abs();
+            $directories[] = (string) phore_dir($skillsPath, ['rootDir' => $skillsPath])
+                ->assertDirectory()->assertReadable();
+        }
+        $this->skillsDirectories = $directories;
 
         $skillUri = phore_uri($skillFile)->abs();
         $this->skillFile = phore_file((string) $skillUri, ['rootDir' => (string) $skillUri->withParentDir()])
@@ -140,7 +149,7 @@ final class ShillerContentAction
                 $this->contextFiles,
             ),
             model: $this->model,
-            skillsDir: (string) $this->skillsDirectory,
+            skillsDir: $this->skillsDirectories,
             workflowSkillFile: (string) $this->skillFile,
             reasoningEffort: $this->reasoningEffort,
             webAccess: $this->webAccess,

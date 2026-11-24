@@ -154,6 +154,10 @@ Die ursprüngliche Response-ID wird wiederverwendet; ein Cache-Hit ist nicht
 garantiert. `usage` enthält die tatsächlichen Tokens und geschätzte Kosten;
 `initializationUsage` weist den zusätzlichen ersten Request getrennt aus.
 
+Der [Onsite Editor](../docs/onsite-editor.md) ergänzt Beispiel 21 um vollständige
+Dateivorschläge, mehrere editierbare Texte, Conversation-Fortsetzung und
+strukturierte offene Aufgaben. Die dort gezeigten Ausschnitte speichern nicht.
+
 ## Gemeinsames Baumformat
 
 Datei- und Seitenlisting verwenden die [TreeNode-Konvention v1](../docs/tree-node.md): id, label, children und typisierte data. Sie orientiert sich an den Standardfeldern von MUI Rich Tree View; sie ist kein universeller JSON-Standard. WAI-ARIA beschreibt separat die zugängliche Bedienung. TreeNode-Datei/Übersetzungen/Metadaten stehen unter data.file/data.translations/data.metadata, Document.file bleibt unverändert. Beispiel 04 zeigt die JSON-Ausgabe, die Referenz das direkte Rendering ohne rekursiven Umbau. Auch andere Projekte können den generischen Typ mit eigenen data verwenden.

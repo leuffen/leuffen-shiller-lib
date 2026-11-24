@@ -9,6 +9,16 @@ Der Dateiname ist frei wählbar. Fehlt der Eintrag oder ist er leer beziehungswe
 `null`, liefert `getEditableHeaders()` keine Felder — auch wenn eine
 Header-Konfigurationsdatei vorhanden ist. Es wird kein Standarddateiname gesucht.
 
+## Onsite Editor
+
+Für interaktive Website-Editoren bietet `ShillerOnsiteEditor` eine API für
+Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
+offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
+`ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
+Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
+
+Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
+
 ## CLI: Neue Website anlegen
 
 Vor dem ersten Shiller-Aufruf muss im neuen Website-Projekt das

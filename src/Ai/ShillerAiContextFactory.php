@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Ai;
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
+use Phore\AiHarness\PromptType\SystemPrompt;
 use Phore\AiHarness\ToolType\WebAccessTool;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -52,13 +53,15 @@ final class ShillerAiContextFactory
      *
      * @param list<string> $additionalContextFiles Projekt-relative oder absolute Kontextdateien.
      * @param string $model Explizites AI-Modell; leer nutzt ai.model oder Shiller-Default.
-     * @param string $skillsDir Skills-Pfad; leer nutzt skills_dir oder ThemeJS2.
+     * @param string|list<string> $skillsDir Skills-Pfade; leerer String nutzt skills_dir oder ThemeJS2.
      * @param string $workflowSkillFile Nur fuer den eigenen Workflow zulaessiger Basis-Skill.
      * @param string|null $reasoningEffort Expliziter Reasoning-Aufwand oder ai.reasoning_effort.
      * @param bool|null $webAccess Web-Tool aktivieren oder ai.web_access verwenden.
      * @param bool $debug Debug-Logging des Harness aktivieren.
      * @param bool $requireContext Fehlt Projektkontext, eine Exception werfen.
      * @param bool $requireSkills Fehlt das Skill-Verzeichnis, eine Exception werfen.
+     * @param array<string, mixed>|null $projectConfig Bereits geladene Projektkonfiguration.
+     * @param string|null $instructionFile Optionale vertrauenswuerdige System-Anweisung relativ zur Projektwurzel.
      * Runtime-Defaults werden aus ai.client, ai.timeout und
      * ai.connect_timeout der .shiller.yml gelesen.
      * @return AiContext Konfigurierter AI-Harness-Kontext.
@@ -71,17 +74,19 @@ final class ShillerAiContextFactory
     public function create(
         array $additionalContextFiles = [],
         string $model = '',
-        string $skillsDir = '',
+        string|array $skillsDir = '',
         string $workflowSkillFile = '',
         ?string $reasoningEffort = null,
         ?bool $webAccess = null,
         bool $debug = false,
         bool $requireContext = false,
         bool $requireSkills = false,
+        ?array $projectConfig = null,
+        ?string $instructionFile = null,
     ): AiContext {
         // Konfiguration wird am gebundenen Projekt-Root gelesen.
         $configFile = $this->projectRoot->withSubPath('.shiller.yml')->asFile();
-        $config = $configFile->exists() ? $configFile->get_yaml() : [];
+        $config = $projectConfig ?? ($configFile->exists() ? $configFile->get_yaml() : []);
         if (!is_array($config)) {
             throw new RuntimeException('Invalid Shiller config: ' . $configFile);
         }
@@ -115,6 +120,9 @@ final class ShillerAiContextFactory
                 allowInstructions: true,
             );
         }
+        if ($instructionFile !== null && $instructionFile !== '') {
+            $prompts[] = new SystemPrompt($this->resolveFile($instructionFile)->get_contents());
+        }
         if ($selectedWebAccess) {
             $prompts[] = new WebAccessTool();
         }
@@ -145,21 +153,25 @@ final class ShillerAiContextFactory
             $context->skills()->add((string) $skill->withParentDir(), ['initialLoad' => true]);
         }
         $configuredSkills = $skillsDir !== '' ? $skillsDir : ($config['skills_dir'] ?? '');
-        if (!is_string($configuredSkills)) {
+        $defaultSkills = $configuredSkills === '';
+        $paths = $defaultSkills
+            ? ['node_modules/@leuffen/themejs2/skills']
+            : (is_string($configuredSkills) ? [$configuredSkills] : $configuredSkills);
+        if (!is_array($paths) || !array_is_list($paths)) {
             throw new RuntimeException('Invalid skills_dir in ' . $configFile);
         }
-        $defaultSkills = $configuredSkills === '';
-        $skillsPath = $defaultSkills
-            ? 'node_modules/@leuffen/themejs2/skills'
-            : $configuredSkills;
-        $skillsUri = $this->resolvePath($skillsPath);
-
-        if ($skillsUri->exists() || !$defaultSkills || $requireSkills) {
-            $skills = $skillsUri->assertDirectory()->assertReadable();
-            $context->skills()->addDirectory((string) $skills);
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') {
+                throw new RuntimeException('Invalid skills_dir in ' . $configFile);
+            }
+            $skillsUri = $this->resolvePath($path);
+            if ($skillsUri->exists() || !$defaultSkills || $requireSkills) {
+                $skills = $skillsUri->assertDirectory()->assertReadable();
+                $context->skills()->addDirectory((string) $skills);
+            }
         }
         if ($requireSkills && $context->skills()->list() === []) {
-            throw new RuntimeException('No skills available in ' . $skillsUri);
+            throw new RuntimeException('No skills available for ' . $configFile);
         }
 
         return $context;

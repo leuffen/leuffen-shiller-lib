@@ -49,7 +49,7 @@ final class ShillerAutomationFactory
      * @param string $skillFile Optionaler Basis-Skill; leer nutzt den mitgelieferten Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model AI-Modell fuer phore/ai-harness.
-     * @param string $skillsDir Skill-Verzeichnis; leer nutzt skills_dir oder den ThemeJS2-Default.
+     * @param string|list<string> $skillsDir Skill-Verzeichnisse; leerer String nutzt skills_dir oder den ThemeJS2-Default.
      * @return ShillerContentAction Konfigurierte Content-Action.
      * @throws FilesystemException Bei Dateisystemfehlern.
      * @throws RuntimeException Bei fehlender oder ungueltiger Konfiguration.
@@ -63,7 +63,7 @@ final class ShillerAutomationFactory
         string $skillFile = '',
         ?PhoreLogger $logger = null,
         string $model = ShillerAiDefaults::MODEL,
-        string $skillsDir = '',
+        string|array $skillsDir = '',
     ): ShillerContentAction {
         $documentUri = str_starts_with($documentRoot, '/')
             ? phore_uri($documentRoot)->abs()
@@ -96,13 +96,20 @@ final class ShillerAutomationFactory
         if ($skillsDir === '') {
             $skillsDir = $config['skills_dir'] ?? '';
         }
-        if (!is_string($skillsDir)) {
+        $paths = is_string($skillsDir) ? [$skillsDir] : $skillsDir;
+        if (!is_array($paths) || !array_is_list($paths)) {
             throw new RuntimeException("Invalid skills_dir in $configFile");
         }
-        $skillsUri = $skillsDir === ''
-            ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
-            : $this->resolveExternalPath($configDir, $skillsDir);
-        $skillsUri->assertDirectory()->assertReadable();
+        $skillsPaths = [];
+        foreach ($paths as $path) {
+            if (!is_string($path)) {
+                throw new RuntimeException("Invalid skills_dir in $configFile");
+            }
+            $skillsUri = $path === ''
+                ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
+                : $this->resolveExternalPath($configDir, $path);
+            $skillsPaths[] = (string) $skillsUri->assertDirectory()->assertReadable();
+        }
 
         $contextDirectory = $projectRoot
             ->withSubPath('.shiller-context.d')
@@ -170,7 +177,7 @@ final class ShillerAutomationFactory
             $skillFile,
             $logger,
             $model,
-            (string) $skillsUri,
+            $skillsPaths,
             $reasoningEffort,
             $webAccess,
         );
