@@ -1,5 +1,14 @@
 # Shiller Library
 
+## Projektkonfiguration (.shiller.yml)
+
+Die [vollständige kommentierte .shiller.yml](docs/.shiller.yml) ist die
+zentrale Konfigurationsreferenz für Website, Template, Skills, AI und Onsite
+Editor sowie die Init-Hooks. Sie enthält Standardwerte, optionale Felder und
+Voraussetzungen und kann in die Website-Projektwurzel kopiert werden.
+Relative Pfade beziehen sich auf den Ort der Konfigurationsdatei. Für die
+separate Header-Konfiguration siehe [Beispiel](examples/20-editable-headers.conf.yaml).
+
 ## Editierbare Header
 
 Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten

@@ -8,6 +8,10 @@ EditableTextPrompt aus dem Harness; es gibt keine zweite Edit-Engine.
 
 ## Konfiguration
 
+Die [kommentierte .shiller.yml](.shiller.yml) enthält die vollständige
+Konfiguration einschließlich aller AI-Felder, Defaults und Voraussetzungen.
+Der folgende Ausschnitt zeigt die spezifischen Onsite-Editor-Einstellungen.
+
 Die Projektwurzel ist der Ordner der .shiller.yml, nicht der Document Root.
 Bei getrennten Roots beide beim Repository angeben.
 

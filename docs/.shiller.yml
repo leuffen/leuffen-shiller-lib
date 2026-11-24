@@ -1,0 +1,105 @@
+# Shiller-Projektkonfiguration (.shiller.yml)
+# Diese Datei in die Projektwurzel kopieren (neben docs/ und package.json).
+# Relative Konfigurationspfade beziehen sich auf diesen Ordner.
+# Voraussetzung: ThemeJS2 ist unter node_modules/@leuffen/themejs2 installiert.
+# Optionale lokale Dateien und weitere Skill-Verzeichnisse erst nach Anlage aktivieren.
+#
+# Der Document Root wird separat über CLI --root/--document-root bzw.
+# ShillerRepository(root: ..., projectRoot: ...) festgelegt; Standard der CLI: docs/.
+# Jekyll-eigene Einstellungen (url, baseurl usw.) bleiben in docs/_config.yml.
+
+# --- Website und Adapter ---
+
+# Optional; Standard: jekyll-polyglot. Alternative: micx-legacy.
+# Auch als Mapping adapter: {id: jekyll-polyglot} möglich.
+adapter: jekyll-polyglot
+
+# Polyglot: unterstützte Sprachcodes als Liste. Ohne Angabe werden languages
+# aus _config.yml verwendet, andernfalls nur die Standardsprache.
+languages: [de, en]
+
+# Polyglot: Hauptsprache im Document Root; weitere Sprachen unter _intl/<lang>/.
+# Standard: de. Alias: default_language; default_lang hat Vorrang.
+default_lang: de
+
+# Polyglot: optionale Anzeigebezeichnungen, Standard je Eintrag: Sprachcode.
+# Beim micx-legacy-Adapter stammen Sprachen, Labels und Hauptsprache stattdessen
+# aus docs/_data/languages.yml (erste Sprache ist die Hauptsprache).
+language_labels:
+  de: Deutsch
+  en: English
+
+# Optional, nur Polyglot: YAML-Datei mit editierbaren Front-Matter-Feldern.
+# Ohne Eintrag, bei null oder leerem String sind keine Header-Felder konfiguriert.
+# Der Pfad ist relativ zur .shiller.yml, nicht zu docs/.
+# editable_headers_file: editable-headers.yml
+
+# --- Templates und Skills ---
+
+# Pfad zum _tpl-Verzeichnis des Theme-Pakets (nicht zum Paket-Root).
+# Für Template-Installation erforderlich, sofern nicht explizit übergeben.
+template_dir: node_modules/@leuffen/themejs2/_tpl
+
+# Skill-Verzeichnisse: String oder Liste von Verzeichnissen.
+# Standard bei fehlender Angabe/leerem String: ThemeJS2-Skills.
+# Explizit angegebene Verzeichnisse müssen existieren und lesbar sein.
+# Der Harness entdeckt Skills rekursiv. Zusätzliche Skills sind optional.
+skills_dir:
+  - node_modules/@leuffen/themejs2/skills
+  # - .shiller-skills
+
+# Projektfakten werden automatisch aus .shiller-context.d/project.md und
+# weiteren Markdown-Dateien direkt in .shiller-context.d/ geladen.
+# raw/ und *.rules.md gehören nicht zum allgemeinen AI-Kontext.
+
+# --- AI Harness ---
+
+ai:
+  # Optional: Modell-ID des konfigurierten Harness-Clients.
+  # Factory-Standard: gpt-6.1-sol. Einzelne Workflows/CLI-Argumente können
+  # das Modell überschreiben; Inline Completion verwendet ein eigenes Modell.
+  # model: gpt-6.1-sol
+
+  # Optional: registrierte Harness-Client-Auswahl, kein API-Key.
+  # Ohne Angabe/null verwendet der Harness seine Standard-Client-Auswahl.
+  # client: 'openai:'
+
+  # Standard: medium. Erlaubt: none, minimal, low, medium, high, xhigh.
+  # Das gewählte Modell muss die Stufe unterstützen; einzelne Workflows
+  # (z. B. Inline Edit/Completion) setzen eigene Reasoning-Stufen.
+  reasoning_effort: medium
+
+  # Web-Tool bereitstellen? Standard: false. Der Onsite Editor weist die AI
+  # an, das Tool nur auf ausdrückliche Nutzeranfrage zu verwenden.
+  # true ist keine technische Beschränkung auf einzelne Anfragen.
+  web_access: false
+
+  # Optional: positive ganze Sekunden für den HTTP-Request.
+  # Ohne Angabe/null gelten die Defaults des Harness-Clients.
+  # timeout: 90
+
+  # Optional: positive ganze Sekunden für den Verbindungsaufbau.
+  # Ohne Angabe/null gelten die Defaults des Harness-Clients.
+  # connect_timeout: 12
+
+# --- Onsite Editor ---
+
+onsite_editor:
+  # Optional: vertrauenswürdige System-Anweisungen für den Onsite Editor.
+  # Relativ zur Projektwurzel; Datei muss existieren und lesbar sein.
+  # Ohne Angabe, bei null oder leerem String keine zusätzliche Anweisung.
+  # instruction_file: .shiller-onsite-editor.md
+  instruction_file: null
+
+# --- CLI-Initialisierung ---
+
+hooks:
+  init:
+    # Optionale Listen nichtleerer Shell-Befehle, die shiller init im
+    # Startverzeichnis vor bzw. nach dem Kopieren der Vorlagen ausführt.
+    # Nur vertrauenswürdige Befehle eintragen: sie laufen mit Prozessrechten.
+    # Fehler (Exit-Code ungleich 0) brechen den Ablauf ab.
+    # Die Hooks werden aus der bereits vor init vorhandenen .shiller.yml
+    # geladen, nicht erst aus der während init kopierten Konfiguration.
+    before: []
+    after: []
