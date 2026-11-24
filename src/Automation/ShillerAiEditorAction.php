@@ -33,20 +33,22 @@ PROMPT;
      * Configure the reusable editor environment without making an AI request.
      *
      * @param AiContext|null $environment Optional fresh Harness context with prepared tools and options.
-     * @param string $model Model for the default environment when none is supplied.
+     * @param string $model Model for inline edits, including with an injected environment.
      * @param string $context Optional trusted, stable editor rules.
+     * @param string $completionModel Model for inline completions (must support reasoning effort none).
      * @throws \LogicException If the supplied environment has already started a conversation.
      * @see AiContext::withPrepared()
      * @example $ai = new ShillerAiEditorAction();
      */
     public function __construct(
         ?AiContext $environment = null,
-        string $model = ShillerAiDefaults::MODEL,
+        private readonly string $model = ShillerAiDefaults::EDITOR_EDIT_MODEL,
         string $context = '',
+        private readonly string $completionModel = ShillerAiDefaults::EDITOR_COMPLETION_MODEL,
     ) {
         $instructions = self::SYSTEM_PROMPT . ($context === '' ? '' : "\n\n" . $context);
         $this->environment = ($environment ?? new AiContext(
-            options: ['model' => $model, 'timeout' => 30],
+            options: ['timeout' => 30],
         ))->withPrepared(new SystemPrompt($instructions));
     }
 
@@ -66,7 +68,11 @@ PROMPT;
             throw new InvalidArgumentException('Cursor must be non-negative.');
         }
 
-        return $this->run($request, 'inlineCompletion', 256);
+        return $this->run($request, 'inlineCompletion', [
+            'model' => $this->completionModel,
+            'reasoning' => ['effort' => 'none'],
+            'max_output_tokens' => 256,
+        ]);
     }
 
     /**
@@ -85,13 +91,17 @@ PROMPT;
             throw new InvalidArgumentException('Invalid inline edit range or prompt.');
         }
 
-        return $this->run($request, 'inlineEdit', 4096);
+        return $this->run($request, 'inlineEdit', [
+            'model' => $this->model,
+            'reasoning' => ['effort' => 'low'],
+            'max_output_tokens' => 4096,
+        ]);
     }
 
     private function run(
         InlineCompletionRequest|InlineEditRequest $request,
         string $operation,
-        int $maxOutputTokens,
+        array $options,
     ): AiEditorResponse {
         if (!in_array($request->language, ['html', 'markdown', 'css', 'javascript', 'typescript', 'scss', 'text'], true)) {
             throw new InvalidArgumentException('Unsupported editor language.');
@@ -103,9 +113,9 @@ PROMPT;
         $initializationUsage = null;
 
         if ($responseId === null || $responseId === '') {
-            $context->text('Initialize the editor context. Return only OK.', options: [
+            $context->text('Initialize the editor context. Return only OK.', options: array_replace($options, [
                 'max_output_tokens' => 256,
-            ]);
+            ]));
             $responseId = $context->getResponseId();
             $initializationUsage = get_last_ai_response()?->getUsage()->toArray();
             if ($responseId === null) {
@@ -124,9 +134,7 @@ PROMPT;
                 json_encode(['operation' => $operation, ...$data], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                 alias: 'editorRequest',
             ),
-        ], options: [
-            'max_output_tokens' => $maxOutputTokens,
-        ]);
+        ], options: $options);
 
         // Die ursprüngliche ID bleibt stabil; Usage stammt aus der gerade ausgeführten Runde.
         $response = get_last_ai_response();
