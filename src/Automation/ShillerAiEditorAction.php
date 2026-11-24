@@ -28,7 +28,6 @@ Do not invent website facts. If no useful suggestion is possible, return empty t
 PROMPT;
 
     private readonly AiContext $environment;
-    private readonly string $cacheKey;
 
     /**
      * Configure the reusable editor environment without making an AI request.
@@ -49,7 +48,6 @@ PROMPT;
         $this->environment = ($environment ?? new AiContext(
             options: ['model' => $model, 'timeout' => 30],
         ))->withPrepared(new SystemPrompt($instructions));
-        $this->cacheKey = hash('sha256', $model . "\n" . $instructions);
     }
 
     /**
@@ -107,8 +105,6 @@ PROMPT;
         if ($responseId === null || $responseId === '') {
             $context->text('Initialize the editor context. Return only OK.', options: [
                 'max_output_tokens' => 256,
-                'store' => true,
-                'prompt_cache_key' => $this->cacheKey,
             ]);
             $responseId = $context->getResponseId();
             $initializationUsage = get_last_ai_response()?->getUsage()->toArray();
@@ -130,8 +126,6 @@ PROMPT;
             ),
         ], options: [
             'max_output_tokens' => $maxOutputTokens,
-            'store' => false,
-            'prompt_cache_key' => $this->cacheKey,
         ]);
 
         // Die ursprüngliche ID bleibt stabil; Usage stammt aus der gerade ausgeführten Runde.
