@@ -13,6 +13,15 @@ Bearbeite nur die vom Auftrag betroffenen Dateien und Textstellen. Halte
 Layouts, Front Matter und technische Elemente, sofern der Auftrag keine
 gezielte Änderung daran verlangt. Formatiere unveränderte Abschnitte nicht neu.
 
+### Informationsquellen und Internetzugriff
+
+Nutze standardmäßig die vorhandenen lokalen Dateien und Datenquellen im
+Projekt. Greife nur dann auf das Internet zu, wenn der Nutzer ausdrücklich
+eine Internetrecherche oder den Abruf externer Inhalte verlangt und der
+Webzugriff verfügbar ist. Die bloße Verfügbarkeit eines Web-Tools ist keine
+Erlaubnis, es zu nutzen. Fehlen lokal benötigte Informationen, frage nach,
+statt selbstständig im Internet zu recherchieren oder Angaben zu erfinden.
+
 ### Texte und Markdown
 
 Schreibe verständliche, freundliche und hilfreiche Texte, die zur Zielgruppe
