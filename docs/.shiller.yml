@@ -67,6 +67,20 @@ context_files: .shiller-context.d/project.md
 # shiller context build arbeitet weiterhin in .shiller-context.d/ und
 # erzeugt project.md unabhängig von context_files.
 
+# --- User Rules ---
+#
+# Optionale, vom Benutzer pflegbare Markdown-Datei relativ zur Projektwurzel.
+# Ohne Feld, bei null oder leerem String sind User Rules deaktiviert.
+# Vor dem Aktivieren eine lesbare Datei mit sicherem Dateinamen anlegen;
+# bei Onsite-Textbearbeitung muss sie auch beschreibbar sein.
+# Nur diese einzelne Datei wird fuer direkte AI-Edits freigegeben.
+# Keine Konfigurations-, Skill- oder System-Instruction-Datei hier angeben.
+# Globale Regeln unter "## Global", seitenspezifische Regeln unter
+# "## Page: <document-root-relativer Dateipfad>".
+# Siehe docs/onsite-editor.md.
+# user_rules_file: user-rules.md
+user_rules_file: null
+
 # --- AI Harness ---
 
 ai:

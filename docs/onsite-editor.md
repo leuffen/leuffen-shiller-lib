@@ -17,6 +17,7 @@ Bei getrennten Roots beide beim Repository angeben.
 
 ```yaml
 context_files: .shiller-context.d/project.md
+user_rules_file: user-rules.md
 skills_dir:
   - node_modules/@leuffen/themejs2/skills
   - .shiller-skills
@@ -36,6 +37,66 @@ AI-Einstellungen bleiben aktiv. Ohne Feld wird nur eine vorhandene
 automatisch als Projektkontext eingebunden.
 Webzugriff ist nur bei aktivierter Konfiguration und expliziter Nachfrage
 vorgesehen. Das ist eine AI-Anweisung, keine technische Web-Sperre je Prompt.
+
+## Dauerhafte User Rules
+
+Mit `user_rules_file` wird eine einzelne Markdown-Datei in der Projektwurzel
+als dauerhafte Sammlung von Benutzerregeln eingerichtet. Die Datei muss
+bereits existieren; ohne Eintrag oder mit `null` bleibt die Funktion aus.
+Verwende eine separate Regeldatei, keinen System-Prompt, Skill oder
+Konfigurationsdatei. Beispiel für ihren Inhalt:
+
+```markdown
+# User Rules
+
+## Global
+- Alle Texte in verständlicher Sprache formulieren.
+- Keine unbelegten Versprechen.
+
+## Page: index.md
+- Einleitung kurz halten.
+
+## Page: _intl/en/index.md
+- Britisches Englisch verwenden.
+```
+
+Die gemeinsame AI Context Factory liest die Datei vor der Bearbeitung.
+Globale Regeln gelten für alle Seiten, Page-Regeln nur für den exakten
+Document-Root-relativen Quellpfad und haben dort bei Stilpräferenzen Vorrang.
+Die AI soll beim ersten Zugriff und bei jeder Folgeanfrage die aktuelle
+Regeldatei lesen, beachten und nur auf ausdrücklichen Benutzerwunsch ändern.
+Einmalige Änderungswünsche werden nicht automatisch zu dauerhaften Regeln.
+
+Bei `editText()`, `editTexts()`, `editFile()` und `createFile()` ist die
+konfigurierte Regeldatei über das bestehende Harness-Tool `filesystem_edit`
+direkt bearbeitbar. Andere Dateien bleiben read-only. Die AI kann Regeln
+ergänzen, aktualisieren und entfernen, aber keine weiteren Dateien anlegen
+oder löschen. Die Anwendung autorisiert den Benutzer vor diesen Aufrufen.
+`createContext()` und Inline Edit geben die Regeln nur lesend frei;
+`createContext(allowUserRulesEdit: true)` aktiviert die einzelne Schreibfreigabe.
+Inline Completion bleibt ohne Projektkontext.
+
+Im folgenden Beispiel wird eine Regel gespeichert, ohne die Website-Datei
+zu überschreiben. Der Editor stammt aus dem nachfolgenden Grundbeispiel.
+
+```php
+$result = $editor->editFile(
+    'index.md',
+    'Merke dir dauerhaft: Die Einleitung dieser Seite soll kurz bleiben.'
+);
+echo $result->message;
+var_dump($result->userRulesChanged); // Erwartet: true.
+var_dump($result->hasChanges);       // Erwartet: false, kein Text-Edit.
+```
+
+Für eine globale Regel etwa "Merke dir für alle Seiten: keine Superlative"
+anfordern. Bei `editText()` den exakten Seitenpfad als Alias übergeben, wenn
+der Auftrag diese Seite betrifft. Die gespeicherten Regeln wirken auch in
+späteren Aufrufen. `userRulesChanged` wird aus dem tatsächlichen Dateiinhalt
+ermittelt; `hasChanges` und `changes` beziehen sich weiterhin nur auf
+Textvorschläge. Regeländerungen werden sofort gespeichert und sind nicht
+Teil eines Website-Text-Undo. Die Erkennung eines dauerhaften Regelwunsches
+ist eine Prompt-Anweisung, keine unabhängige technische Intent-Prüfung.
 
 ## Datei bearbeiten und weiter chatten
 
@@ -104,8 +165,8 @@ Veröffentlichungsstatus und Sprache. Nicht veröffentlichte Seiten erhalten
 keine URL. Die Adapter bestimmen die tatsächlichen Übersetzungen und Links;
 es werden keine URLs geraten. Der Index ist automatisch Teil des AI-Kontexts.
 Der Harness kann UTF-8-Dateien im Document Root auflisten, durchsuchen
-(Literalsuche) und lesen, auch in anderen Sprachen. Alle direkten
-Dateimutationen sind deaktiviert. getAvailableSkills() und result.availableSkills
+(Literalsuche) und lesen, auch in anderen Sprachen. Direkte Website-Dateimutationen sind deaktiviert; nur die explizit
+konfigurierte User-Rules-Datei kann separat freigegeben werden. getAvailableSkills() und result.availableSkills
 liefern entdeckte Skill-Namen; dies ist kein Nachweis geladener Skills.
 
 ```php
@@ -122,6 +183,7 @@ ShillerAiEditorAction bleibt separat nutzbar.
 ## Grenzen
 
 Diese Version erlaubt keine projektweiten direkten AI-Schreibzugriffe.
+Die konfigurierte User-Rules-Datei ist die einzige Ausnahme.
 Die Anwendung speichert vorgeschlagene Inhalte selbst nach ihren
 Berechtigungs- und Revisionsprüfungen. Für einen Agenten mit
 Dateiendungs-Allowlist muss der Harness Schreibrechte auch am tatsächlich
