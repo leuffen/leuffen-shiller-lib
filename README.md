@@ -15,7 +15,7 @@ Die Projektdatei `.shiller.yml` beginnt mit den beiden Pflichtfeldern:
 
 ```yaml
 version: 1.0
-adapter: polyglot:1.0
+adapter: jekyll-polyglot:1.0
 ```
 
 `version` bezeichnet die Version des Konfigurationsformats (derzeit ausschließlich
@@ -25,16 +25,18 @@ einen Doppelpunkt. Fehlende oder nicht unterstützte Werte führen zu einer
 
 | Adapter | Version | Besonderheiten |
 | --- | --- | --- |
-| `legacy:1.0` | 1.0 | MICX-Bestand mit PID-/Sprachdateien, `_section.yml` und `_data/languages.yml`; vorhandene Seiten lesen und bearbeiten, keine neuen Seiten/Übersetzungen oder Strukturänderungen. |
-| `polyglot:1.0` | 1.0 | Jekyll-Quellstruktur, Übersetzungen unter `_intl/<sprache>/`, konfigurierbare Header; Seiten und Übersetzungen anlegen, verschieben und im Rahmen der Adapterregeln löschen. |
+| `jekyll-legacy:1.0` | 1.0 | MICX-Bestand mit PID-/Sprachdateien, `_section.yml` und `_data/languages.yml`; vorhandene Seiten lesen und bearbeiten, keine neuen Seiten/Übersetzungen oder Strukturänderungen. |
+| `jekyll-polyglot:1.0` | 1.0 | Jekyll-Quellstruktur, Übersetzungen unter `_intl/<sprache>/`, konfigurierbare Header; Seiten und Übersetzungen anlegen, verschieben und im Rahmen der Adapterregeln löschen. |
 
-Die Implementierungen liegen unter `src/Access/Adapter/V1_0/`; die explizite
-Zuordnung steht in `src/Access/Helper/ProjectConfig.php`. Neue Adapterversionen
+Die Implementierungen `JekyllLegacyAdapterV1_0` und `JekyllPolyglotAdapterV1_0`
+liegen direkt unter `src/Access/Adapter/`. Die Version ist Teil des Klassennamens,
+nicht des Namespaces. Die explizite Zuordnung steht in
+`src/Access/Helper/ProjectConfig.php`. Neue Adapterversionen
 werden separat registriert, ohne die Auswahl bestehender Projekte umzubiegen.
 
 **Migration bestehender Projekte:** `version: 1.0` als erste Zeile ergänzen
 und bisherige Adapterangaben (`micx-legacy`, `jekyll-polyglot` oder die alte
-`{id: ..., version: 1}`-Form) durch `legacy:1.0` bzw. `polyglot:1.0` ersetzen.
+`{id: ..., version: 1}`-Form) durch `jekyll-legacy:1.0` bzw. `jekyll-polyglot:1.0` ersetzen.
 Auch bisher implizit verwendete Polyglot-Adapter müssen explizit eingetragen
 werden. Ein vorheriges `schema_version`-Feld wird nicht als `version` erkannt.
 Beim ersten `init` mit explizitem Template-Pfad darf die Projektdatei noch
@@ -55,7 +57,7 @@ $site = new ShillerRepository($projectRoot . '/docs', projectRoot: $projectRoot)
 ```
 
 Der Updater liefert `true`, wenn er die fehlende `.shiller.yml` mit
-`legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
+`jekyll-legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
 (auch alte Formate) bleiben unverändert. Er legt bei Bedarf
 `.shiller-user-rules.md` an, lässt alte Kontextdateien unberührt und deaktiviert
 deren automatische Einbindung über `context_files: []`. Webzugriff ist

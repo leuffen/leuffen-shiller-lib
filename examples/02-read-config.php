@@ -2,7 +2,7 @@
 
 // Verwendet den lesenden $site aus 01.
 $config = $site->config();
-$config->adapter;         // ['id' => 'polyglot', 'version' => '1.0']
+$config->adapter;         // ['id' => 'jekyll-polyglot', 'version' => '1.0']
 $config->languages;       // ['de', 'en', 'fr']
 $config->defaultLanguage; // 'de'
 $config->languageLabels;  // ['de' => 'de', 'en' => 'en', 'fr' => 'fr']

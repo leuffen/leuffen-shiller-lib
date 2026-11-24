@@ -51,13 +51,13 @@ als `.shiller.yml` verfügbar wird:
 
 ```yaml
 version: 1.0
-adapter: polyglot:1.0
+adapter: jekyll-polyglot:1.0
 template_dir: node_modules/@leuffen/themejs2/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 ```
 
 `version` und `adapter` sind Pflichtfelder. Die Konfiguration beginnt mit
-`version: 1.0`; für ThemeJS2 wird `polyglot:1.0` ausgewählt.
+`version: 1.0`; für ThemeJS2 wird `jekyll-polyglot:1.0` ausgewählt.
 Beide relativen Pfade beziehen sich auf die Projektwurzel, in der diese
 Datei nach `init` liegt. Verwende als Startkontext
 `_tpl/_root/.shiller-context.d/project.md` mit bearbeitbaren Angaben

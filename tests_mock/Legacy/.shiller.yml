@@ -1,2 +1,2 @@
 version: 1.0
-adapter: legacy:1.0
+adapter: jekyll-legacy:1.0

@@ -111,7 +111,7 @@ final class ShillerAutomationTest extends TestCase
         $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
         phore_dir($template . '/_root/docs')->mkdir();
         phore_file($this->dir . '/site/.shiller.yml')
-            ->set_contents("version: 1.0\nadapter: polyglot:1.0\ndoc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
+            ->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ndoc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
             "---\nshiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
@@ -136,7 +136,7 @@ final class ShillerAutomationTest extends TestCase
         phore_dir($this->dir . '/site/.shiller-context.d')->mkdir();
         phore_file($this->dir . '/site/.shiller-context.d/project.md')->set_contents('# Projekt');
         phore_file($this->dir . '/site/.shiller.yml')->set_contents(
-            "version: 1.0\nadapter: polyglot:1.0\ntemplate_dir: ../tpl\nskills_dir: skills\n",
+            "version: 1.0\nadapter: jekyll-polyglot:1.0\ntemplate_dir: ../tpl\nskills_dir: skills\n",
         );
 
         $action = (new ShillerAutomationFactory($this->dir . '/site'))->createContentAction();
@@ -147,7 +147,7 @@ final class ShillerAutomationTest extends TestCase
 
     public function testFactoryAllowsConfiguredTemplateOutsideProjectRoot(): void
     {
-        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: polyglot:1.0\ntemplate_dir: ../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/pages/outside.md')->set_contents(
             "---\nshiller:\n  tags: [outside]\n  target: index.md\n---\nOutside\n",
         );
@@ -181,7 +181,7 @@ final class ShillerAutomationTest extends TestCase
         $template = $this->dir . '/site/node_modules/@leuffen/themejs2/_tpl';
         phore_dir($template . '/_root/docs')->mkdir();
         phore_file($this->dir . '/site/.shiller.yml')
-            ->set_contents("version: 1.0\nadapter: polyglot:1.0\ndoc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
+            ->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ndoc_root: docs\ntemplate_dir: node_modules/@leuffen/themejs2/_tpl\n");
         phore_file($template . '/index.raven.md')->set_contents(
             "---\nshiller:\n  tags: [raven]\n  target: index.md\nlayout: website\n---\nRaven\n",
         );
@@ -217,7 +217,7 @@ final class ShillerAutomationTest extends TestCase
     public function testExplicitDocumentRootMapsBaseFilesAndTargets(): void
     {
         phore_file($this->dir . '/tpl/_root/package.json')->set_contents('{}');
-        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: polyglot:1.0\ndoc_root: public\ntemplate_dir: ../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ndoc_root: public\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/index.raven.md')->set_contents(
             "---\nshiller:\n  tags: [raven]\n  target: index.md\n---\nRaven\n",
         );
@@ -279,7 +279,7 @@ final class ShillerAutomationTest extends TestCase
 
     public function testCliRevertRestoresSelectedFile(): void
     {
-        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: polyglot:1.0\ndoc_root: docs\ntemplate_dir: ../tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ndoc_root: docs\ntemplate_dir: ../tpl\n");
         phore_file($this->dir . '/tpl/_root/docs/_data/general.yml')->mkdir()->set_contents("name: Original\n");
 
         $baseCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../bin/shiller');
@@ -320,7 +320,7 @@ final class ShillerAutomationTest extends TestCase
         $php = escapeshellarg(PHP_BINARY);
         $config = [
             'version' => '1.0',
-            'adapter' => 'polyglot:1.0',
+            'adapter' => 'jekyll-polyglot:1.0',
             'doc_root' => 'docs',
             'template_dir' => 'node_modules/@leuffen/themejs2/_tpl',
             'hooks' => [

@@ -58,7 +58,7 @@ defaults:
 
 ```yaml
 version: 1.0
-adapter: polyglot:1.0
+adapter: jekyll-polyglot:1.0
 fields:
   title: {type: string, label: Seitentitel, required: true}
   short_title: {type: string, label: Kurztitel, max_length: 60}
@@ -163,7 +163,7 @@ Datei- und Seitenlisting verwenden die [TreeNode-Konvention v1](../docs/tree-nod
 
 ## Zuständigkeiten und Grenzen
 
-Mitgeliefert werden `polyglot:1.0` und `legacy:1.0`. Die Projektdatei
+Mitgeliefert werden `jekyll-polyglot:1.0` und `jekyll-legacy:1.0`. Die Projektdatei
 `.shiller.yml` muss `version: 1.0` und einen dieser Adapter enthalten.
 ShillerRepository erzeugt die registrierte Klasse ohne Argumente und bindet
 sie intern einmalig. Eine explizit übergebene Instanz muss der konfigurierten

@@ -5,8 +5,8 @@ version: 1.0
 
 # --- Website ---
 
-# Pflicht: Adaptername:Version; polyglot:1.0 oder legacy:1.0.
-adapter: polyglot:1.0
+# Pflicht: Adaptername:Version; jekyll-polyglot:1.0 oder jekyll-legacy:1.0.
+adapter: jekyll-polyglot:1.0
 
 # Polyglot: Sprachcodes; Default aus _config.yml, sonst Hauptsprache.
 languages: [de, en]
@@ -15,7 +15,7 @@ languages: [de, en]
 default_lang: de
 
 # Polyglot: Sprachlabels; Default: Sprachcode.
-# legacy:1.0 verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
+# jekyll-legacy:1.0 verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
 language_labels:
   de: Deutsch
   en: English

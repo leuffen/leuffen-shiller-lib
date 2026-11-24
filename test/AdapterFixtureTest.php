@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Leuffen\Shiller\Access\Adapter\V1_0\JekyllLegacyAdapter;
-use Leuffen\Shiller\Access\Adapter\V1_0\JekyllPolyglotAdapter;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapterV1_0;
+use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapterV1_0;
 use Leuffen\Shiller\Access\Exception\ConfigurationException;
 use Leuffen\Shiller\Access\ShillerRepository;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +16,7 @@ final class AdapterFixtureTest extends TestCase
             $directory = phore_dir(sys_get_temp_dir() . '/shiller-list-' . bin2hex(random_bytes(6)))->mkdir();
             try {
                 $files = $legacy ? [
-                    '.shiller.yml' => "version: 1.0\nadapter: legacy:1.0\n",
+                    '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
                     '_data/languages.yml' => "de: Deutsch\nen: English\n",
                     'page.de.md' => "---\ntitle: Hauptseite\n---\n",
                     'page.en.md' => '# Translation',
@@ -26,7 +26,7 @@ final class AdapterFixtureTest extends TestCase
                     'nested/_drafts/hidden.de.md' => '# Draft',
                     '_helper.de.md' => '# Helper',
                 ] : [
-                    '.shiller.yml' => "version: 1.0\nadapter: polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\n",
+                    '.shiller.yml' => "version: 1.0\nadapter: jekyll-polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\n",
                     'page.md' => "---\ntitle: Hauptseite\n---\n",
                     '_intl/en/page.md' => "---\ntitle: Translation\n---\nText\n",
                     '_intl/en/orphan.md' => '# Translation only',
@@ -42,9 +42,9 @@ final class AdapterFixtureTest extends TestCase
                     $file->set_contents($content);
                 }
                 $site = new ShillerRepository((string) $directory);
-                self::assertInstanceOf($legacy ? JekyllLegacyAdapter::class : JekyllPolyglotAdapter::class, $site->adapter());
+                self::assertInstanceOf($legacy ? JekyllLegacyAdapterV1_0::class : JekyllPolyglotAdapterV1_0::class, $site->adapter());
                 self::assertSame(
-                    ['id' => $legacy ? 'legacy' : 'polyglot', 'version' => '1.0'],
+                    ['id' => $legacy ? 'jekyll-legacy' : 'jekyll-polyglot', 'version' => '1.0'],
                     $site->config()->adapter,
                 );
                 $tree = $site->pages();
@@ -66,12 +66,14 @@ final class AdapterFixtureTest extends TestCase
             foreach ([
                 null,
                 '{}',
-                'adapter: polyglot:1.0',
-                "version: 2.0\nadapter: polyglot:1.0",
-                "version: 1\nadapter: polyglot:1.0",
+                'adapter: jekyll-polyglot:1.0',
+                "version: 2.0\nadapter: jekyll-polyglot:1.0",
+                "version: 1\nadapter: jekyll-polyglot:1.0",
                 'version: 1.0',
-                "version: 1.0\nadapter: legacy",
-                "version: 1.0\nadapter: polyglot:2.0",
+                "version: 1.0\nadapter: jekyll-legacy",
+                "version: 1.0\nadapter: legacy:1.0",
+                "version: 1.0\nadapter: polyglot:1.0",
+                "version: 1.0\nadapter: jekyll-polyglot:2.0",
                 "version: 1.0\nadapter: {id: jekyll-polyglot, version: 1}",
                 "version: 1.0\nadapter: 1",
             ] as $config) {
@@ -87,9 +89,9 @@ final class AdapterFixtureTest extends TestCase
                 }
             }
 
-            $directory->withSubPath('.shiller.yml')->asFile()->set_contents("version: 1.0\nadapter: polyglot:1.0\n");
+            $directory->withSubPath('.shiller.yml')->asFile()->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\n");
             $this->expectException(ConfigurationException::class);
-            new ShillerRepository((string) $directory, new JekyllLegacyAdapter());
+            new ShillerRepository((string) $directory, new JekyllLegacyAdapterV1_0());
         } finally {
             $directory->rmDir(true);
         }

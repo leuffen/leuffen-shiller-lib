@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\Access\Adapter\V1_0;
+namespace Leuffen\Shiller\Access\Adapter;
 
-use Leuffen\Shiller\Access\Adapter\AbstractJekyllAdapter;
-use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Access\Exception\ConflictException;
@@ -20,7 +18,7 @@ use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 
-final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
+final class JekyllPolyglotAdapterV1_0 extends AbstractJekyllAdapter
 {
     private function assertId(string $id): void
     {
@@ -123,7 +121,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
 
         return new SiteConfig(
-            ['id' => 'polyglot', 'version' => '1.0'],
+            ['id' => 'jekyll-polyglot', 'version' => '1.0'],
             array_values(array_unique($languages)),
             $defaultLanguage,
             $labels,

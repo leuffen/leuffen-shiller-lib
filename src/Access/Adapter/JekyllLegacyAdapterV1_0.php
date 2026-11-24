@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\Access\Adapter\V1_0;
+namespace Leuffen\Shiller\Access\Adapter;
 
-use Leuffen\Shiller\Access\Adapter\AbstractJekyllAdapter;
-use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Helper\Codec;
 use Leuffen\Shiller\Access\Exception\ConflictException;
@@ -19,7 +17,7 @@ use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 
-final class JekyllLegacyAdapter extends AbstractJekyllAdapter
+final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
 {
     public function loadConfig(): SiteConfig
     {
@@ -53,7 +51,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
             : [];
 
         return new SiteConfig(
-            ['id' => 'legacy', 'version' => '1.0'],
+            ['id' => 'jekyll-legacy', 'version' => '1.0'],
             $languages,
             $languages[0],
             $labels,

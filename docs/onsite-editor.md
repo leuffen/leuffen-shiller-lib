@@ -17,7 +17,7 @@ Bei getrennten Roots beide beim Repository angeben.
 
 ```yaml
 version: 1.0
-adapter: polyglot:1.0
+adapter: jekyll-polyglot:1.0
 context_files: .shiller-context.d/project.md
 user_rules_file: user-rules.md
 skills_dir:

@@ -18,92 +18,92 @@ use Leuffen\Shiller\Access\Storage\SiteStorage;
 require_once __DIR__ . '/Adapter.php';
 
 // Implementierungsskizze für Framework-Entwickler; produktive Version 1.0:
-// src/Access/Adapter/V1_0/JekyllLegacyAdapter.php
-final class JekyllLegacyAdapter implements Adapter
+// src/Access/Adapter/JekyllLegacyAdapterV1_0.php
+final class JekyllLegacyAdapterV1_0 implements Adapter
 {
     private SiteStorage $storage;
 
     /** Wird durch ShillerRepository einmalig nach der argumentlosen Konstruktion aufgerufen. */
     public function bind(SiteStorage $storage): void
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::bind');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::bind');
     }
 
     /** Liest Root-Konfiguration und normalisiert Adapter, Sprachen und Anzeigenamen. */
     public function loadConfig(): SiteConfig
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::loadConfig');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::loadConfig');
     }
 
     /** Ordnet ID/Sprache vorhandenen pid.lang.md/html-Dateien zu; für fehlende Sprache nur eindeutig ableitbaren Kandidaten liefern, sonst UnsupportedOperationException. Keine Anlage. */
     public function getSourcePath(string $id, string $language): string
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::getSourcePath');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::getSourcePath');
     }
 
     /** Liest vorhandene Variante samt PID/lang und eigenen Metadaten; adapterState darf zunächst leer bleiben. */
     public function load(string $id, string $language): Document
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::load');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::load');
     }
 
     /** Wirft UnsupportedOperationException für jede neue Seite/Sprachdatei, auch für Admin. */
     public function create(string $id, string $language, array $header = [], string $content = ''): Document
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::create');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::create');
     }
 
     /** Bearbeitet nur vorhandene Dateien als gemeinsamen Batch; keine verpflichtende Revisionsprüfung im ersten Ausbau, erhält PID/lang und unbekannte Headerwerte. Niemals anlegen. @param list<Document> $documents */
     public function write(array $documents): void
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::write');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::write');
     }
 
     /** Liefert PageTree nach TreeNode-Konvention v1: _section.yml-Bezeichnung als label, Zusatzwerte in data.metadata, Quelle in data.file (Kategorie ohne Seite: null), Bestand in data.translations. children vollständig; fehlende Sprachen ergänzt Shiller. */
     public function buildTree(string $id = '/'): PageTree
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::buildTree');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::buildTree');
     }
 
     /** Liefert aktuellen Header plus Jekyll-Defaults ohne Rückschreiben. @return array<string, mixed> */
     public function getEffectiveHeader(Document $document): array
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::getEffectiveHeader');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::getEffectiveHeader');
     }
 
     /** Normalisiert Legacy-Formen, Layouts, order und ptags samt Darstellungshinweisen; keine Datei anlegen. */
     public function getHeaderDefinitions(string $id, ?string $language = null): FieldSet
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::getHeaderDefinitions');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::getHeaderDefinitions');
     }
 
     /** Berechnet belegbare Legacy-Ausgabewege/Permalinks; unbekannte Build-Semantik ausdrücklich melden. */
     public function getUrl(Document $document, bool $absolute = false): string
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::getUrl');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::getUrl');
     }
 
     /** Ordnet belegbare Legacy-Route der tatsächlichen ID/Sprache zu; keine Polyglot-Routen erfinden. */
     public function getDocumentByUrl(string $url): Document
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::getDocumentByUrl');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::getDocumentByUrl');
     }
 
     /** read/write bei erlaubtem Bestand; sämtliche Anlage-/Strukturaktionen false, auch für Admin. */
     public function capabilities(string $id, ?string $language = null): Capabilities
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::capabilities');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::capabilities');
     }
 
     /** Wirft UnsupportedOperationException: keine Legacy-Strukturänderungen. */
     public function rename(string $id, string $newId): void
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::rename');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::rename');
     }
 
     /** Wirft UnsupportedOperationException: keine Legacy-Löschungen. */
     public function delete(Document $document): void
     {
-        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapter::delete');
+        throw new \LogicException('Entwurfsstub: JekyllLegacyAdapterV1_0::delete');
     }
 }

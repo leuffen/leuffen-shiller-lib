@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Access\Helper;
 
 use Leuffen\Shiller\Access\Adapter\Adapter;
-use Leuffen\Shiller\Access\Adapter\V1_0\JekyllLegacyAdapter;
-use Leuffen\Shiller\Access\Adapter\V1_0\JekyllPolyglotAdapter;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapterV1_0;
+use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapterV1_0;
 use Leuffen\Shiller\Access\Exception\ConfigurationException;
 
 /** Validiert die Projektkonfiguration und registriert konkrete Adapterversionen. */
 final class ProjectConfig
 {
     private const ADAPTERS = [
-        'legacy:1.0' => JekyllLegacyAdapter::class,
-        'polyglot:1.0' => JekyllPolyglotAdapter::class,
+        'jekyll-legacy:1.0' => JekyllLegacyAdapterV1_0::class,
+        'jekyll-polyglot:1.0' => JekyllPolyglotAdapterV1_0::class,
     ];
 
     /** @return array<string, mixed> */

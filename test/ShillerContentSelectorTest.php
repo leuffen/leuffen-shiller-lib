@@ -85,7 +85,7 @@ final class ShillerContentSelectorTest extends TestCase
 
     public function testFactoryBuildsContentActionWithShillerContextDirectory(): void
     {
-        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: polyglot:1.0\ndoc_root: docs\ntemplate_dir: tpl\n");
+        phore_file($this->dir . '/site/.shiller.yml')->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ndoc_root: docs\ntemplate_dir: tpl\n");
         phore_dir($this->dir . '/site/node_modules/@leuffen/themejs2/skills/edit-themejs2-site')->mkdir();
         phore_file($this->dir . '/site/node_modules/@leuffen/themejs2/skills/edit-themejs2-site/SKILL.md')->set_contents("---\nname: edit-themejs2-site\ndescription: Demo\n---\n# Demo\n");
         phore_dir($this->dir . '/site/.shiller-context.d/raw')->mkdir();

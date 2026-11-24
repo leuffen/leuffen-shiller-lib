@@ -30,7 +30,7 @@ final class LegacyUpdaterTest extends TestCase
         self::assertTrue($updater->update($this->root));
         $site = new ShillerRepository($this->root . '/docs', projectRoot: $this->root);
         $config = $site->getProjectConfig();
-        self::assertSame('legacy:1.0', $config['adapter']);
+        self::assertSame('jekyll-legacy:1.0', $config['adapter']);
         self::assertSame('docs', $config['doc_root']);
         self::assertSame([], $config['context_files']);
         self::assertTrue($config['ai']['web_access']);
@@ -51,10 +51,10 @@ final class LegacyUpdaterTest extends TestCase
     public function testLeavesExistingConfigurationAndRulesUntouched(): void
     {
         $config = phore_file($this->root . '/.shiller.yml');
-        $config->set_contents("version: 1.0\nadapter: polyglot:1.0\n");
+        $config->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\n");
 
         self::assertFalse((new LegacyUpdater())->update($this->root));
-        self::assertSame("version: 1.0\nadapter: polyglot:1.0\n", $config->get_contents());
+        self::assertSame("version: 1.0\nadapter: jekyll-polyglot:1.0\n", $config->get_contents());
         self::assertFalse(phore_file($this->root . '/.shiller-user-rules.md')->exists());
     }
 
