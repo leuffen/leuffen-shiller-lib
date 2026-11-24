@@ -9,13 +9,13 @@ final class InlineEditRequest
 {
     public string $language;
     public string $codeBefore;
-    /** Full lines selected for replacement. */
+    /** Full lines selected for replacement, or an empty string for insertion at the cursor. */
     public string $selection;
     public string $codeAfter;
     /** Absolute UTF-16 start and end offsets (end exclusive). */
     public int $from;
     public int $to;
-    /** User instruction for changing the selection. */
+    /** User instruction for replacing the selection or inserting new text. */
     public string $prompt;
     /** Initial conversation response ID; null starts a new conversation. */
     public ?string $previousResponseId = null;
