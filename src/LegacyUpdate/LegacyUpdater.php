@@ -10,8 +10,8 @@ use Phore\FileSystem\Exception\FilesystemException;
 final class LegacyUpdater
 {
     /**
-     * Legt die Standardkonfiguration und User Rules an, wenn .shiller.yml fehlt.
-     * Vorhandene Konfigurationen und Regeln werden nie überschrieben.
+     * Kopiert die Standardvorlagen aus _tpl, wenn .shiller.yml fehlt.
+     * Vorhandene Dateien werden nie überschrieben; .shiller.yml entsteht zuletzt.
      * Es werden keine Website-Dateien oder alten Kontextdateien verändert.
      *
      * @param string $projectRoot Bereits ausgecheckte Website-Projektwurzel.
@@ -29,17 +29,27 @@ final class LegacyUpdater
             return false;
         }
 
-        $template = phore_file(__DIR__ . '/Tpl/.shiller.yml')->assertFile()->assertReadable();
-        $content = $template->get_contents();
+        $templatePath = __DIR__ . '/_tpl';
+        $template = phore_dir($templatePath, ['rootDir' => $templatePath])->assertDirectory()->assertReadable();
+        $content = $template->withSubPath('.shiller.yml')->asFile()->get_contents();
 
-        // User Rules müssen existieren, bevor die neue Konfiguration darauf verweist.
-        $rules = $root->withSubPath('.shiller-user-rules.md')->asFile();
-        if (!$rules->exists()) {
-            $rules->set_contents("## Global\n");
-        } else {
-            $rules->assertFile()->assertReadable();
+        // Alle Vorlagendateien übernehmen, ohne vorhandene Regeln zu überschreiben.
+        foreach ($template->listFiles(recursive: true, sort: 'path') as $source) {
+            $relative = (string) $source->getRelPath($template);
+            if ($relative === '.shiller.yml') {
+                continue;
+            }
+
+            $target = $root->withSubPath($relative)->asFile();
+            if ($target->exists()) {
+                $target->assertFile()->assertReadable();
+                continue;
+            }
+
+            $target->mkdir()->set_contents($source->get_contents());
         }
 
+        // Erst nach erfolgreichem Kopieren die Initialisierung markieren.
         $config->set_contents($content);
 
         return true;

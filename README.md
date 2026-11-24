@@ -58,8 +58,10 @@ $site = new ShillerRepository($projectRoot . '/docs', projectRoot: $projectRoot)
 
 Der Updater liefert `true`, wenn er die fehlende `.shiller.yml` mit
 `jekyll-legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
-(auch alte Formate) bleiben unverändert. Er legt bei Bedarf
-`.shiller-user-rules.md` an, lässt alte Kontextdateien unberührt und deaktiviert
+(auch alte Formate) bleiben unverändert. Er kopiert die Dateien aus `src/LegacyUpdate/_tpl/` in die Projektwurzel,
+insbesondere `.shiller.d/user-rules.md` mit globalen Regeln für ThemeJS1.
+Vorhandene Dateien bleiben erhalten; `.shiller.yml` wird zuletzt angelegt.
+Alte Kontextdateien bleiben unberührt, und der Updater deaktiviert
 deren automatische Einbindung über `context_files: []`. Webzugriff ist
 aktiviert. Die Website selbst bleibt unverändert. Der Updater benötigt kein
 installiertes ThemeJS1-npm-Paket; dessen Template-Pfad kann später ergänzt

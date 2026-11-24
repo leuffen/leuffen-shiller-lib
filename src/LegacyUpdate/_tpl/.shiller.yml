@@ -3,7 +3,7 @@ adapter: jekyll-legacy:1.0
 doc_root: docs
 context_files: []
 skills_dir: []
-user_rules_file: .shiller-user-rules.md
+user_rules_file: .shiller.d/user-rules.md
 
 # Optional nach Installation des ThemeJS1-Pakets:
 # template_dir: node_modules/@leuffen/themejs1/_tpl

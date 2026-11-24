@@ -34,11 +34,15 @@ final class LegacyUpdaterTest extends TestCase
         self::assertSame('docs', $config['doc_root']);
         self::assertSame([], $config['context_files']);
         self::assertTrue($config['ai']['web_access']);
-        self::assertSame('.shiller-user-rules.md', $config['user_rules_file']);
+        self::assertSame('.shiller.d/user-rules.md', $config['user_rules_file']);
         self::assertSame('Alter Kontext', $oldContext->get_contents());
 
-        $rules = phore_file($this->root . '/.shiller-user-rules.md');
-        self::assertSame("## Global\n", $rules->get_contents());
+        $rules = phore_file($this->root . '/.shiller.d/user-rules.md');
+        $template = phore_file(__DIR__ . '/../src/LegacyUpdate/_tpl/.shiller.d/user-rules.md');
+        self::assertSame($template->get_contents(), $rules->get_contents());
+        self::assertStringContainsString('## Global', $rules->get_contents());
+        self::assertStringContainsString('Kicker', $rules->get_contents());
+        self::assertStringContainsString('Kramdown', $rules->get_contents());
         $rules->set_contents("## Global\n- Bestehende Regel\n");
         $configFile = phore_file($this->root . '/.shiller.yml');
         $before = $configFile->get_contents();
@@ -55,13 +59,13 @@ final class LegacyUpdaterTest extends TestCase
 
         self::assertFalse((new LegacyUpdater())->update($this->root));
         self::assertSame("version: 1.0\nadapter: jekyll-polyglot:1.0\n", $config->get_contents());
-        self::assertFalse(phore_file($this->root . '/.shiller-user-rules.md')->exists());
+        self::assertFalse(phore_file($this->root . '/.shiller.d/user-rules.md')->exists());
     }
 
     public function testKeepsExistingUserRulesWhenCreatingConfiguration(): void
     {
-        $rules = phore_file($this->root . '/.shiller-user-rules.md');
-        $rules->set_contents('Bestehende Regeln');
+        $rules = phore_file($this->root . '/.shiller.d/user-rules.md');
+        $rules->mkdir()->set_contents('Bestehende Regeln');
 
         self::assertTrue((new LegacyUpdater())->update($this->root));
         self::assertSame('Bestehende Regeln', $rules->get_contents());

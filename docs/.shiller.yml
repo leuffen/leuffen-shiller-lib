@@ -45,7 +45,7 @@ context_files: .shiller-context.d/project.md
 
 # AI-Benutzerregeln: vorhandene Markdown-Datei; null/'' = aus (Default).
 # Global / Page: <Quellpfad>; Onsite-Text-Edits dürfen Regeln speichern.
-# user_rules_file: user-rules.md
+# user_rules_file: .shiller.d/user-rules.md
 user_rules_file: null
 
 # --- AI Harness ---
