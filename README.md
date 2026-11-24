@@ -514,7 +514,7 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 ## Vollstaendiges Demo-Projekt
 
 [demo/repo/](demo/repo/) stellt ein eigenständiges Website-Repository dar.
-Die `.shiller.yml`, der Document Root `docs/`, lokale Vorlagen `_tpl/` und
-der Projektkontext befinden sich innerhalb derselben Projektwurzel.
-Die optional für AI-Anpassungen benötigten ThemeJS2-Skills liegen unter
-`node_modules/` im Demo-Repository.
+Die `.shiller.yml`, der Document Root `docs/`, die Benutzerregeln unter
+`.shiller.d/` und der Projektkontext unter `.shiller-context.d/` befinden sich
+innerhalb derselben Projektwurzel. Vorlagen und AI-Skills stammen bei Bedarf
+aus dem ThemeJS2-Paket unter `node_modules/` im Demo-Repository.

@@ -1,6 +1,4 @@
 ---
-shiller:
-  source: pages/leistungen.demo.md
 layout: website
 title: Leistungen
 description: Unangepasste Demo-Leistungsseite

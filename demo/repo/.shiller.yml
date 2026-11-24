@@ -1,9 +1,10 @@
 version: 1.0
 adapter: jekyll-polyglot:1.0
 doc_root: docs
-template_dir: _tpl
+template_dir: node_modules/@leuffen/themejs2/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 context_files: .shiller-context.d/project.md
+user_rules_file: .shiller.d/user-rules.md
 
 # Reasoning-Stufen: none, minimal, low, medium, high, xhigh (Standard: medium).
 # Internetzugriff: true = aktiviert, false = deaktiviert (Standard: false).
