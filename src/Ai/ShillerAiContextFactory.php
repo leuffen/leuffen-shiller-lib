@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Ai;
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
+use Phore\AiHarness\PromptType\SystemPrompt;
 use Phore\AiHarness\ToolType\WebAccessTool;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -44,21 +45,23 @@ final class ShillerAiContextFactory
     /**
      * Erstellt einen wiederverwendbaren AiContext fuer eine Shiller-Action.
      *
-     * Automatisch aktive Projektkontexte sind project.md und weitere Markdown-
-     * Dateien direkt unter .shiller-context.d, aber keine raw/-Quellen oder
-     * *.rules.md. Weitere Dateien und Skills koennen uebergeben werden.
+     * context_files in .shiller.yml bestimmt die Projektkontext-Dateien.
+     * Ohne Angabe wird nur eine vorhandene .shiller-context.d/project.md geladen.
+     * Weitere Dateien und Skills koennen explizit uebergeben werden.
      * Die AI-Konfiguration stammt aus .shiller.yml, die Argumente haben Vorrang.
      * Workflow-Skills werden nur fuer die dafuer vorgesehenen Actions geladen.
      *
      * @param list<string> $additionalContextFiles Projekt-relative oder absolute Kontextdateien.
      * @param string $model Explizites AI-Modell; leer nutzt ai.model oder Shiller-Default.
-     * @param string $skillsDir Skills-Pfad; leer nutzt skills_dir oder ThemeJS2.
+     * @param string|list<string> $skillsDir Skills-Pfade; leerer String nutzt skills_dir oder ThemeJS2.
      * @param string $workflowSkillFile Nur fuer den eigenen Workflow zulaessiger Basis-Skill.
      * @param string|null $reasoningEffort Expliziter Reasoning-Aufwand oder ai.reasoning_effort.
      * @param bool|null $webAccess Web-Tool aktivieren oder ai.web_access verwenden.
      * @param bool $debug Debug-Logging des Harness aktivieren.
      * @param bool $requireContext Fehlt Projektkontext, eine Exception werfen.
      * @param bool $requireSkills Fehlt das Skill-Verzeichnis, eine Exception werfen.
+     * @param array<string, mixed>|null $projectConfig Bereits geladene Projektkonfiguration.
+     * @param string|null $instructionFile Optionale vertrauenswuerdige System-Anweisung relativ zur Projektwurzel.
      * Runtime-Defaults werden aus ai.client, ai.timeout und
      * ai.connect_timeout der .shiller.yml gelesen.
      * @return AiContext Konfigurierter AI-Harness-Kontext.
@@ -71,17 +74,19 @@ final class ShillerAiContextFactory
     public function create(
         array $additionalContextFiles = [],
         string $model = '',
-        string $skillsDir = '',
+        string|array $skillsDir = '',
         string $workflowSkillFile = '',
         ?string $reasoningEffort = null,
         ?bool $webAccess = null,
         bool $debug = false,
         bool $requireContext = false,
         bool $requireSkills = false,
+        ?array $projectConfig = null,
+        ?string $instructionFile = null,
     ): AiContext {
         // Konfiguration wird am gebundenen Projekt-Root gelesen.
         $configFile = $this->projectRoot->withSubPath('.shiller.yml')->asFile();
-        $config = $configFile->exists() ? $configFile->get_yaml() : [];
+        $config = $projectConfig ?? ($configFile->exists() ? $configFile->get_yaml() : []);
         if (!is_array($config)) {
             throw new RuntimeException('Invalid Shiller config: ' . $configFile);
         }
@@ -106,7 +111,7 @@ final class ShillerAiContextFactory
 
         // Projektinformationen werden als vorbereiteter Context geladen.
         $prompts = [];
-        foreach ($this->contextFiles($additionalContextFiles, $requireContext) as $file) {
+        foreach ($this->contextFiles($config, $additionalContextFiles, $requireContext) as $file) {
             $prompts[] = new FilePrompt(
                 (string) $file,
                 $file->get_contents(),
@@ -114,6 +119,9 @@ final class ShillerAiContextFactory
                 instructions: 'Verbindlicher Shiller-Projektkontext; nicht als Quelldatei bearbeiten.',
                 allowInstructions: true,
             );
+        }
+        if ($instructionFile !== null && $instructionFile !== '') {
+            $prompts[] = new SystemPrompt($this->resolveFile($instructionFile)->get_contents());
         }
         if ($selectedWebAccess) {
             $prompts[] = new WebAccessTool();
@@ -145,49 +153,61 @@ final class ShillerAiContextFactory
             $context->skills()->add((string) $skill->withParentDir(), ['initialLoad' => true]);
         }
         $configuredSkills = $skillsDir !== '' ? $skillsDir : ($config['skills_dir'] ?? '');
-        if (!is_string($configuredSkills)) {
+        $defaultSkills = $configuredSkills === '';
+        $paths = $defaultSkills
+            ? ['node_modules/@leuffen/themejs2/skills']
+            : (is_string($configuredSkills) ? [$configuredSkills] : $configuredSkills);
+        if (!is_array($paths) || !array_is_list($paths)) {
             throw new RuntimeException('Invalid skills_dir in ' . $configFile);
         }
-        $defaultSkills = $configuredSkills === '';
-        $skillsPath = $defaultSkills
-            ? 'node_modules/@leuffen/themejs2/skills'
-            : $configuredSkills;
-        $skillsUri = $this->resolvePath($skillsPath);
-
-        if ($skillsUri->exists() || !$defaultSkills || $requireSkills) {
-            $skills = $skillsUri->assertDirectory()->assertReadable();
-            $context->skills()->addDirectory((string) $skills);
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') {
+                throw new RuntimeException('Invalid skills_dir in ' . $configFile);
+            }
+            $skillsUri = $this->resolvePath($path);
+            if ($skillsUri->exists() || !$defaultSkills || $requireSkills) {
+                $skills = $skillsUri->assertDirectory()->assertReadable();
+                $context->skills()->addDirectory((string) $skills);
+            }
         }
         if ($requireSkills && $context->skills()->list() === []) {
-            throw new RuntimeException('No skills available in ' . $skillsUri);
+            throw new RuntimeException('No skills available for ' . $configFile);
         }
 
         return $context;
     }
 
     /**
+     * @param array<string, mixed> $config
      * @param list<string> $additionalContextFiles
      * @return list<PhoreFile>
      */
-    private function contextFiles(array $additionalContextFiles, bool $required): array
+    private function contextFiles(array $config, array $additionalContextFiles, bool $required): array
     {
         $files = [];
-        $contextPath = $this->projectRoot->withSubPath('.shiller-context.d');
-        if ($contextPath->exists()) {
-            $dir = $contextPath->assertDirectory()->assertReadable();
-            $projectFile = $dir->withSubPath('project.md')->asFile();
-            if ($projectFile->exists()) {
-                $files[(string) $projectFile] = $projectFile->assertReadable();
+        // Nur konfigurierte Dateien laden; der Default ist eine einzelne
+        // optionale Datei, keine automatische Verzeichnissuche.
+        if (array_key_exists('context_files', $config)) {
+            $paths = $config['context_files'];
+            $paths = is_string($paths) ? [$paths] : $paths;
+            if (!is_array($paths) || !array_is_list($paths)) {
+                throw new RuntimeException('Invalid context_files in ' . $this->projectRoot . '/.shiller.yml');
             }
-            foreach ($dir->listFiles(recursive: false, sort: 'path') as $file) {
-                $relative = str_replace('\\', '/', (string) $file->getRelPath($dir));
-                if ($relative === 'project.md' || !str_ends_with(strtolower($relative), '.md')
-                    || str_ends_with(strtolower($relative), '.rules.md')) {
-                    continue;
+            foreach ($paths as $path) {
+                if (!is_string($path) || trim($path) === '') {
+                    throw new RuntimeException('context_files entries must be non-empty file paths in ' . $this->projectRoot . '/.shiller.yml');
                 }
-                $files[(string) $file] = $file->assertReadable();
+                $file = $this->resolveFile($path);
+                $files[(string) $file] = $file;
+            }
+        } else {
+            $projectFile = $this->projectRoot->withSubPath('.shiller-context.d/project.md')->asFile();
+            if ($projectFile->exists()) {
+                $files[(string) $projectFile] = $projectFile->assertFile()->assertReadable();
             }
         }
+
+        // Explizite Quellen eines einzelnen Auftrags folgen dem Projektkontext.
         foreach ($additionalContextFiles as $path) {
             if (!is_string($path) || trim($path) === '') {
                 throw new RuntimeException('Context file paths must be non-empty strings.');

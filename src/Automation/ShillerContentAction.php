@@ -25,7 +25,8 @@ final class ShillerContentAction
     private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
-    private readonly PhoreDirectory $skillsDirectory;
+    /** @var list<string> */
+    private readonly array $skillsDirectories;
     private readonly PhoreFile $skillFile;
 
     /** @var list<PhoreFile> */
@@ -39,11 +40,12 @@ final class ShillerContentAction
      *
      * @param string $documentRoot Document Root mit editierbaren Inhalten.
      * @param string $templateDir Template-Verzeichnis fuer Shiller-Vorlagen.
-     * @param list<string> $contextFiles Projektkontext-Dateien.
+     * @param list<string> $contextFiles Explizite Zusatzdateien zum konfigurierten Projektkontext.
      * @param string $skillFile Allgemeiner Shiller-Basis-Skill.
      * @param PhoreLogger|null $logger Optionales phore/log-Logging.
      * @param string $model Modell des AI Harness.
-     * @param string $skillsDirectory Skill-Verzeichnis; leer nutzt ThemeJS2.
+     * @param string|list<string> $skillsDirectory Skill-Verzeichnisse; leerer String nutzt ThemeJS2.
+     * @param string|null $configurationRoot Verzeichnis der .shiller.yml; Standard: Projektwurzel.
      * @throws FilesystemException Bei unlesbaren Dateien oder Verzeichnissen.
      * @throws RuntimeException Bei fehlendem Kontext oder leerem Modell.
      * @see self::adapt()
@@ -57,9 +59,10 @@ final class ShillerContentAction
         string $skillFile,
         private readonly ?PhoreLogger $logger = null,
         private readonly string $model = ShillerAiDefaults::MODEL,
-        string $skillsDirectory = '',
+        string|array $skillsDirectory = '',
         private readonly string $reasoningEffort = 'medium',
         private readonly bool $webAccess = false,
+        private readonly ?string $configurationRoot = null,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
@@ -67,10 +70,6 @@ final class ShillerContentAction
         if (!in_array($reasoningEffort, ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'], true)) {
             throw new RuntimeException('Invalid reasoning effort: ' . $reasoningEffort);
         }
-        if ($contextFiles === []) {
-            throw new RuntimeException('At least one Shiller context file is required.');
-        }
-
         $documentUri = phore_uri($documentRoot)->abs();
         $documentPath = (string) $documentUri;
         $projectPath = (string) $documentUri->withParentDir();
@@ -86,9 +85,17 @@ final class ShillerContentAction
             $skillsDirectory = (string) $this->documentRoot->withParentDir()
                 ->withSubPath('node_modules/@leuffen/themejs2/skills');
         }
-        $skillsPath = (string) phore_uri($skillsDirectory)->abs();
-        $this->skillsDirectory = phore_dir($skillsPath, ['rootDir' => $skillsPath])
-            ->assertDirectory()->assertReadable();
+        $paths = is_string($skillsDirectory) ? [$skillsDirectory] : $skillsDirectory;
+        $directories = [];
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') {
+                throw new RuntimeException('Skill directory must be a non-empty string.');
+            }
+            $skillsPath = (string) phore_uri($path)->abs();
+            $directories[] = (string) phore_dir($skillsPath, ['rootDir' => $skillsPath])
+                ->assertDirectory()->assertReadable();
+        }
+        $this->skillsDirectories = $directories;
 
         $skillUri = phore_uri($skillFile)->abs();
         $this->skillFile = phore_file((string) $skillUri, ['rootDir' => (string) $skillUri->withParentDir()])
@@ -134,13 +141,13 @@ final class ShillerContentAction
             [$this->model, $this->reasoningEffort, self::FILE_REASONING_EFFORT],
         );
 
-        $context = (new ShillerAiContextFactory((string) $this->projectRoot))->create(
+        $context = (new ShillerAiContextFactory($this->configurationRoot ?? (string) $this->projectRoot))->create(
             additionalContextFiles: array_map(
                 static fn(PhoreFile $file): string => (string) $file,
                 $this->contextFiles,
             ),
             model: $this->model,
-            skillsDir: (string) $this->skillsDirectory,
+            skillsDir: $this->skillsDirectories,
             workflowSkillFile: (string) $this->skillFile,
             reasoningEffort: $this->reasoningEffort,
             webAccess: $this->webAccess,

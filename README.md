@@ -1,5 +1,14 @@
 # Shiller Library
 
+## Projektkonfiguration (.shiller.yml)
+
+Die [vollständige kommentierte .shiller.yml](docs/.shiller.yml) ist die
+zentrale Konfigurationsreferenz für Website, Template, Skills, AI und Onsite
+Editor sowie die Init-Hooks. Sie enthält Standardwerte, optionale Felder und
+Voraussetzungen und kann in die Website-Projektwurzel kopiert werden.
+Relative Pfade beziehen sich auf den Ort der Konfigurationsdatei. Für die
+separate Header-Konfiguration siehe [Beispiel](examples/20-editable-headers.conf.yaml).
+
 ## Editierbare Header
 
 Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
@@ -8,6 +17,16 @@ Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
 Der Dateiname ist frei wählbar. Fehlt der Eintrag oder ist er leer beziehungsweise
 `null`, liefert `getEditableHeaders()` keine Felder — auch wenn eine
 Header-Konfigurationsdatei vorhanden ist. Es wird kein Standarddateiname gesucht.
+
+## Onsite Editor
+
+Für interaktive Website-Editoren bietet `ShillerOnsiteEditor` eine API für
+Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
+offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
+`ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
+Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
+
+Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
 
 ## CLI: Neue Website anlegen
 
@@ -67,8 +86,8 @@ Bei bereits initialisierter Website aus der Projektwurzel ausführen:
 ./vendor/bin/shiller revert index.md
 ```
 
-`adapt` nutzt die Projektfakten aus
-`.shiller-context.d/project.md` und die Skills des Theme-Pakets.
+`adapt` nutzt die in `context_files` konfigurierten Projektdateien und die
+Skills des Theme-Pakets.
 Mit `--root public` kann der Document Root statt `docs/`
 `public/` sein; der Selektor bleibt relativ zu diesem Verzeichnis.
 `revert` verwirft individuelle Änderungen an der ausgewählten
@@ -142,7 +161,7 @@ shiller edit resolve --skills-dir skills --context briefing.md
 ```
 
 `resolve` verwendet die bestehende YAML, das Projektverzeichnis,
-den Projektkontext aus `.shiller-context.d/` und passende Theme-Skills
+den Projektkontext aus `context_files` und passende Theme-Skills
 aus `skills_dir`. Das Modell kann relevante Edit-Skills und References
 über `skill_load` laden. Als Planungsgrundlage stehen die Dateiliste des
 Document Roots und kleine, lesbare Website-Textdateien zur Verfügung.
@@ -349,10 +368,23 @@ Die SkillCollection erkennt die darin publizierten ThemeJS2-Skills und
 laedt deren Instructions und References nach Bedarf. Ein optionaler
 Basis-Skill aus `resources/skills/adapt-content/SKILL.md` ergaenzt sie.
 
-Projektkontext wird zuerst aus `.shiller-context.d/project.md`, danach
-den weiteren Markdown-Dateien direkt in `.shiller-context.d/` geladen;
-`*.rules.md` und `raw/` bleiben davon ausgenommen. `--context` kann
-weitere Quellen ergaenzen. AiContext analysiert den gemeinsamen Kontext
+Der allgemeine Projektkontext wird in `.shiller.yml` über `context_files`
+festgelegt. Eine einzelne Datei oder eine Liste ist möglich:
+
+```yaml
+context_files:
+  - .shiller-context.d/project.md
+  - context/leistungen.md
+  - context/schreibstil.md
+```
+
+Relative Pfade gelten ab der Konfigurationsdatei. Ohne Angabe wird nur die
+vorhandene `.shiller-context.d/project.md` geladen; es gibt keine automatische
+Verzeichnissuche mehr. `context_files: []` deaktiviert den Projektkontext.
+`--context` kann auftragsbezogene Quellen ergänzen. Die Content-Anpassung
+benötigt mindestens eine Kontextdatei. `context build` bleibt unabhängig
+davon und schreibt weiterhin nach `.shiller-context.d/project.md`.
+AiContext analysiert den gemeinsamen Kontext
 zuerst und setzt danach einen Checkpoint. Von diesem Ausgangspunkt wird
 jede ausgewaehlte Datei separat angepasst; erst nach erfolgreichen
 AI-Aufrufen werden alle Ergebnisinhalte geschrieben.

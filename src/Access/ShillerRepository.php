@@ -33,6 +33,7 @@ use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
 final class ShillerRepository
 {
     private SiteStorage $storage;
+    private SiteStorage $projectStorage;
     private array $projectConfig;
     private AccessContext $access;
     private Adapter $adapter;
@@ -49,6 +50,7 @@ final class ShillerRepository
     ) {
         $this->storage = is_string($root) ? new NativeSiteStorage($root) : $root;
         $projectStorage = is_string($projectRoot) ? new NativeSiteStorage($projectRoot) : ($projectRoot ?? $this->storage);
+        $this->projectStorage = $projectStorage;
         $this->projectConfig = $projectStorage->exists('.shiller.yml')
             ? Codec::yaml($projectStorage->read('.shiller.yml'), '.shiller.yml')
             : [];
@@ -87,6 +89,34 @@ final class ShillerRepository
             throw new \LogicException('Site storage has no local source directory');
         }
         return $this->storage->getRootDirectory();
+    }
+
+    /**
+     * Returns the local project root used to load .shiller.yml.
+     *
+     * @return string Absolute project directory, not necessarily the document root.
+     * @throws \LogicException For non-local project storage.
+     * @example $root = $site->getProjectDirectory();
+     * @see self::getSourceDirectory()
+     */
+    public function getProjectDirectory(): string
+    {
+        if (!$this->projectStorage instanceof NativeSiteStorage) {
+            throw new \LogicException('Project storage has no local directory');
+        }
+        return $this->projectStorage->getRootDirectory();
+    }
+
+    /**
+     * Returns the already loaded project configuration, including AI settings.
+     *
+     * @return array<string, mixed> Trusted application configuration.
+     * @example $config = $site->getProjectConfig();
+     * @see self::config()
+     */
+    public function getProjectConfig(): array
+    {
+        return $this->projectConfig;
     }
 
     public function storage(): SiteStorage
