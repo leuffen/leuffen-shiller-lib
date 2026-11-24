@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
 use Phore\Log\PhoreLogger;
@@ -73,10 +74,7 @@ final class ShillerAutomationFactory
         if (!$configFile->exists()) {
             $configFile = $documentUri->withSubPath('.shiller.yml')->asFile();
         }
-        $config = $configFile->get_yaml();
-        if (!is_array($config)) {
-            throw new RuntimeException("Invalid Shiller config: $configFile");
-        }
+        $config = ProjectConfig::validate($configFile->get_yaml(), (string) $configFile);
         $configDir = $configFile->withParentDir()->assertDirectory()->assertReadable();
 
         if ($templateDir === '') {
@@ -224,10 +222,13 @@ final class ShillerAutomationFactory
         $projectRoot = $documentUri->withParentDir()->assertDirectory()->assertReadable();
         $documentName = $documentUri->getBasename();
 
+        $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
+        $config = $configFile->exists() || $templateDir === ''
+            ? ProjectConfig::validate($configFile->get_yaml(), (string) $configFile)
+            : [];
+
         if ($templateDir === '') {
-            $configFile = $projectRoot->withSubPath('.shiller.yml')->asFile();
-            $config = $configFile->get_yaml();
-            $templateDir = is_array($config) ? ($config['template_dir'] ?? '') : '';
+            $templateDir = $config['template_dir'] ?? '';
 
             if (!is_string($templateDir) || $templateDir === '') {
                 throw new RuntimeException("Missing template_dir in $configFile");

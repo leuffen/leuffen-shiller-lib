@@ -20,7 +20,7 @@ final class ShillerOnsiteEditorTest extends TestCase
         $this->root = sys_get_temp_dir() . '/shiller-onsite-' . bin2hex(random_bytes(6));
         phore_dir($this->root . '/docs/_intl/en')->mkdir();
         phore_file($this->root . '/.shiller.yml')->set_contents(
-            "languages: [de, en]\ndefault_lang: de\nskills_dir: [skills, extra-skills]\n"
+            "version: 1.0\nadapter: jekyll-polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\nskills_dir: [skills, extra-skills]\n"
             . "onsite_editor:\n  instruction_file: instructions.md\n",
         );
         phore_file($this->root . '/instructions.md')->set_contents('Preserve factual content.');
@@ -201,14 +201,17 @@ final class ShillerOnsiteEditorTest extends TestCase
     public function testWritableRulesFilesystemDoesNotExposeOtherProjectFiles(): void
     {
         $config = phore_file($this->root . '/.shiller.yml');
-        $config->set_contents($config->get_contents() . "user_rules_file: user-rules.md\n");
-        phore_file($this->root . '/user-rules.md')->set_contents("## Global\n");
+        $config->set_contents($config->get_contents() . "user_rules_file: .shiller.d/user-rules.md\ncontext_files: .shiller.d/static-context.md\n");
+        phore_dir($this->root . '/.shiller.d')->mkdir();
+        phore_file($this->root . '/.shiller.d/user-rules.md')->set_contents("## Global\n");
+        phore_file($this->root . '/.shiller.d/static-context.md')->set_contents('# Static context');
         $site = new ShillerRepository($this->root . '/docs', projectRoot: $this->root);
         $context = (new ShillerOnsiteEditor($site))->createContext(allowUserRulesEdit: true);
         $fs = $context->getToolSet(AiFileSystemToolSet::class)->getFileSystem('user-rules');
 
+        self::assertSame(['user-rules.md'], $fs->describe()['files']);
         $this->expectException(\LogicException::class);
-        $fs->edit('instructions.md', [['search' => null, 'replacement' => 'Not allowed']]);
+        $fs->edit('static-context.md', [['search' => null, 'replacement' => 'Not allowed']]);
     }
 
     public function testNewFileIsOnlyProposed(): void

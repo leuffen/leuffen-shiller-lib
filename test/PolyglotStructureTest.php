@@ -21,7 +21,7 @@ final class PolyglotStructureTest extends TestCase
     {
         $this->dir = sys_get_temp_dir() . '/shiller-structure-' . bin2hex(random_bytes(6));
         mkdir($this->dir, 0770, true);
-        $this->put('.shiller.yml', "schema_version: 1\nlanguages: [de, en, fr]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n");
+        $this->put('.shiller.yml', "version: 1.0\nadapter: jekyll-polyglot:1.0\nlanguages: [de, en, fr]\ndefault_lang: de\neditable_headers_file: editable-headers.conf.yml\n");
     }
 
     protected function tearDown(): void
@@ -54,7 +54,7 @@ final class PolyglotStructureTest extends TestCase
     {
         $this->put('index.md', "---\ntitle: Home\n---\nText\n");
         $this->put('editable-headers.conf.yml', "fields:\n  - {name: title, type: string}\n");
-        foreach (["{}\n", "editable_headers_file: ''\n", "editable_headers_file: null\n"] as $config) {
+        foreach (["version: 1.0\nadapter: jekyll-polyglot:1.0\n", "version: 1.0\nadapter: jekyll-polyglot:1.0\neditable_headers_file: ''\n", "version: 1.0\nadapter: jekyll-polyglot:1.0\neditable_headers_file: null\n"] as $config) {
             $this->put('.shiller.yml', $config);
             self::assertSame([], $this->site()->getPage('/')->getEditableHeaders());
         }
@@ -62,7 +62,7 @@ final class PolyglotStructureTest extends TestCase
 
     public function testLanguageDefaultsToGermanOnly(): void
     {
-        $this->put('.shiller.yml', "{}\n");
+        $this->put('.shiller.yml', "version: 1.0\nadapter: jekyll-polyglot:1.0\n");
         $config = $this->site()->adapter()->loadConfig();
 
         self::assertSame(['de'], $config->languages);
@@ -71,7 +71,7 @@ final class PolyglotStructureTest extends TestCase
 
     public function testDefaultLanguageDoesNotDependOnLanguageOrder(): void
     {
-        $this->put('.shiller.yml', "languages: [en, de]\n");
+        $this->put('.shiller.yml', "version: 1.0\nadapter: jekyll-polyglot:1.0\nlanguages: [en, de]\n");
         $config = $this->site()->adapter()->loadConfig();
 
         self::assertSame(['en', 'de'], $config->languages);
@@ -80,7 +80,7 @@ final class PolyglotStructureTest extends TestCase
 
     public function testExplicitDefaultLanguageIsPreserved(): void
     {
-        $this->put('.shiller.yml', "default_lang: en\n");
+        $this->put('.shiller.yml', "version: 1.0\nadapter: jekyll-polyglot:1.0\ndefault_lang: en\n");
         $config = $this->site()->adapter()->loadConfig();
 
         self::assertSame(['en'], $config->languages);
@@ -105,7 +105,7 @@ final class PolyglotStructureTest extends TestCase
     // Header-Konfiguration liegt neben .shiller.yml, während die Seiten unter docs liegen.
     public function testEditableHeadersFileIsRelativeToProjectConfiguration(): void
     {
-        $this->put('.shiller.yml', "editable_headers_file: config/headers.yml\n");
+        $this->put('.shiller.yml', "version: 1.0\nadapter: jekyll-polyglot:1.0\neditable_headers_file: config/headers.yml\n");
         $this->put('config/headers.yml', "fields:\n  - {name: title, type: string}\n");
         $this->put('docs/config/headers.yml', "fields:\n  - {name: wrong, type: string}\n");
         $this->put('docs/index.md', "---\ntitle: Home\n---\nText\n");

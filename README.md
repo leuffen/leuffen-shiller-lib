@@ -9,6 +9,66 @@ Voraussetzungen und kann in die Website-Projektwurzel kopiert werden.
 Relative Pfade beziehen sich auf den Ort der Konfigurationsdatei. Für die
 separate Header-Konfiguration siehe [Beispiel](examples/20-editable-headers.conf.yaml).
 
+## Versionierte Adapter
+
+Die Projektdatei `.shiller.yml` beginnt mit den beiden Pflichtfeldern:
+
+```yaml
+version: 1.0
+adapter: jekyll-polyglot:1.0
+```
+
+`version` bezeichnet die Version des Konfigurationsformats (derzeit ausschließlich
+`1.0`). `adapter` ist eine Zeichenkette aus Adaptername und Version, getrennt durch
+einen Doppelpunkt. Fehlende oder nicht unterstützte Werte führen zu einer
+`ConfigurationException`; es gibt keinen automatischen Adapter-Fallback.
+
+| Adapter | Version | Besonderheiten |
+| --- | --- | --- |
+| `jekyll-legacy:1.0` | 1.0 | MICX-Bestand mit PID-/Sprachdateien, `_section.yml` und `_data/languages.yml`; vorhandene Seiten lesen und bearbeiten, keine neuen Seiten/Übersetzungen oder Strukturänderungen. |
+| `jekyll-polyglot:1.0` | 1.0 | Jekyll-Quellstruktur, Übersetzungen unter `_intl/<sprache>/`, konfigurierbare Header; Seiten und Übersetzungen anlegen, verschieben und im Rahmen der Adapterregeln löschen. |
+
+Die Implementierungen `JekyllLegacyAdapterV1_0` und `JekyllPolyglotAdapterV1_0`
+liegen direkt unter `src/Access/Adapter/`. Die Version ist Teil des Klassennamens,
+nicht des Namespaces. Die explizite Zuordnung steht in
+`src/Access/Helper/ProjectConfig.php`. Neue Adapterversionen
+werden separat registriert, ohne die Auswahl bestehender Projekte umzubiegen.
+
+**Migration bestehender Projekte:** `version: 1.0` als erste Zeile ergänzen
+und bisherige Adapterangaben (`micx-legacy`, `jekyll-polyglot` oder die alte
+`{id: ..., version: 1}`-Form) durch `jekyll-legacy:1.0` bzw. `jekyll-polyglot:1.0` ersetzen.
+Auch bisher implizit verwendete Polyglot-Adapter müssen explizit eingetragen
+werden. Ein vorheriges `schema_version`-Feld wird nicht als `version` erkannt.
+Beim ersten `init` mit explizitem Template-Pfad darf die Projektdatei noch
+fehlen; die mitgelieferte Template-Konfiguration enthält beide Pflichtfelder.
+
+## Legacy-Checkout initialisieren
+
+Für bestehende ThemeJS1-Websites kann die Anwendung direkt nach dem Checkout
+einmalig den eigenständigen Updater aufrufen, bevor sie das Repository öffnet:
+
+```php
+use Leuffen\Shiller\LegacyUpdate\LegacyUpdater;
+use Leuffen\Shiller\Access\ShillerRepository;
+
+$projectRoot = '/srv/site';
+$initialized = (new LegacyUpdater())->update($projectRoot);
+$site = new ShillerRepository($projectRoot . '/docs', projectRoot: $projectRoot);
+```
+
+Der Updater liefert `true`, wenn er die fehlende `.shiller.yml` mit
+`jekyll-legacy:1.0` angelegt hat, sonst `false`. Vorhandene Konfigurationen
+(auch alte Formate) bleiben unverändert. Er kopiert die Dateien aus `src/LegacyUpdate/_tpl/` in die Projektwurzel,
+insbesondere `.shiller.d/static-context.md` mit allgemeinen Website-Regeln
+und `.shiller.d/user-rules.md` für bestätigte individuelle Fakten und Regeln.
+Vorhandene Dateien bleiben erhalten; `.shiller.yml` wird zuletzt angelegt.
+Alte Kontextdateien bleiben unberührt, und der Updater deaktiviert
+deren automatische Einbindung, indem `context_files` ausschließlich den
+neuen statischen Kontext lädt. Webzugriff ist
+aktiviert. Die Website selbst bleibt unverändert. Der Updater benötigt kein
+installiertes ThemeJS1-npm-Paket; dessen Template-Pfad kann später ergänzt
+werden.
+
 ## Editierbare Header
 
 Für den Polyglot-Adapter legt `editable_headers_file` in der projektweiten
@@ -25,9 +85,19 @@ Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
 offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
 `ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
 Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
-Mit `user_rules_file: user-rules.md` lassen sich globale und seitenspezifische
-Benutzerregeln dauerhaft hinterlegen. Der Editor liest sie vor Bearbeitungen
-und kann die einzelne Regeldatei auf ausdrücklichen Wunsch direkt aktualisieren.
+Unter `.shiller.d/` werden zwei Aufgaben getrennt:
+
+- `static-context.md`: technische Website-Struktur, Jekyll/Liquid, Markdown,
+  Layout- und Schreibregeln; über `context_files` nur lesend eingebunden,
+  ohne individuelle Projekt- oder Personendaten.
+- `user-rules.md`: zentrale Wissensquelle für bestätigte individuelle Daten
+  und dauerhafte globale oder seitenspezifische Regeln. Über `user_rules_file`
+  eingebunden; neue oder geänderte Fakten werden erst nach ausdrücklicher
+  Zustimmung oder einem direkten Speicherauftrag dauerhaft übernommen.
+
+Die Website-Datenquellen bleiben für die Darstellung maßgeblich. Die AI soll
+beide Datenstände konsistent halten und Entwicklungsaufgaben am Theme,
+CSS/SCSS oder TypeScript melden statt Markdown mit Workarounds zu erweitern.
 
 Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
 
@@ -64,7 +134,7 @@ Nach `init` liegen die Website-Dateien in `docs/`
 (Standard-Document-Root). `_tpl/_root/docs/` wird dorthin kopiert;
 andere Dateien aus `_tpl/_root/` gehen in die Projektwurzel.
 `_tpl/_root/.shiller.yml` wird so zur Projektkonfiguration
-`.shiller.yml` mit `template_dir` und `skills_dir`.
+`.shiller.yml` mit `version`, `adapter`, `template_dir` und `skills_dir`.
 Die anderen Dateien unter `_tpl/` werden anhand ihrer
 `shiller.tags` installiert; `skills/` bleibt im npm-Paket.
 Die Reihenfolge lautet: **init → optional install → Kontext pflegen
@@ -435,12 +505,13 @@ Keys und Strukturen.
 dorthin kopiert. Andere Dateien aus `_tpl/_root/` bleiben relativ zur
 Projektwurzel, zum Beispiel `package.json`.
 
-Die Installation nutzt `.shiller.yml` **in der Projektwurzel**. Pfade in
-`template_dir` werden relativ dazu aufgelöst; beim mitgelieferten ThemeJS2
-ist das `node_modules/@leuffen/themejs2/_tpl`.
-Ein expliziter relativer `templateDir`-Wert der Factory wird dagegen relativ
-zur Projektwurzel aufgelöst. So kann jede Website in einem eigenen
-Projektverzeichnis neben anderen Websites liegen.
+Die `.shiller.yml` liegt **immer in der Wurzel des Website-Repositories**,
+nicht im Document Root. Alle relativen Konfigurationspfade werden von diesem
+Verzeichnis aus aufgelöst. Vorlagen, Skills und Kontextdateien liegen im
+Normalfall innerhalb des Projekts; verwende keine `../`-Pfade in regulären
+Projektkonfigurationen. Für ThemeJS2 ist `template_dir` beispielsweise
+`node_modules/@leuffen/themejs2/_tpl`. Auch ein expliziter relativer
+`templateDir`-Wert der Factory bezieht sich auf die Projektwurzel.
 
 ## Weitere Aufrufe
 
@@ -454,7 +525,8 @@ und die [Seitenbeispiele](examples/README.md) beschreiben den separaten
 
 ## Vollstaendiges Demo-Projekt
 
-Unter [demo/](demo/) stehen Template und installierte Website getrennt.
-Die Beispiele zeigen den zentralen Projektkontext, konfigurierbares
-`skills_dir`, Markdown-Zieldateien und YAML-Sidecars. Bearbeitungsregeln
-werden ausschliesslich durch die ThemeJS2-Skills bereitgestellt.
+[demo/repo/](demo/repo/) stellt ein eigenständiges Website-Repository dar.
+Die `.shiller.yml`, der Document Root `docs/`, statischer Kontext und User Rules unter
+`.shiller.d/` und der Projektkontext unter `.shiller-context.d/` befinden sich
+innerhalb derselben Projektwurzel. Vorlagen und AI-Skills stammen bei Bedarf
+aus dem ThemeJS2-Paket unter `node_modules/` im Demo-Repository.

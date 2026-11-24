@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Ai;
 
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\SystemPrompt;
@@ -86,10 +87,9 @@ final class ShillerAiContextFactory
     ): AiContext {
         // Konfiguration wird am gebundenen Projekt-Root gelesen.
         $configFile = $this->projectRoot->withSubPath('.shiller.yml')->asFile();
-        $config = $projectConfig ?? ($configFile->exists() ? $configFile->get_yaml() : []);
-        if (!is_array($config)) {
-            throw new RuntimeException('Invalid Shiller config: ' . $configFile);
-        }
+        $config = $projectConfig !== null || $configFile->exists()
+            ? ProjectConfig::validate($projectConfig ?? $configFile->get_yaml(), (string) $configFile)
+            : [];
         $ai = $config['ai'] ?? [];
         if (!is_array($ai)) {
             throw new RuntimeException('Invalid ai configuration in ' . $configFile);

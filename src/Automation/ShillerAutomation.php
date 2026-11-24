@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Leuffen\Shiller\Automation;
 
 use Leuffen\Shiller\Access\DTO\Document;
+use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
 use Phore\FileSystem\Exception\FilesystemException;
 use Phore\FileSystem\PhoreDirectory;
@@ -67,6 +69,13 @@ final class ShillerAutomation
             $plan[$destination] = str_starts_with($relative, 'docs/')
                 ? $this->installedContent($source, $source->get_contents())
                 : $source->get_contents();
+        }
+
+        if (isset($plan['.shiller.yml'])) {
+            ProjectConfig::validate(
+                Codec::yaml($plan['.shiller.yml'], '.shiller.yml'),
+                (string) $root . '/.shiller.yml',
+            );
         }
 
         return $this->apply($this->selected($tags) + $plan);

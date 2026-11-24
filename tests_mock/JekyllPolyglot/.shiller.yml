@@ -1,5 +1,5 @@
-schema_version: 1
-adapter: {id: jekyll-polyglot, version: 1}
+version: 1.0
+adapter: jekyll-polyglot:1.0
 languages: [de, en]
 default_lang: de
 editable_headers_file: editable-headers.conf.yaml

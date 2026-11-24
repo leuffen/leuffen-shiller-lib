@@ -1,7 +1,4 @@
 ---
-shiller:
-  tags: [demo]
-  target: leistungen.md
 layout: website
 title: Leistungen
 description: Unangepasste Demo-Leistungsseite

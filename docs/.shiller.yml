@@ -1,10 +1,13 @@
-# .shiller.yml – Projektwurzel; relative Pfade ab dieser Datei.
+version: 1.0
+
+# .shiller.yml liegt immer im Repository-/Projekt-Root, nicht im Document Root.
+# Relative Pfade ab hier; regulär innerhalb des Projekts (kein ../ nach außen).
 # Document Root separat festlegen (CLI-Standard: docs/).
 
 # --- Website ---
 
-# Seitenadapter: jekyll-polyglot (Default) oder micx-legacy; auch {id: ...}.
-adapter: jekyll-polyglot
+# Pflicht: Adaptername:Version; jekyll-polyglot:1.0 oder jekyll-legacy:1.0.
+adapter: jekyll-polyglot:1.0
 
 # Polyglot: Sprachcodes; Default aus _config.yml, sonst Hauptsprache.
 languages: [de, en]
@@ -13,7 +16,7 @@ languages: [de, en]
 default_lang: de
 
 # Polyglot: Sprachlabels; Default: Sprachcode.
-# micx-legacy verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
+# jekyll-legacy:1.0 verwendet stattdessen _data/languages.yml für die Sprachkonfiguration.
 language_labels:
   de: Deutsch
   en: English
@@ -32,18 +35,18 @@ skills_dir:
   - node_modules/@leuffen/themejs2/skills
   # - .shiller-skills
 
-# AI-Projektkontext: Datei oder geordnete Dateiliste; [] = aus.
+# AI-Kontext (read-only): Datei oder geordnete Liste; [] = aus.
 # Default: project.md wie unten, falls vorhanden. Adjust benötigt Kontext.
 context_files: .shiller-context.d/project.md
 # Alternativ:
 # context_files:
-#   - .shiller-context.d/project.md
-#   - context/leistungen.md
-#   - context/schreibstil.md
+#   - .shiller.d/static-context.md # Technik und allgemeine Regeln, keine Stammdaten.
+#   - .shiller-context.d/project.md # Aufbereiteter Projektkontext.
 
-# AI-Benutzerregeln: vorhandene Markdown-Datei; null/'' = aus (Default).
-# Global / Page: <Quellpfad>; Onsite-Text-Edits dürfen Regeln speichern.
-# user_rules_file: user-rules.md
+# AI-User-Kontext: bestätigte individuelle Fakten und dauerhafte Benutzerregeln.
+# Global / Page: <Quellpfad>; Onsite-Text-Edits speichern nur nach Zustimmung.
+# Vorhandene Markdown-Datei; null/'' = aus (Default).
+# user_rules_file: .shiller.d/user-rules.md
 user_rules_file: null
 
 # --- AI Harness ---

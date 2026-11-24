@@ -83,17 +83,24 @@ Fuer die CLI nach der ersten Installation gehoert eine
 npm-Paketpfads enthaelt sie beispielsweise:
 
 ```yaml
+version: 1.0
+adapter: jekyll-polyglot:1.0
 template_dir: node_modules/@leuffen/themejs2/_tpl
 skills_dir: node_modules/@leuffen/themejs2/skills
 context_files: .shiller-context.d/project.md
 ```
 
+`version` (derzeit nur `1.0`) und `adapter` (`jekyll-polyglot:1.0` oder
+`jekyll-legacy:1.0`) sind Pflichtfelder; die Konfiguration beginnt mit `version`.
 `template_dir` ist der Pfad zu `_tpl/`, nicht zum Paket-Root.
 `skills_dir` ist separat konfigurierbar; ohne Eintrag verwendet die
 Content-Action standardmaessig
 `node_modules/@leuffen/themejs2/skills` relativ zur Projektwurzel.
-Relative Pfade aus der Projektkonfiguration beziehen sich auf den Ort
-der `.shiller.yml`. Beim allerersten `init` ist der Template-Pfad
+Die `.shiller.yml` liegt stets in der Wurzel des Website-Repositories,
+nicht im Document Root. Alle relativen Konfigurationspfade beziehen sich
+auf diese Projektwurzel. Vorlagen, Skills und Kontextdateien befinden sich
+normalerweise innerhalb des Projekts; reguläre Konfigurationen verwenden
+keine `../`-Pfade aus dem Repository heraus. Beim allerersten `init` ist der Template-Pfad
 explizit mit `--template-dir` anzugeben, falls noch keine
 Projektkonfiguration existiert.
 
@@ -106,6 +113,17 @@ Projektkontext. Der Context-Build bleibt davon unabhängig. Neue Rohdaten gehoer
 nach `<projekt>/.shiller-context.d/raw/`. Der Befehl
 `shiller context build` aktualisiert daraus die `project.md`;
 bei unveraenderten Quellen ist dieser Schritt nicht erneut notwendig.
+
+### Static Context und User Rules
+
+Projektvorlagen sollen unter `.shiller.d/` zwei getrennte Dateien bereitstellen:
+`static-context.md` beschreibt ausschließlich Website-Technik, Layout- und
+allgemeine Bearbeitungsregeln und wird über `context_files` nur lesend geladen.
+`user-rules.md` ist die zentrale, editierbare Wissensquelle für bestätigte
+individuelle Fakten und dauerhafte Regeln; sie wird über `user_rules_file`
+konfiguriert. Neue oder geänderte Fakten werden nur nach ausdrücklicher
+Zustimmung oder direktem Speicherauftrag gespeichert. Keine individuellen
+Daten in den statischen Kontext übernehmen.
 
 ### Vorlagendateien und Skills
 

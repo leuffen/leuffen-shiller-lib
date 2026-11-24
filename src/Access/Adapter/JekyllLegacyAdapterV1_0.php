@@ -17,7 +17,7 @@ use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 
-final class JekyllLegacyAdapter extends AbstractJekyllAdapter
+final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
 {
     public function loadConfig(): SiteConfig
     {
@@ -51,7 +51,7 @@ final class JekyllLegacyAdapter extends AbstractJekyllAdapter
             : [];
 
         return new SiteConfig(
-            ['id' => 'micx-legacy', 'version' => 1],
+            ['id' => 'jekyll-legacy', 'version' => '1.0'],
             $languages,
             $languages[0],
             $labels,

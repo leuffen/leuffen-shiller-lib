@@ -161,7 +161,7 @@ final class ShillerEditActionTest extends TestCase
             "---\nname: feedback\ndescription: Bearbeitet Kundenfeedback\n---\n# Feedback\n",
         );
         phore_file($this->dir . '/.shiller.yml')->set_contents(
-            "skills_dir: skills\nai:\n  model: gpt-5-mini\n  reasoning_effort: low\n",
+            "version: 1.0\nadapter: jekyll-polyglot:1.0\nskills_dir: skills\nai:\n  model: gpt-5-mini\n  reasoning_effort: low\n",
         );
 
         $context = (new ShillerAiContextFactory($this->dir))->create(
@@ -260,22 +260,22 @@ final class ShillerEditActionTest extends TestCase
 
         self::assertSame(['Default'], $contents($factory->create()));
 
-        $config->set_contents("context_files: facts.md\n");
+        $config->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ncontext_files: facts.md\n");
         self::assertSame(['Facts'], $contents($factory->create()));
 
-        $config->set_contents("context_files: [style.md, facts.md]\n");
+        $config->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ncontext_files: [style.md, facts.md]\n");
         self::assertSame(['Style', 'Facts'], $contents($factory->create()));
         self::assertSame(['Style', 'Facts', 'Default'], $contents($factory->create(
             additionalContextFiles: ['facts.md', '.shiller-context.d/project.md'],
         )));
 
-        $config->set_contents("context_files: []\n");
+        $config->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ncontext_files: []\n");
         self::assertSame([], $contents($factory->create()));
     }
 
     public function testMissingExplicitContextFileFails(): void
     {
-        phore_file($this->dir . '/.shiller.yml')->set_contents("context_files: missing.md\n");
+        phore_file($this->dir . '/.shiller.yml')->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\ncontext_files: missing.md\n");
         $this->expectException(\Phore\FileSystem\Exception\FilesystemException::class);
         (new ShillerAiContextFactory($this->dir))->create();
     }
@@ -283,7 +283,7 @@ final class ShillerEditActionTest extends TestCase
     public function testFactoryBuildsDefaultsFromShillerYamlWithoutHarnessExtension(): void
     {
         phore_file($this->dir . '/.shiller.yml')->set_contents(
-            "ai:\n"
+            "version: 1.0\nadapter: jekyll-polyglot:1.0\nai:\n"
             . "  model: gpt-5-mini\n"
             . "  client: 'openai:'\n"
             . "  reasoning_effort: high\n"

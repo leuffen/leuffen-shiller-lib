@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
+use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapterV1_0;
+use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapterV1_0;
+use Leuffen\Shiller\Access\Exception\ConfigurationException;
 use Leuffen\Shiller\Access\ShillerRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +16,7 @@ final class AdapterFixtureTest extends TestCase
             $directory = phore_dir(sys_get_temp_dir() . '/shiller-list-' . bin2hex(random_bytes(6)))->mkdir();
             try {
                 $files = $legacy ? [
+                    '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
                     '_data/languages.yml' => "de: Deutsch\nen: English\n",
                     'page.de.md' => "---\ntitle: Hauptseite\n---\n",
                     'page.en.md' => '# Translation',
@@ -23,7 +26,7 @@ final class AdapterFixtureTest extends TestCase
                     'nested/_drafts/hidden.de.md' => '# Draft',
                     '_helper.de.md' => '# Helper',
                 ] : [
-                    '.shiller.yml' => "schema_version: 1\nlanguages: [de, en]\ndefault_lang: de\n",
+                    '.shiller.yml' => "version: 1.0\nadapter: jekyll-polyglot:1.0\nlanguages: [de, en]\ndefault_lang: de\n",
                     'page.md' => "---\ntitle: Hauptseite\n---\n",
                     '_intl/en/page.md' => "---\ntitle: Translation\n---\nText\n",
                     '_intl/en/orphan.md' => '# Translation only',
@@ -38,9 +41,12 @@ final class AdapterFixtureTest extends TestCase
                     $file->withDirName()->mkdir();
                     $file->set_contents($content);
                 }
-                $site = $legacy
-                    ? new ShillerRepository((string) $directory, new JekyllLegacyAdapter())
-                    : new ShillerRepository((string) $directory);
+                $site = new ShillerRepository((string) $directory);
+                self::assertInstanceOf($legacy ? JekyllLegacyAdapterV1_0::class : JekyllPolyglotAdapterV1_0::class, $site->adapter());
+                self::assertSame(
+                    ['id' => $legacy ? 'jekyll-legacy' : 'jekyll-polyglot', 'version' => '1.0'],
+                    $site->config()->adapter,
+                );
                 $tree = $site->pages();
                 self::assertSame(['/page'], array_map(static fn($node) => $node->id, $tree->root->children));
                 if (!$legacy) {
@@ -53,9 +59,47 @@ final class AdapterFixtureTest extends TestCase
         }
     }
 
+    public function testMissingAndUnknownConfigurationOrAdapterVersionsAreRejected(): void
+    {
+        $directory = phore_dir(sys_get_temp_dir() . '/shiller-adapter-' . bin2hex(random_bytes(6)))->mkdir();
+        try {
+            foreach ([
+                null,
+                '{}',
+                'adapter: jekyll-polyglot:1.0',
+                "version: 2.0\nadapter: jekyll-polyglot:1.0",
+                "version: 1\nadapter: jekyll-polyglot:1.0",
+                'version: 1.0',
+                "version: 1.0\nadapter: jekyll-legacy",
+                "version: 1.0\nadapter: legacy:1.0",
+                "version: 1.0\nadapter: polyglot:1.0",
+                "version: 1.0\nadapter: jekyll-polyglot:2.0",
+                "version: 1.0\nadapter: {id: jekyll-polyglot, version: 1}",
+                "version: 1.0\nadapter: 1",
+            ] as $config) {
+                if ($config !== null) {
+                    $directory->withSubPath('.shiller.yml')->asFile()->set_contents($config);
+                }
+
+                try {
+                    new ShillerRepository((string) $directory);
+                    self::fail('Expected ConfigurationException');
+                } catch (ConfigurationException $exception) {
+                    self::assertStringContainsString('.shiller.yml', $exception->getMessage());
+                }
+            }
+
+            $directory->withSubPath('.shiller.yml')->asFile()->set_contents("version: 1.0\nadapter: jekyll-polyglot:1.0\n");
+            $this->expectException(ConfigurationException::class);
+            new ShillerRepository((string) $directory, new JekyllLegacyAdapterV1_0());
+        } finally {
+            $directory->rmDir(true);
+        }
+    }
+
     public function testLegacySectionProducesOriginalFormFieldsAndMetadata(): void
     {
-        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy');
         $fields = $site->getPage('/home/home', 'de')->getHeaderDefinitions()->fields;
 
         self::assertSame(
@@ -83,7 +127,7 @@ final class AdapterFixtureTest extends TestCase
 
     public function testLegacyOptionalFieldsAreSectionSpecific(): void
     {
-        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy', new JekyllLegacyAdapter());
+        $site = new ShillerRepository(dirname(__DIR__) . '/tests_mock/Legacy');
         self::assertSame(
             ['pid', 'lang', 'layout', 'published', 'permalink', 'title', 'description', 'teaser'],
             array_map(static fn($field): string => $field->key, $site->getHeaderDefinitions('/angebot/seite')->fields),

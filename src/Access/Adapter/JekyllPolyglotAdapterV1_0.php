@@ -18,7 +18,7 @@ use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 
-final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
+final class JekyllPolyglotAdapterV1_0 extends AbstractJekyllAdapter
 {
     private function assertId(string $id): void
     {
@@ -121,7 +121,7 @@ final class JekyllPolyglotAdapter extends AbstractJekyllAdapter
         }
 
         return new SiteConfig(
-            ['id' => 'jekyll-polyglot', 'version' => 1],
+            ['id' => 'jekyll-polyglot', 'version' => '1.0'],
             array_values(array_unique($languages)),
             $defaultLanguage,
             $labels,

@@ -8,6 +8,7 @@ Shiller öffnet ein extern bereitgestelltes Website-Quellverzeichnis. Dieser typ
 $site = new ShillerRepository(
     '/srv/site/docs',
     access: new AccessContext(role: 'user'),
+    projectRoot: '/srv/site',
 );
 $page = $site->getPage('/leistungen/diagnostik');
 $english = $page->getTranslation('en');
@@ -26,15 +27,13 @@ Einmaliger Namenskontext für die Anwendungsausschnitte:
 
 ```php
 use Leuffen\Shiller\Access\DTO\AccessContext;
-use Leuffen\Shiller\Access\Adapter\JekyllLegacyAdapter;
-use Leuffen\Shiller\Access\Adapter\JekyllPolyglotAdapter;
 use Leuffen\Shiller\Access\ShillerRepository;
 use Leuffen\Shiller\Access\Exception\UrlNotResolvableException;
 ```
 
 Die Imports und Autoloading würden bei der Übernahme in eine Anwendung in deren PHP-Datei stehen; die Ausschnitte wiederholen sie nicht. Composer-Classmap-Autoloading und das SiteStorage-Interface sind vorhanden. Die Library verlangt PHP >=8.5. Die Beispielpfade unter /srv sind illustrative, vom Anwender bereitzustellende Dateisystempfade.
 
-Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist der in 01 verwendete absolute Pfad zum Website-Root, `$site` je nach Kennzeichnung dessen lesender oder schreibender ShillerRepository. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
+Das Quellverzeichnis `/srv/site/docs` ist eine bereits von der Anwendung bereitgestellte Arbeitskopie. `$root` ist der in 01 verwendete absolute Pfad zum Document Root, `$site` je nach Kennzeichnung dessen lesender oder schreibender ShillerRepository. Jedes Schreibbeispiel beginnt fachlich auf einer frischen Basisfixture; Ergebnisse aus 08–19 sind keine stillen Voraussetzungen späterer Beispiele. 16/17 ersetzen die Basisfixture ausdrücklich durch ihre angegebenen Ausgangsdateien. Rollen kommen ausschließlich aus der authentifizierten Anwendung.
 
 ## Gemeinsame Ausgangsdaten
 
@@ -55,11 +54,11 @@ defaults:
     values: {lang: fr}
 ```
 
-`docs/shiller.yaml` für diese Beispiel-Arbeitskopie:
+`/srv/site/.shiller.yml` für diese Beispiel-Arbeitskopie:
 
 ```yaml
-schema_version: 1
-adapter: {id: jekyll-polyglot, version: 1}
+version: 1.0
+adapter: jekyll-polyglot:1.0
 fields:
   title: {type: string, label: Seitentitel, required: true}
   short_title: {type: string, label: Kurztitel, max_length: 60}
@@ -164,7 +163,11 @@ Datei- und Seitenlisting verwenden die [TreeNode-Konvention v1](../docs/tree-nod
 
 ## Zuständigkeiten und Grenzen
 
-Mitgeliefert werden JekyllPolyglotAdapter und JekyllLegacyAdapter. ShillerRepository wählt zuerst den expliziten adapter-Konstruktorparameter, sonst die YAML-Auswahl und sonst JekyllPolyglotAdapter. Die Instanzen werden ohne Argumente erzeugt und intern einmalig über bind(SiteStorage) angebunden; Beispiel 01 zeigt die Auswahl.
+Mitgeliefert werden `jekyll-polyglot:1.0` und `jekyll-legacy:1.0`. Die Projektdatei
+`.shiller.yml` muss `version: 1.0` und einen dieser Adapter enthalten.
+ShillerRepository erzeugt die registrierte Klasse ohne Argumente und bindet
+sie intern einmalig. Eine explizit übergebene Instanz muss der konfigurierten
+Adapterversion entsprechen; Beispiel 01 zeigt die Auswahl.
 
 Revisionskonflikte werden im ersten Ausbau nicht durch Shiller behandelt. Versionsverwaltung und Zusammenführung liegen beim externen Git-/Anwendungsablauf. ConflictException bleibt als Typ für eine spätere Erweiterung vorgesehen; fehlende Revisionsunterstützung blockiert die normalen Adapter nicht. Rechte, Neuanlage-Kollisionen, Validierung und die Wiederherstellung bei fehlgeschlagenen Gruppenoperationen bleiben erforderlich.
 
