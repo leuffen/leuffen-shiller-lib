@@ -16,6 +16,21 @@ Seitenspezifische Skills stammen aus dem konfigurierten `skills_dir`.
 
 Für Datei- und Verzeichniszugriffe sowie sicherheitsrelevante Pfad-, Root-, Symlink-, Hardlink-, Existenz-, Lesbarkeits-, Schreibbarkeits- und Traversierungsprüfungen ist ausschließlich `phore/filesystem` zu verwenden. Restrictions werden am Phore-Einstieg gebunden und über die daraus abgeleiteten `PhoreUri`-, `PhoreFile`- und `PhoreDirectory`-Objekte weitergereicht; native PHP-Dateisystemprüfungen, eigene Walk- oder Pfadvalidierungs-Helper und parallele Catch-and-Re-throw-Logik dürfen dafür nicht ergänzt werden. Shiller-eigene fachliche Validierungen, etwa Tags, Referenzsyntax oder Kollisionen innerhalb eines Installationsplans, bleiben Aufgabe dieser Library.
 
+## Containerübergreifende Dateirechte
+
+Alle von Shiller angelegten oder geschriebenen Dateien müssen `0666`
+(world-readable und world-writable), alle neu angelegten Verzeichnisse `0777`
+(zusätzlich für alle Benutzer durchsuchbar beziehungsweise ausführbar) erhalten.
+So bleiben die Inhalte zwischen Containern mit unterschiedlichen Benutzer- und
+Gruppen-IDs nutzbar. Reguläre Dateien erhalten dadurch keine Ausführungsrechte.
+
+Eine restriktive `umask` darf diese Zielrechte nicht reduzieren. Wird die
+`umask` vorübergehend geändert, muss ihr ursprünglicher Wert auch im Fehlerfall
+wiederhergestellt werden. Rechteänderungen und Verzeichnisanlagen erfolgen über
+`phore/filesystem`. Unveränderte Bestandsdateien und bestehende Verzeichnisse
+werden nicht nachträglich pauschal umberechtigt. Neue Schreibpfade müssen die
+Zielrechte auch unter restriktiver `umask` testen.
+
 ## Template-Paket: Verzeichnisvertrag
 
 Ein Shiller-kompatibles Website-Template ist ein Paket mit den beiden
