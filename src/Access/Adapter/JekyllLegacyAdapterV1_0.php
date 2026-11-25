@@ -13,6 +13,9 @@ use Leuffen\Shiller\Access\DTO\FieldDefinition;
 use Leuffen\Shiller\Access\DTO\FieldSet;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\DTO\PageTree;
+use Leuffen\Shiller\Access\DTO\TreeNode;
+use Leuffen\Shiller\Access\DTO\ShillerTreeData;
+use Leuffen\Shiller\Access\Info\FileKind;
 use Leuffen\Shiller\Access\DTO\SiteConfig;
 use Leuffen\Shiller\Access\Exception\UnsupportedOperationException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
@@ -68,7 +71,8 @@ final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
      *
      * @param string $path Exakter Sourcepfad relativ zum Document Root.
      * @return DocumentReference Identität und Existenz ohne Neuanlage.
-     * @throws ValidationException Bei unbekanntem Sprachsuffix oder ungültigem Dateiformat.
+     * @throws ValidationException Bei vorhandenem Pfad mit unbekanntem Sprachsuffix oder ungültigem Dateiformat.
+     * @throws NotFoundException Bei fehlender Datei ohne gültiges Sprachsuffix.
      * @throws \Leuffen\Shiller\Access\Exception\StorageException Bei einem Storage-Fehler.
      * @example $reference = $adapter->resolveDocumentPath('home/home.en.md');
      * @see Adapter::resolveDocumentPath()
@@ -90,6 +94,9 @@ final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
             }
         }
         if ($language === null || $name === '') {
+            if (!$this->s()->exists($path)) {
+                throw new NotFoundException("Page not found: $path");
+            }
             throw new ValidationException("Unknown legacy page language: $path");
         }
 
@@ -150,19 +157,9 @@ final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
             $language === $this->loadConfig()->defaultLanguage,
         );
 
-        if (
-            isset($document->header['pid'])
-            && Codec::id((string) $document->header['pid']) !== $id
-        ) {
-            throw new ConflictException("pid mismatch: $path");
-        }
-
-        if (
-            isset($document->header['lang'])
-            && (string) $document->header['lang'] !== $language
-        ) {
-            throw new ConflictException("lang mismatch: $path");
-        }
+        // Pfadidentität und Sprachsuffix ersetzen Legacy-Header; gelesen wird ohne Dateischreibzugriff.
+        $document->header['pid'] = ltrim($id, '/');
+        $document->header['lang'] = $language;
 
         return $document;
     }
@@ -260,7 +257,44 @@ final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
 
         $groups = array_filter($groups, static fn(array $languages): bool => isset($languages[$config->defaultLanguage]));
 
-        return $this->nodeTree($groups, $id, $config, $metadata);
+        $tree = $this->nodeTree($groups, $id, $config, $metadata);
+
+        // Nur die Legacy-Baumansicht trennt Index-Dateien vom Ordner; Dokumentidentitäten bleiben erhalten.
+        $project = function (TreeNode $node) use (&$project): TreeNode {
+            $children = array_map($project, $node->children);
+            $file = $node->data->file;
+            $isIndex = $file !== null && preg_match('~(^|/)index\.[^.]+\.md$~D', $file->path) === 1;
+            if ($isIndex) {
+                $children[] = new TreeNode(
+                    rtrim($node->id, '/') . '/index',
+                    $node->label === '/' || $node->label === basename($node->id) ? 'index' : $node->label,
+                    [],
+                    new ShillerTreeData(null, FileKind::page, $file, [], $node->data->translations),
+                    $node->getDocument(),
+                );
+                usort($children, static fn(TreeNode $a, TreeNode $b): int => strcmp($a->id, $b->id));
+            }
+
+            // Reine Ordner haben weder eine Datei noch synthetische Übersetzungslinks.
+            $directory = $file === null || $isIndex;
+            return new TreeNode(
+                $node->id,
+                $isIndex ? ($node->id === '/' ? '/' : basename($node->id)) : $node->label,
+                $children,
+                new ShillerTreeData(
+                    $node->data->path,
+                    $directory ? FileKind::directory : $node->data->kind,
+                    $directory ? null : $file,
+                    $node->data->metadata,
+                    $directory ? [] : $node->data->translations,
+                    $children !== [],
+                    $node->data->childrenLoaded,
+                ),
+                $directory ? null : $node->getDocument(),
+            );
+        };
+
+        return new PageTree($project($tree->root));
     }
 
     /**

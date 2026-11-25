@@ -59,6 +59,93 @@ final class AdapterFixtureTest extends TestCase
         }
     }
 
+    /** Legacy-Indexdateien sind eigene Blätter; Ordner enthalten nur Struktur und Metadaten. */
+    public function testLegacyIndexFilesAreSeparateChildrenOfNonClickableDirectories(): void
+    {
+        $directory = phore_dir(sys_get_temp_dir() . '/shiller-index-' . bin2hex(random_bytes(6)))->mkdir();
+        try {
+            foreach ([
+                '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
+                '_data/languages.yml' => "- {lang: de}\n- {lang: en}\n",
+                'index.de.md' => "---\ntitle: Start\n---\nRoot\n",
+                'pages/index.de.md' => "---\ntitle: Home\n---\nHome\n",
+                'pages/index.en.md' => "---\ntitle: Welcome\n---\nHome\n",
+                'pages/contact.de.md' => "---\ntitle: Kontakt\n---\nContact\n",
+                'pages/_section.yml' => "desc: Generelle Seiten\n",
+                'legal/privacy.de.md' => "---\ntitle: Datenschutz\n---\nPrivacy\n",
+            ] as $path => $content) {
+                $file = $directory->withSubPath($path)->asFile();
+                $file->withDirName()->mkdir();
+                $file->set_contents($content);
+            }
+            $site = new ShillerRepository((string) $directory);
+            $root = $site->pages()->root;
+            self::assertNull($root->data->file);
+            self::assertSame([], $root->data->translations);
+            $nodes = array_column($root->children, null, 'id');
+            self::assertSame('index.de.md', $nodes['/index']->data->file->path);
+            self::assertSame('/', $nodes['/index']->getDocument()->id);
+            $pages = $nodes['/pages'];
+            self::assertSame('pages', $pages->label);
+            self::assertSame('directory', $pages->data->kind->value);
+            self::assertNull($pages->data->file);
+            self::assertNull($pages->getDocument());
+            self::assertSame([], $pages->data->translations);
+            self::assertSame('Generelle Seiten', $pages->data->metadata['desc']);
+            $children = array_column($pages->children, null, 'id');
+            self::assertSame(['/pages/contact', '/pages/index'], array_keys($children));
+            $index = $children['/pages/index'];
+            self::assertSame('Home', $index->label);
+            self::assertSame('pages/index.de.md', $index->data->file->path);
+            self::assertSame('pages/index.en.md', $index->data->translations['en']->path);
+            self::assertSame('/pages', $index->getDocument()->id);
+            self::assertSame('/pages', $site->resolveDocumentPath($index->data->file->path)->id);
+            self::assertSame([], $nodes['/legal']->data->translations);
+            self::assertNull($nodes['/legal']->data->file);
+        } finally {
+            $directory->rmDir(true);
+        }
+    }
+
+    /** Legacy-Header folgen dem Dateipfad; erst explizites Speichern persistiert die Korrektur. */
+    public function testLegacyNormalizesMissingAndIncorrectIdentityHeaders(): void
+    {
+        $directory = phore_dir(sys_get_temp_dir() . '/shiller-identity-' . bin2hex(random_bytes(6)))->mkdir();
+        try {
+            $directory->withSubPath('.shiller.yml')->asFile()->set_contents("version: 1.0\nadapter: jekyll-legacy:1.0\n");
+            $directory->withSubPath('_data')->asDirectory()->mkdir();
+            $directory->withSubPath('_data/languages.yml')->asFile()->set_contents("- {lang: de}\n- {lang: en}\n");
+            foreach ([
+                ['missing.de.md', '', '/missing', 'de'],
+                ['wrong.en.md', "pid: other\nlang: fr\n", '/wrong', 'en'],
+                ['empty.de.md', "pid: null\nlang: null\n", '/empty', 'de'],
+                ['pages/index.de.md', "pid: pages/index\nlang: en\n", '/pages', 'de'],
+                ['index.de.md', "pid: index\nlang: en\n", '/', 'de'],
+            ] as [$path, $identity, $id, $language]) {
+                $source = "---\ntitle: Original\n" . $identity . "---\nUnchanged body\n";
+                $file = $directory->withSubPath($path)->asFile();
+                $file->withDirName()->mkdir();
+                $file->set_contents($source);
+                $site = new ShillerRepository((string) $directory, access: new \Leuffen\Shiller\Access\DTO\AccessContext(role: 'admin'));
+                $page = $site->getDocumentByPath($path);
+                self::assertSame($id, $page->id);
+                self::assertSame($language, $page->language);
+                self::assertSame(ltrim($id, '/'), $page->header['pid']);
+                self::assertSame($language, $page->header['lang']);
+                self::assertSame($source, $file->get_contents());
+
+                $page->patch(['title' => 'Updated'])->save();
+                [$header, $content] = \Leuffen\Shiller\Access\Helper\Codec::frontMatter($file->get_contents(), $path);
+                self::assertSame(ltrim($id, '/'), $header['pid']);
+                self::assertSame($language, $header['lang']);
+                self::assertSame('Updated', $header['title']);
+                self::assertSame("Unchanged body\n", $content);
+            }
+        } finally {
+            $directory->rmDir(true);
+        }
+    }
+
     public function testMissingAndUnknownConfigurationOrAdapterVersionsAreRejected(): void
     {
         $directory = phore_dir(sys_get_temp_dir() . '/shiller-adapter-' . bin2hex(random_bytes(6)))->mkdir();

@@ -204,6 +204,46 @@ final class DocumentPathPatchTest extends TestCase
         }
     }
 
+    public function testMissingLegacyFileWithoutLanguageReportsNotFound(): void
+    {
+        [$site, $storage] = $this->site([
+            'pages/termin-redirect.de.md' => "---\nlang: de\n---\nContent\n",
+        ], new JekyllLegacyAdapterV1_0());
+        $files = $storage->files;
+
+        try {
+            $site->getDocumentByPath('termin-redirect.md');
+            self::fail('Missing legacy source was accepted');
+        } catch (NotFoundException $exception) {
+            self::assertSame('Page not found: termin-redirect.md', $exception->getMessage());
+            self::assertSame($files, $storage->files);
+            self::assertSame([], $storage->writes);
+        }
+    }
+
+    public function testMissingLegacyTranslationRemainsAReference(): void
+    {
+        [$site] = $this->site([
+            '_data/languages.yml' => "- {lang: de}\n- {lang: en}\n",
+            'pages/termin-redirect.de.md' => "---\nlang: de\n---\nContent\n",
+        ], new JekyllLegacyAdapterV1_0());
+
+        $reference = $site->resolveDocumentPath('pages/termin-redirect.en.md');
+        self::assertFalse($reference->exists);
+        self::assertSame('en', $reference->language);
+    }
+
+    public function testExistingLegacyFileWithoutLanguageRemainsInvalid(): void
+    {
+        [$site] = $this->site([
+            'termin-redirect.md' => "---\nlang: de\n---\nContent\n",
+        ], new JekyllLegacyAdapterV1_0());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unknown legacy page language: termin-redirect.md');
+        $site->resolveDocumentPath('termin-redirect.md');
+    }
+
     public function testLegacyFilesResolveTheirLanguageAndSectionDefinitions(): void
     {
         [$site, $storage] = $this->site([
