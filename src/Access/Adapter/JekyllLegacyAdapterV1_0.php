@@ -22,6 +22,24 @@ use Leuffen\Shiller\Access\Exception\ValidationException;
 
 final class JekyllLegacyAdapterV1_0 extends AbstractJekyllAdapter
 {
+    public function getUrl(Document $document, bool $absolute = false): string
+    {
+        $permalink = $document->header['permalink'] ?? null;
+        if ((is_string($permalink) && $permalink !== '') || $document->file === null) {
+            return parent::getUrl($document, $absolute);
+        }
+
+        $url = '/' . ltrim($document->file->path, '/');
+        if (str_ends_with($url, '.md')) {
+            $url = substr($url, 0, -3) . '.html';
+        }
+        $config = $this->loadConfig();
+
+        return $absolute && $config->url !== ''
+            ? rtrim($config->url, '/') . $url
+            : $url;
+    }
+
     public function loadConfig(): SiteConfig
     {
         $languages = [];
