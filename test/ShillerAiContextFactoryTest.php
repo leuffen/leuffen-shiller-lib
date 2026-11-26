@@ -70,7 +70,10 @@ final class ShillerAiContextFactoryTest extends TestCase
 
             // Auch das breiteste Website-Preset darf geschuetzte Quellen nicht veraendern.
             $policy = new FileSystemPolicy(
-                editable: ['*'], creatable: ['*'], deletable: ['*'], movable: ['*'],
+                editable: ['*'],
+                creatable: ['*'],
+                deletable: ['*'],
+                movable: ['*'],
                 writeIgnore: $site->getAiResourceWriteIgnore(),
             );
             foreach (['.shiller.yml', 'brain.md', 'facts/brain.md', 'rules.md', 'instructions.md', 'templates/index.md', 'skills/theme/SKILL.md'] as $protected) {
