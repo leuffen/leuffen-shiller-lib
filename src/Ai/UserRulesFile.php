@@ -34,6 +34,11 @@ final readonly class UserRulesFile
         return new self($file);
     }
 
+    public function file(): PhoreFile
+    {
+        return $this->file;
+    }
+
     public function getContent(): string
     {
         return $this->file->get_contents();
@@ -69,6 +74,7 @@ final readonly class UserRulesFile
                 editable: $writable ? ['*'] : [],
                 creatable: [],
                 deletable: [],
+                movable: [],
             ),
         );
         $fs->addFile((string) $this->file);

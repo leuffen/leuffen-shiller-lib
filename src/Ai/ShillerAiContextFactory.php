@@ -7,6 +7,8 @@ namespace Leuffen\Shiller\Ai;
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
 use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Phore\AiHarness\AiContext;
+use Phore\AiHarness\FileSystem\AiFileSystem;
+use Phore\AiHarness\FileSystem\FileSystemPolicy;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\SystemPrompt;
 use Phore\AiHarness\ToolType\WebAccessTool;
@@ -45,7 +47,7 @@ final class ShillerAiContextFactory
     }
 
     /**
-     * Konfiguriert einen frischen AiContext direkt ohne Dateisystem-Freigaben.
+     * Konfiguriert Projektressourcen, ohne das Website-Dateisystem freizugeben.
      *
      * context_files in .shiller.yml bestimmt die Projektkontext-Dateien.
      * Ohne Angabe wird nur eine vorhandene .shiller-context.d/project.md geladen.
@@ -67,7 +69,8 @@ final class ShillerAiContextFactory
      * @param string|null $instructionFile Optionale vertrauenswuerdige System-Anweisung relativ zur Projektwurzel.
      * Runtime-Defaults werden aus ai.client, ai.timeout und
      * ai.connect_timeout der .shiller.yml gelesen.
-     * @return AiContext Dieselbe konfigurierte Instanz. Keine Dateisystem-Tools werden registriert.
+     * @param bool $allowUserRulesEdit Explizite Freigabe fuer die einzelne User-Rules-Datei.
+     * @return AiContext Dieselbe Instanz mit zentral registrierten Projektressourcen.
      * @throws FilesystemException Bei unlesbaren Konfigurations- oder Kontextdateien.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder fehlenden Pflichtquellen.
      * @see AiContext::skills()
@@ -87,6 +90,7 @@ final class ShillerAiContextFactory
         bool $requireSkills = false,
         ?array $projectConfig = null,
         ?string $instructionFile = null,
+        bool $allowUserRulesEdit = false,
     ): AiContext {
         // Konfiguration wird am gebundenen Projekt-Root gelesen.
         $configFile = $this->projectRoot->withSubPath('.shiller.yml')->asFile();
@@ -114,7 +118,8 @@ final class ShillerAiContextFactory
 
         // Projektinformationen werden als vorbereiteter Context geladen.
         $prompts = [];
-        foreach ($this->contextFiles($config, $additionalContextFiles, $requireContext) as $file) {
+        $contextFiles = $this->contextFiles($config, $additionalContextFiles, $requireContext);
+        foreach ($contextFiles as $file) {
             $prompts[] = new FilePrompt(
                 (string) $file,
                 $file->get_contents(),
@@ -128,16 +133,9 @@ final class ShillerAiContextFactory
             $prompts[] = $userRules->prompt();
         }
         // Die konfigurierte System-Anweisung gilt fuer jeden Shiller-AI-Workflow.
-        $onsite = $config['onsite_editor'] ?? [];
-        if (!is_array($onsite)) {
-            throw new RuntimeException('Invalid onsite_editor configuration in ' . $configFile);
-        }
-        $instructionFile ??= $onsite['instruction_file'] ?? null;
-        if ($instructionFile !== null && !is_string($instructionFile)) {
-            throw new RuntimeException('Invalid onsite_editor.instruction_file in ' . $configFile);
-        }
-        if ($instructionFile !== null && $instructionFile !== '') {
-            $prompts[] = new SystemPrompt($this->resolveFile($instructionFile)->get_contents());
+        $instruction = $this->instructionFile($config, $instructionFile);
+        if ($instruction !== null) {
+            $prompts[] = new SystemPrompt($instruction->get_contents());
         }
         if ($selectedWebAccess) {
             $prompts[] = new WebAccessTool();
@@ -171,27 +169,34 @@ final class ShillerAiContextFactory
             $skill = $this->resolveFile($workflowSkillFile);
             $context->skills()->add((string) $skill->withParentDir(), ['initialLoad' => true]);
         }
-        $configuredSkills = $skillsDir !== '' ? $skillsDir : ($config['skills_dir'] ?? '');
-        $defaultSkills = $configuredSkills === '';
-        $paths = $defaultSkills
-            ? ['node_modules/@leuffen/themejs2/skills']
-            : (is_string($configuredSkills) ? [$configuredSkills] : $configuredSkills);
-        if (!is_array($paths) || !array_is_list($paths)) {
-            throw new RuntimeException('Invalid skills_dir in ' . $configFile);
-        }
-        foreach ($paths as $path) {
-            if (!is_string($path) || trim($path) === '') {
-                throw new RuntimeException('Invalid skills_dir in ' . $configFile);
-            }
-            $skillsUri = $this->resolvePath($path);
-            if ($skillsUri->exists() || !$defaultSkills || $requireSkills) {
-                $skills = $skillsUri->assertDirectory()->assertReadable();
-                $context->skills()->addDirectory((string) $skills);
-            }
+        foreach ($this->skillDirectories($config, $skillsDir, $requireSkills) as $skills) {
+            $context->skills()->addDirectory((string) $skills);
         }
         if ($requireSkills && $context->skills()->list() === []) {
             throw new RuntimeException('No skills available for ' . $configFile);
         }
+
+        // Projektressourcen bleiben vom Website-Edit-Preset unabhaengig.
+        $template = $this->templateDirectory($config);
+        $readOnlyFiles = $contextFiles;
+        if ($instruction !== null && !in_array((string) $instruction, array_map('strval', $readOnlyFiles), true)) {
+            $readOnlyFiles[] = $instruction;
+        }
+        if ($userRules !== null && $allowUserRulesEdit) {
+            $this->assertSeparateUserRules($userRules, $readOnlyFiles, $template, $config);
+        }
+        $this->registerContextFiles($context, $readOnlyFiles);
+        if ($template !== null) {
+            new AiFileSystem(
+                (string) $template,
+                context: $context,
+                id: 'templates',
+                description: 'Read-only website templates. Follow target layout, component structure and data schema. '
+                    . 'Example texts and data are mock content, not facts. Never modify templates.',
+                policy: new FileSystemPolicy(editable: []),
+            );
+        }
+        $userRules?->register($context, $allowUserRulesEdit);
 
         return $context;
     }
@@ -229,6 +234,129 @@ final class ShillerAiContextFactory
             projectConfig: $projectConfig,
             instructionFile: $instructionFile,
         );
+    }
+
+    /**
+     * Return write-deny patterns for AI resources inside the project root.
+     * @param array<string, mixed> $config Validated Shiller configuration.
+     * @return list<string> Patterns for FileSystemPolicy::writeIgnore.
+     * @internal
+     */
+    public function protectedWritePatterns(array $config): array
+    {
+        $resources = $this->contextFiles($config, [], false);
+        $rules = UserRulesFile::fromConfig((string) $this->projectRoot, $config);
+        $resources[] = $rules?->file();
+        $resources[] = $this->instructionFile($config);
+        $resources[] = $this->templateDirectory($config);
+        $resources = [...$resources, ...$this->skillDirectories($config)];
+        $patterns = ['.shiller.yml'];
+
+        // Nur projektinterne Ressourcen sind ueber den Website-Root erreichbar.
+        foreach ($resources as $resource) {
+            if ($resource === null || !$resource->isSubpathOf($this->projectRoot)) {
+                continue;
+            }
+            $path = $resource->getRelPath($this->projectRoot);
+            $patterns[] = $path === '.' ? '*' : addcslashes((string) $path, '\\*?[]');
+        }
+
+        return array_values(array_unique($patterns));
+    }
+
+    /** @param list<PhoreFile> $files */
+    private function registerContextFiles(AiContext $context, array $files): void
+    {
+        $groups = [];
+        foreach ($files as $file) {
+            $name = $file->getBasename();
+            $index = 0;
+            // AiFileSystem verwendet Basenames fuer einzeln registrierte Dateien.
+            while (isset($groups[$index][$name])) {
+                $index++;
+            }
+            $groups[$index][$name] = $file;
+        }
+        foreach ($groups as $index => $group) {
+            $fs = new AiFileSystem(
+                context: $context,
+                id: $index === 0 ? 'context' : 'context-' . ($index + 1),
+                description: 'Read-only configured project context and system instructions.',
+                policy: new FileSystemPolicy(editable: []),
+            );
+            foreach ($group as $file) {
+                $fs->addFile((string) $file);
+            }
+        }
+    }
+
+    private function instructionFile(array $config, ?string $override = null): ?PhoreFile
+    {
+        $onsite = $config['onsite_editor'] ?? [];
+        if (!is_array($onsite)) {
+            throw new RuntimeException('Invalid onsite_editor configuration in ' . $this->projectRoot . '/.shiller.yml');
+        }
+        $path = $override ?? ($onsite['instruction_file'] ?? null);
+        if ($path !== null && !is_string($path)) {
+            throw new RuntimeException('Invalid onsite_editor.instruction_file in ' . $this->projectRoot . '/.shiller.yml');
+        }
+
+        return $path === null || $path === '' ? null : $this->resolveFile($path);
+    }
+
+    private function templateDirectory(array $config): ?PhoreDirectory
+    {
+        $path = $config['template_dir'] ?? '';
+        if (!is_string($path)) {
+            throw new RuntimeException('Invalid template_dir in ' . $this->projectRoot . '/.shiller.yml');
+        }
+
+        return $path === '' ? null : $this->resolvePath($path)->assertDirectory()->assertReadable();
+    }
+
+    /** @return list<PhoreDirectory> */
+    private function skillDirectories(array $config, string|array $override = '', bool $required = false): array
+    {
+        $configured = $override !== '' ? $override : ($config['skills_dir'] ?? '');
+        $default = $configured === '';
+        $paths = $default
+            ? ['node_modules/@leuffen/themejs2/skills']
+            : (is_string($configured) ? [$configured] : $configured);
+        if (!is_array($paths) || !array_is_list($paths)) {
+            throw new RuntimeException('Invalid skills_dir in ' . $this->projectRoot . '/.shiller.yml');
+        }
+        $directories = [];
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') {
+                throw new RuntimeException('Invalid skills_dir in ' . $this->projectRoot . '/.shiller.yml');
+            }
+            $uri = $this->resolvePath($path);
+            if ($uri->exists() || !$default || $required) {
+                $directories[] = $uri->assertDirectory()->assertReadable();
+            }
+        }
+
+        return $directories;
+    }
+
+    /** @param list<PhoreFile> $readOnlyFiles */
+    private function assertSeparateUserRules(
+        UserRulesFile $rules,
+        array $readOnlyFiles,
+        ?PhoreDirectory $template,
+        array $config,
+    ): void {
+        $file = $rules->file();
+        $protected = [...$readOnlyFiles, ...$this->skillDirectories($config)];
+        $protected[] = $this->projectRoot->withSubPath('.shiller.yml');
+        if ($template !== null) {
+            $protected[] = $template;
+        }
+        foreach ($protected as $resource) {
+            if ($file->isSubpathOf($resource)) {
+                throw new RuntimeException('User rules must be separate from read-only AI resources: ' . $file);
+            }
+        }
     }
 
     /**

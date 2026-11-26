@@ -103,13 +103,14 @@ PROMPT;
     {
         $context = new AiContext();
         if ($this->instructionFile === null) {
-            $this->site->configureAiHarness($context);
+            $this->site->configureAiHarness($context, allowUserRulesEdit: $allowUserRulesEdit);
         } else {
             // Bestehender expliziter Onsite-Override bleibt auf diesen Workflow begrenzt.
             (new ShillerAiContextFactory($this->site->getProjectDirectory()))->configure(
                 $context,
                 projectConfig: $this->site->getProjectConfig(),
                 instructionFile: $this->instructionFile,
+                allowUserRulesEdit: $allowUserRulesEdit,
             );
         }
         $context->configurePrepared([
@@ -125,34 +126,6 @@ PROMPT;
             description: 'Read-only document root; use editable text targets for proposed changes.',
             policy: new FileSystemPolicy(editable: [], creatable: [], deletable: []),
         );
-
-        $userRules = UserRulesFile::fromConfig(
-            $this->site->getProjectDirectory(),
-            $this->site->getProjectConfig(),
-        );
-        $userRules?->register($context, $allowUserRulesEdit);
-
-        // Vorlagen sind eine separate, unveraenderliche Strukturreferenz.
-        $templateDir = $this->site->getProjectConfig()['template_dir'] ?? '';
-        if (!is_string($templateDir)) {
-            throw new RuntimeException('Invalid template_dir in .shiller.yml.');
-        }
-        if ($templateDir !== '') {
-            $templateUri = str_starts_with($templateDir, '/')
-                ? phore_uri($templateDir)->abs()
-                : phore_dir($this->site->getProjectDirectory())->withRelativePath($templateDir);
-            $templateRoot = (string) $templateUri->assertDirectory()->assertReadable();
-
-            new AiFileSystem(
-                $templateRoot,
-                context: $context,
-                id: 'templates',
-                description: 'Read-only website templates. Follow their target structure, layout, components and data schema. '
-                    . 'All example texts and data are mock content: replace them with actual project content and verified facts. '
-                    . 'Do not copy mock data as facts or modify the templates.',
-                policy: new FileSystemPolicy(editable: [], creatable: [], deletable: []),
-            );
-        }
 
         return $context;
     }

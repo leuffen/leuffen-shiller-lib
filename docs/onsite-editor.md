@@ -57,8 +57,18 @@ $site->configureAiHarness($context);
 Der Context enthaelt danach Projektkontext, User Rules, Skills, konfigurierte
 System-Anweisungen und Runtime-/Web-Einstellungen. Die Instanz bleibt
 unveraendert in ihrer Identitaet; es gibt keinen Clone. Die Methode
-registriert keine Dateisystem-Tools. Erst der jeweilige Aufrufer richtet
-Dateizugriff mit eigener Policy und die auftragsbezogenen Prompts ein.
+registriert Templates und konfigurierte Kontextdateien als read-only
+Dateisysteme sowie die einzelne konfigurierte User-Rules-Datei.
+Mit `allowUserRulesEdit: true` kann ein autorisierter Aufrufer ausschliesslich
+diese bestehende Datei zur Bearbeitung freigeben. Ohne Freigabe bleibt sie
+read-only. Neue Regeln duerfen nur nach ausdruecklichem Speicherauftrag oder
+Bestaetigung gespeichert werden.
+
+Das Website-Dateisystem registriert der Aufrufer separat mit eigener Policy.
+Dabei muss `getAiResourceWriteIgnore()` zusaetzlich zu den auftragsbezogenen
+Schreibbeschraenkungen in `FileSystemPolicy::writeIgnore` eingehen. So bleiben
+die separat registrierten Ressourcen auch bei breiten Website-Presets
+geschuetzt.
 
 Standalone-CLI-Workflows nutzen denselben internen Konfigurator und
 ergaenzen ihre eigenen Quellen und Basis-Skills. Explizite Workflow-Overrides

@@ -121,23 +121,44 @@ final class ShillerRepository
      *
      * Projektkontext (Brain), User Rules, Skills, SystemPrompt und konfigurierte
      * Runtime-/Web-Einstellungen werden auf derselben Instanz vorbereitet.
-     * Der Aufruf startet keine Conversation und vergibt keinen Dateisystemzugriff.
-     * Der Aufrufer registriert danach ein AiFileSystem mit eigener Policy und
-     * ergaenzt bei Bedarf auftragsbezogene Prompts oder Tools.
+     * Templates und Kontextdateien werden lesend registriert, User Rules nur
+     * bei expliziter Freigabe schreibend. Der Aufruf startet keine Conversation.
+     * Das Website-Dateisystem registriert der Aufrufer separat mit eigener Policy.
      *
      * @param AiContext $context Frischer, vom Aufrufer bereitgestellter AI Harness.
+     * @param bool $allowUserRulesEdit Freigabe der einzelnen konfigurierten Regeldatei; Standard: read-only.
      * @return AiContext Dieselbe konfigurierte Instanz.
      * @throws \LogicException Bei nicht lokalem Projekt oder gestartetem Context.
      * @throws \RuntimeException Bei ungueltiger oder nicht lesbarer Konfiguration.
      * @example $site->configureAiHarness($context);
      * @see AiContext::configurePrepared()
      */
-    public function configureAiHarness(AiContext $context): AiContext
+    public function configureAiHarness(AiContext $context, bool $allowUserRulesEdit = false): AiContext
     {
         return (new ShillerAiContextFactory($this->getProjectDirectory()))->configure(
             $context,
             projectConfig: $this->projectConfig,
+            allowUserRulesEdit: $allowUserRulesEdit,
         );
+    }
+
+    /**
+     * Liefert die aus der Shiller-Konfiguration abgeleiteten Schreibsperren.
+     *
+     * Diese Muster sind zusaetzlich zur auftragsbezogenen Website-Policy
+     * anzuwenden. Damit koennen separate Ressourcen nicht ueber einen
+     * breiteren Website-Root veraendert werden.
+     *
+     * @return list<string> Muster fuer FileSystemPolicy::writeIgnore.
+     * @throws \LogicException Bei nicht lokalem Projekt.
+     * @throws \RuntimeException Bei ungueltigen Ressourcen.
+     * @example $deny = $site->getAiResourceWriteIgnore();
+     * @see self::configureAiHarness()
+     */
+    public function getAiResourceWriteIgnore(): array
+    {
+        return (new ShillerAiContextFactory($this->getProjectDirectory()))
+            ->protectedWritePatterns($this->projectConfig);
     }
 
     public function storage(): SiteStorage
