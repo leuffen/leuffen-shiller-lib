@@ -7,6 +7,8 @@ namespace Leuffen\Shiller\Ai;
 use Leuffen\Shiller\Automation\ShillerAiDefaults;
 use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Phore\AiHarness\AiContext;
+use Phore\AiHarness\FileSystem\AiFileSystem;
+use Phore\AiHarness\FileSystem\FileSystemPolicy;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\SystemPrompt;
 use Phore\AiHarness\ToolType\WebAccessTool;
@@ -65,7 +67,9 @@ final class ShillerAiContextFactory
      * @param string|null $instructionFile Optionale vertrauenswuerdige System-Anweisung relativ zur Projektwurzel.
      * Runtime-Defaults werden aus ai.client, ai.timeout und
      * ai.connect_timeout der .shiller.yml gelesen.
-     * @return AiContext Konfigurierter AI-Harness-Kontext.
+     * @param AiContext|null $context Frischer eigener Context; dessen Runtime-Optionen bleiben erhalten.
+     * @param FileSystemPolicy|null $repositoryPolicy Optionaler Zugriff auf das Projekt-Repository.
+     * @return AiContext Konfigurierter AI-Harness-Kontext; bei eigener Instanz ein vorbereiteter Clone.
      * @throws FilesystemException Bei unlesbaren Konfigurations- oder Kontextdateien.
      * @throws RuntimeException Bei ungueltiger Konfiguration oder fehlenden Pflichtquellen.
      * @see AiContext::skills()
@@ -84,6 +88,8 @@ final class ShillerAiContextFactory
         bool $requireSkills = false,
         ?array $projectConfig = null,
         ?string $instructionFile = null,
+        ?AiContext $context = null,
+        ?FileSystemPolicy $repositoryPolicy = null,
     ): AiContext {
         // Konfiguration wird am gebundenen Projekt-Root gelesen.
         $configFile = $this->projectRoot->withSubPath('.shiller.yml')->asFile();
@@ -142,7 +148,7 @@ final class ShillerAiContextFactory
             throw new RuntimeException('Invalid AI timeout in ' . $configFile);
         }
 
-        $context = new AiContext($prompts, [
+        $context = $context?->withPrepared($prompts) ?? new AiContext($prompts, [
             'client' => $client,
             'model' => $selectedModel,
             'reasoning' => ['effort' => $selectedReasoning],
@@ -176,6 +182,16 @@ final class ShillerAiContextFactory
         }
         if ($requireSkills && $context->skills()->list() === []) {
             throw new RuntimeException('No skills available for ' . $configFile);
+        }
+
+        if ($repositoryPolicy !== null) {
+            new AiFileSystem(
+                (string) $this->projectRoot,
+                context: $context,
+                id: 'website',
+                description: 'Website repository; all paths are relative to the project root.',
+                policy: $repositoryPolicy,
+            );
         }
 
         return $context;
