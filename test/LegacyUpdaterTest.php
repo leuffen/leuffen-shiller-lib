@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Leuffen\Shiller\Access\ShillerRepository;
 use Leuffen\Shiller\LegacyUpdate\LegacyUpdater;
 use PHPUnit\Framework\TestCase;
@@ -79,7 +80,8 @@ final class LegacyUpdaterTest extends TestCase
 
         self::assertTrue($updater->update($this->root));
         $updated = $config->get_yaml();
-        self::assertSame('1.0', (string) $updated['version']);
+        self::assertSame('1.0', $updated['version']);
+        self::assertSame($updated, ProjectConfig::validate($updated, (string) $config));
         self::assertSame('jekyll-legacy:1.0', $updated['adapter']);
         self::assertSame('public', $updated['doc_root']);
         self::assertSame('custom/templates', $updated['template_dir']);

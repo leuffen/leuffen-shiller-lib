@@ -207,6 +207,7 @@ final class DocumentPathPatchTest extends TestCase
     public function testMissingLegacyFileWithoutLanguageReportsNotFound(): void
     {
         [$site, $storage] = $this->site([
+            '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
             'pages/termin-redirect.de.md' => "---\nlang: de\n---\nContent\n",
         ], new JekyllLegacyAdapterV1_0());
         $files = $storage->files;
@@ -224,6 +225,7 @@ final class DocumentPathPatchTest extends TestCase
     public function testMissingLegacyTranslationRemainsAReference(): void
     {
         [$site] = $this->site([
+            '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
             '_data/languages.yml' => "- {lang: de}\n- {lang: en}\n",
             'pages/termin-redirect.de.md' => "---\nlang: de\n---\nContent\n",
         ], new JekyllLegacyAdapterV1_0());
@@ -236,6 +238,7 @@ final class DocumentPathPatchTest extends TestCase
     public function testExistingLegacyFileWithoutLanguageRemainsInvalid(): void
     {
         [$site] = $this->site([
+            '.shiller.yml' => "version: 1.0\nadapter: jekyll-legacy:1.0\n",
             'termin-redirect.md' => "---\nlang: de\n---\nContent\n",
         ], new JekyllLegacyAdapterV1_0());
 

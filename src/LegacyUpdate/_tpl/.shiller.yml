@@ -1,4 +1,4 @@
-version: 1.0
+version: '1.0'
 adapter: jekyll-legacy:1.0
 doc_root: docs
 context_files: .shiller.d/static-context.md
