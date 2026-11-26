@@ -105,7 +105,8 @@ final class ShillerEditAction
         foreach (array_keys($originals) as $sourceName) {
             $this->logger?->step('Analysiere Edit-Quelle: {}', [$sourceName]);
         }
-        $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->create(
+        $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->configure(
+            new AiContext(),
             additionalContextFiles: $this->additionalContextFiles,
             model: $this->model,
             skillsDir: $this->skillsDir,

@@ -121,7 +121,8 @@ final class ShillerResolveAction
             return str_replace('\\', '/', (string) $target->getRelPath($this->projectRoot));
         }
 
-        $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->create(
+        $context = $this->context ?? (new ShillerAiContextFactory((string) $this->projectRoot))->configure(
+            new AiContext(),
             additionalContextFiles: $this->additionalContextFiles,
             model: $this->model,
             skillsDir: $this->skillsDir,

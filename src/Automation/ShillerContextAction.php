@@ -6,6 +6,7 @@ namespace Leuffen\Shiller\Automation;
 
 use JsonException;
 use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
@@ -182,8 +183,11 @@ final class ShillerContextAction
         );
 
         // Text-Edits nutzen dieselbe Cursor- und Callback-API wie adapt.
-        $this->logger?->step('AI-Modell: {}', [$this->model]);
-        $context = new AiContext(options: ['model' => $this->model]);
+        $this->logger?->step('AI-Modell: {}', [$this->model === ShillerAiDefaults::MODEL ? 'project config/default' : $this->model]);
+        $context = (new ShillerAiContextFactory((string) $this->projectRoot))->configure(
+            new AiContext(),
+            model: $this->model === ShillerAiDefaults::MODEL ? '' : $this->model,
+        );
         $result = $context->text($prompts, input: $this->projectFile->get_contents());
         SharedWritePermissions::write($this->projectFile, $this->projectRoot, $result);
         foreach ($selected as $sourceFile) {

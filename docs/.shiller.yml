@@ -26,7 +26,7 @@ language_labels:
 
 # --- Templates und AI-Kontext ---
 
-# _tpl-Verzeichnis: init/install/revert/adjust und Onsite-AI (read-only).
+# _tpl-Verzeichnis: init/install/revert/adjust und AI-Projektkontext (read-only).
 # Zielstruktur für AI; Mock-Texte und Beispieldaten durch echte Inhalte ersetzen.
 template_dir: node_modules/@leuffen/themejs2/_tpl
 
@@ -44,7 +44,7 @@ context_files: .shiller-context.d/project.md
 #   - .shiller-context.d/project.md # Aufbereiteter Projektkontext.
 
 # AI-User-Kontext: bestätigte individuelle Fakten und dauerhafte Benutzerregeln.
-# Global / Page: <Quellpfad>; Onsite-Text-Edits speichern nur nach Zustimmung.
+# Global / Page: <Quellpfad>; Regeln nur nach ausdrücklicher Zustimmung speichern.
 # Vorhandene Markdown-Datei; null/'' = aus (Default).
 # user_rules_file: .shiller.d/user-rules.md
 user_rules_file: null
@@ -61,7 +61,7 @@ ai:
   # Reasoning: none, minimal, low, medium (Default), high, xhigh.
   reasoning_effort: medium
 
-  # Web-Tool für AI; true/false (Default). Onsite: nur auf Nutzerwunsch.
+  # Web-Tool für AI; true/false (Default). Anwendungen können die Nutzung weiter beschränken.
   web_access: false
 
   # HTTP-Timeout in Sekunden (>0); Default: Harness-Client.
@@ -70,10 +70,10 @@ ai:
   # Connect-Timeout in Sekunden (>0); Default: Harness-Client.
   # connect_timeout: 12
 
-# --- Onsite Editor ---
+# --- Zusätzliche AI-Systemanweisung (bestehender Konfigurationsschlüssel) ---
 
 onsite_editor:
-  # Zusätzlicher SystemPrompt aus Datei; null/'' = aus (Default).
+  # Zusätzlicher SystemPrompt für konfigurierte AI-Kontexte; null/'' = aus.
   # instruction_file: .shiller-onsite-editor.md
   instruction_file: null
 

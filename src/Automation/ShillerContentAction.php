@@ -7,6 +7,7 @@ namespace Leuffen\Shiller\Automation;
 use Leuffen\Shiller\Access\DTO\Document;
 use Leuffen\Shiller\Ai\ShillerAiContextFactory;
 use Leuffen\Shiller\Access\Helper\SharedWritePermissions;
+use Phore\AiHarness\AiContext;
 use Phore\AiHarness\PromptType\FilePrompt;
 use Phore\AiHarness\PromptType\TextPrompt;
 use Phore\AiHarness\Usage\GlobalUsage;
@@ -25,8 +26,8 @@ final class ShillerContentAction
     private readonly PhoreDirectory $projectRoot;
     private readonly PhoreDirectory $documentRoot;
     private readonly PhoreDirectory $templateDir;
-    /** @var list<string> */
-    private readonly array $skillsDirectories;
+    /** @var string|list<string> */
+    private readonly string|array $skillsDirectories;
     private readonly PhoreFile $skillFile;
 
     /** @var list<PhoreFile> */
@@ -60,14 +61,14 @@ final class ShillerContentAction
         private readonly ?PhoreLogger $logger = null,
         private readonly string $model = ShillerAiDefaults::MODEL,
         string|array $skillsDirectory = '',
-        private readonly string $reasoningEffort = 'medium',
-        private readonly bool $webAccess = false,
+        private readonly ?string $reasoningEffort = null,
+        private readonly ?bool $webAccess = null,
         private readonly ?string $configurationRoot = null,
     ) {
         if ($model === '') {
             throw new RuntimeException('AI model must not be empty.');
         }
-        if (!in_array($reasoningEffort, ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'], true)) {
+        if ($reasoningEffort !== null && !in_array($reasoningEffort, ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'], true)) {
             throw new RuntimeException('Invalid reasoning effort: ' . $reasoningEffort);
         }
         $documentUri = phore_uri($documentRoot)->abs();
@@ -81,21 +82,8 @@ final class ShillerContentAction
         $this->templateDir = phore_dir($templatePath, ['rootDir' => $templatePath])
             ->assertDirectory()->assertReadable();
 
-        if ($skillsDirectory === '') {
-            $skillsDirectory = (string) $this->documentRoot->withParentDir()
-                ->withSubPath('node_modules/@leuffen/themejs2/skills');
-        }
-        $paths = is_string($skillsDirectory) ? [$skillsDirectory] : $skillsDirectory;
-        $directories = [];
-        foreach ($paths as $path) {
-            if (!is_string($path) || trim($path) === '') {
-                throw new RuntimeException('Skill directory must be a non-empty string.');
-            }
-            $skillsPath = (string) phore_uri($path)->abs();
-            $directories[] = (string) phore_dir($skillsPath, ['rootDir' => $skillsPath])
-                ->assertDirectory()->assertReadable();
-        }
-        $this->skillsDirectories = $directories;
+        // Die gemeinsame AI-Konfiguration loest Skills relativ zur .shiller.yml auf.
+        $this->skillsDirectories = $skillsDirectory;
 
         $skillUri = phore_uri($skillFile)->abs();
         $this->skillFile = phore_file((string) $skillUri, ['rootDir' => (string) $skillUri->withParentDir()])
@@ -138,15 +126,16 @@ final class ShillerContentAction
         $startStats = $usage->getStats();
         $this->logger?->step(
             'AI-Modell: {}; Kontext-Reasoning: {}; Datei-Reasoning: {}',
-            [$this->model, $this->reasoningEffort, self::FILE_REASONING_EFFORT],
+            [$this->model === ShillerAiDefaults::MODEL ? 'project config/default' : $this->model, $this->reasoningEffort ?? 'project config/default', self::FILE_REASONING_EFFORT],
         );
 
-        $context = (new ShillerAiContextFactory($this->configurationRoot ?? (string) $this->projectRoot))->create(
+        $context = (new ShillerAiContextFactory($this->configurationRoot ?? (string) $this->projectRoot))->configure(
+            new AiContext(),
             additionalContextFiles: array_map(
                 static fn(PhoreFile $file): string => (string) $file,
                 $this->contextFiles,
             ),
-            model: $this->model,
+            model: $this->model === ShillerAiDefaults::MODEL ? '' : $this->model,
             skillsDir: $this->skillsDirectories,
             workflowSkillFile: (string) $this->skillFile,
             reasoningEffort: $this->reasoningEffort,

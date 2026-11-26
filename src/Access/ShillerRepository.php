@@ -21,6 +21,7 @@ use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\PageIndexGenerator;
 use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Info\FileKind;
@@ -28,6 +29,8 @@ use Leuffen\Shiller\Access\Info\TranslationInfo;
 use Leuffen\Shiller\Access\Storage\SiteStorage;
 use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
+use Phore\AiHarness\AiContext;
 
 final class ShillerRepository
 {
@@ -112,6 +115,67 @@ final class ShillerRepository
     public function getProjectConfig(): array
     {
         return $this->projectConfig;
+    }
+
+    /**
+     * Konfiguriert den uebergebenen AI Harness mit den AI-Einstellungen aus .shiller.yml.
+     *
+     * Projektkontext (Brain), User Rules, Skills, SystemPrompt und konfigurierte
+     * Runtime-/Web-Einstellungen werden auf derselben Instanz vorbereitet.
+     * Templates und Kontextdateien werden lesend registriert, User Rules nur
+     * bei expliziter Freigabe schreibend. Der Aufruf startet keine Conversation.
+     * Das Website-Dateisystem registriert der Aufrufer separat mit eigener Policy.
+     *
+     * @param AiContext $context Frischer, vom Aufrufer bereitgestellter AI Harness.
+     * @param bool $allowUserRulesEdit Freigabe der einzelnen konfigurierten Regeldatei; Standard: read-only.
+     * @return AiContext Dieselbe konfigurierte Instanz.
+     * @throws \LogicException Bei nicht lokalem Projekt oder gestartetem Context.
+     * @throws \RuntimeException Bei ungueltiger oder nicht lesbarer Konfiguration.
+     * @example $site->configureAiHarness($context);
+     * @see AiContext::configurePrepared()
+     */
+    public function configureAiHarness(AiContext $context, bool $allowUserRulesEdit = false): AiContext
+    {
+        return (new ShillerAiContextFactory($this->getProjectDirectory()))->configure(
+            $context,
+            projectConfig: $this->projectConfig,
+            allowUserRulesEdit: $allowUserRulesEdit,
+        );
+    }
+
+    /**
+     * Liefert die aus der Shiller-Konfiguration abgeleiteten Schreibsperren.
+     *
+     * Diese Muster sind zusaetzlich zur auftragsbezogenen Website-Policy
+     * anzuwenden. Damit koennen separate Ressourcen nicht ueber einen
+     * breiteren Website-Root veraendert werden.
+     *
+     * @return list<string> Muster fuer FileSystemPolicy::writeIgnore.
+     * @throws \LogicException Bei nicht lokalem Projekt.
+     * @throws \RuntimeException Bei ungueltigen Ressourcen.
+     * @example $deny = $site->getAiResourceWriteIgnore();
+     * @see self::configureAiHarness()
+     */
+    public function getAiResourceWriteIgnore(): array
+    {
+        return (new ShillerAiContextFactory($this->getProjectDirectory()))
+            ->protectedWritePatterns($this->projectConfig);
+    }
+
+    /**
+     * Return a CSV index of existing Markdown pages, including unpublished translations.
+     *
+     * Paths are relative to the document root. URLs are supplied by the adapter
+     * and remain empty for unpublished pages. No AI request or write is performed.
+     *
+     * @return string CSV with file, title, url, published and language columns.
+     * @throws \Leuffen\Shiller\Access\Exception\ShillerException On invalid sources.
+     * @example $csv = $site->getPageIndexCsv();
+     * @see self::pages()
+     */
+    public function getPageIndexCsv(): string
+    {
+        return (new PageIndexGenerator())->generate($this);
     }
 
     public function storage(): SiteStorage
