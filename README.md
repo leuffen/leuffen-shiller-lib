@@ -3,8 +3,8 @@
 ## Projektkonfiguration (.shiller.yml)
 
 Die [vollständige kommentierte .shiller.yml](docs/.shiller.yml) ist die
-zentrale Konfigurationsreferenz für Website, Template, Skills, AI und Onsite
-Editor sowie die Init-Hooks. Sie enthält Standardwerte, optionale Felder und
+zentrale Konfigurationsreferenz für Website, Template, Skills, AI und
+Init-Hooks. Sie enthält Standardwerte, optionale Felder und
 Voraussetzungen und kann in die Website-Projektwurzel kopiert werden.
 Relative Pfade beziehen sich auf den Ort der Konfigurationsdatei. Für die
 separate Header-Konfiguration siehe [Beispiel](examples/20-editable-headers.conf.yaml).
@@ -78,13 +78,13 @@ Der Dateiname ist frei wählbar. Fehlt der Eintrag oder ist er leer beziehungswe
 `null`, liefert `getEditableHeaders()` keine Felder — auch wenn eine
 Header-Konfigurationsdatei vorhanden ist. Es wird kein Standarddateiname gesucht.
 
-## Onsite Editor
+## AI-Projektkontext
 
-Für interaktive Website-Editoren bietet `ShillerOnsiteEditor` eine API für
-Inline-Vorschläge, Text- und Dateiänderungen mit separater AI-Rückmeldung,
-offenen Aufgaben und Conversation-ID. Der Editor nutzt ein vorhandenes
-`ShillerRepository`, Projektkontext, Skills und den mehrsprachigen
-Seitenindex. Die Anwendung entscheidet über Speicherung oder Undo.
+`ShillerRepository::configureAiHarness()` konfiguriert einen vom Aufrufer
+bereitgestellten AI Context mit Projektkontext, Skills, Templates, User Rules
+und AI-Einstellungen. Die Anwendung registriert das Website-Dateisystem
+mit ihrer eigenen Policy. `getPageIndexCsv()` liefert den mehrsprachigen
+Seitenindex unabhängig vom AI Harness.
 Unter `.shiller.d/` werden zwei Aufgaben getrennt:
 
 - `static-context.md`: technische Website-Struktur, Jekyll/Liquid, Markdown,
@@ -99,7 +99,7 @@ Die Website-Datenquellen bleiben für die Darstellung maßgeblich. Die AI soll
 beide Datenstände konsistent halten und Entwicklungsaufgaben am Theme,
 CSS/SCSS oder TypeScript melden statt Markdown mit Workarounds zu erweitern.
 
-Siehe [Onsite Editor – Konfiguration und Beispiele](docs/onsite-editor.md).
+Siehe [AI-Projektkontext](docs/ai-context.md).
 
 ## CLI: Neue Website anlegen
 

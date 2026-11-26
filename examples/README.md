@@ -153,9 +153,8 @@ Die ursprüngliche Response-ID wird wiederverwendet; ein Cache-Hit ist nicht
 garantiert. `usage` enthält die tatsächlichen Tokens und geschätzte Kosten;
 `initializationUsage` weist den zusätzlichen ersten Request getrennt aus.
 
-Der [Onsite Editor](../docs/onsite-editor.md) ergänzt Beispiel 21 um vollständige
-Dateivorschläge, mehrere editierbare Texte, Conversation-Fortsetzung und
-strukturierte offene Aufgaben. Die dort gezeigten Ausschnitte speichern nicht.
+Die [AI-Projektkonfiguration](../docs/ai-context.md) bindet Projektressourcen
+an einen vom Aufrufer bereitgestellten AI Context.
 
 ## Gemeinsames Baumformat
 

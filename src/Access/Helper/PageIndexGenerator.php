@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Leuffen\Shiller\OnsiteEditor;
+namespace Leuffen\Shiller\Access\Helper;
 
 use Leuffen\Shiller\Access\DTO\TreeNode;
 use Leuffen\Shiller\Access\ShillerRepository;
 
-/** Generates the multilingual page index using the existing Shiller adapter. */
+/** @internal Generates the multilingual page index using the existing Shiller adapter. */
 final class PageIndexGenerator
 {
     /**

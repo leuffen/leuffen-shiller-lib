@@ -21,6 +21,7 @@ use Leuffen\Shiller\Access\Exception\ConflictException;
 use Leuffen\Shiller\Access\Exception\NotFoundException;
 use Leuffen\Shiller\Access\Exception\ValidationException;
 use Leuffen\Shiller\Access\Helper\Codec;
+use Leuffen\Shiller\Access\Helper\PageIndexGenerator;
 use Leuffen\Shiller\Access\Helper\ProjectConfig;
 use Leuffen\Shiller\Access\Info\Capabilities;
 use Leuffen\Shiller\Access\Info\FileKind;
@@ -159,6 +160,22 @@ final class ShillerRepository
     {
         return (new ShillerAiContextFactory($this->getProjectDirectory()))
             ->protectedWritePatterns($this->projectConfig);
+    }
+
+    /**
+     * Return a CSV index of existing Markdown pages, including unpublished translations.
+     *
+     * Paths are relative to the document root. URLs are supplied by the adapter
+     * and remain empty for unpublished pages. No AI request or write is performed.
+     *
+     * @return string CSV with file, title, url, published and language columns.
+     * @throws \Leuffen\Shiller\Access\Exception\ShillerException On invalid sources.
+     * @example $csv = $site->getPageIndexCsv();
+     * @see self::pages()
+     */
+    public function getPageIndexCsv(): string
+    {
+        return (new PageIndexGenerator())->generate($this);
     }
 
     public function storage(): SiteStorage
