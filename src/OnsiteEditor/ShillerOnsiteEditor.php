@@ -87,14 +87,6 @@ PROMPT;
         $root = $site->getSourceDirectory();
         $this->documentRoot = phore_dir($root, ['rootDir' => $root])
             ->assertDirectory()->assertReadable();
-        $config = $site->getProjectConfig()['onsite_editor'] ?? [];
-        if (!is_array($config)) {
-            throw new RuntimeException('Invalid onsite_editor configuration.');
-        }
-        $instructionFile ??= $config['instruction_file'] ?? null;
-        if ($instructionFile !== null && !is_string($instructionFile)) {
-            throw new RuntimeException('Invalid onsite_editor.instruction_file.');
-        }
         $this->instructionFile = $instructionFile;
     }
 
@@ -105,14 +97,22 @@ PROMPT;
      * @return AiContext Context with project facts, discovered skills and website index.
      * @throws RuntimeException For invalid configuration or unavailable project sources.
      * @example $answer = $editor->createContext()->text('Find missing links.');
-     * @see ShillerAiContextFactory::create()
+     * @see ShillerRepository::configureAiHarness()
      */
     public function createContext(bool $allowUserRulesEdit = false): AiContext
     {
-        $context = (new ShillerAiContextFactory($this->site->getProjectDirectory()))->create(
-            projectConfig: $this->site->getProjectConfig(),
-            instructionFile: $this->instructionFile,
-        )->withPrepared([
+        $context = new AiContext();
+        if ($this->instructionFile === null) {
+            $this->site->configureAiHarness($context);
+        } else {
+            // Bestehender expliziter Onsite-Override bleibt auf diesen Workflow begrenzt.
+            (new ShillerAiContextFactory($this->site->getProjectDirectory()))->configure(
+                $context,
+                projectConfig: $this->site->getProjectConfig(),
+                instructionFile: $this->instructionFile,
+            );
+        }
+        $context->configurePrepared([
             new SystemPrompt(self::INSTRUCTIONS),
             $this->pageIndexPrompt(),
         ]);

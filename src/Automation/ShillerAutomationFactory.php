@@ -88,25 +88,6 @@ final class ShillerAutomationFactory
         }
         $templateUri->assertDirectory()->assertReadable();
 
-        // Explizite Skills-Pfade gelten relativ zur .shiller.yml.
-        if ($skillsDir === '') {
-            $skillsDir = $config['skills_dir'] ?? '';
-        }
-        $paths = is_string($skillsDir) ? [$skillsDir] : $skillsDir;
-        if (!is_array($paths) || !array_is_list($paths)) {
-            throw new RuntimeException("Invalid skills_dir in $configFile");
-        }
-        $skillsPaths = [];
-        foreach ($paths as $path) {
-            if (!is_string($path)) {
-                throw new RuntimeException("Invalid skills_dir in $configFile");
-            }
-            $skillsUri = $path === ''
-                ? $projectRoot->withSubPath('node_modules/@leuffen/themejs2/skills')
-                : $this->resolveExternalPath($configDir, $path);
-            $skillsPaths[] = (string) $skillsUri->assertDirectory()->assertReadable();
-        }
-
         // Nur auftragsbezogene Zusatzdateien vorbereiten. Projektkontext laedt der AiContext.
         $contextFiles = [];
         foreach ($additionalContextFiles as $additionalContextFile) {
@@ -130,16 +111,6 @@ final class ShillerAutomationFactory
                 ->assertReadable();
         }
 
-        $reasoningEffort = $config['ai']['reasoning_effort'] ?? 'medium';
-        if (!is_string($reasoningEffort)) {
-            throw new RuntimeException("Invalid ai.reasoning_effort in $configFile");
-        }
-
-        $webAccess = $config['ai']['web_access'] ?? false;
-        if (!is_bool($webAccess)) {
-            throw new RuntimeException("Invalid ai.web_access in $configFile: expected boolean");
-        }
-
         return new ShillerContentAction(
             (string) $documentUri,
             (string) $templateUri,
@@ -147,9 +118,7 @@ final class ShillerAutomationFactory
             $skillFile,
             $logger,
             $model,
-            $skillsPaths,
-            $reasoningEffort,
-            $webAccess,
+            $skillsDir,
             configurationRoot: (string) $configDir,
         );
     }

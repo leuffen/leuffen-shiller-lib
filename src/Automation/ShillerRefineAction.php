@@ -123,7 +123,8 @@ final class ShillerRefineAction
             // Der AI-Kontext wird erst gebraucht, wenn tatsaechlich eine
             // natuerlichsprachliche Aenderung angefordert wird.
             if ($context === null && $this->refine === null) {
-                $context = (new ShillerAiContextFactory((string) $this->root))->create(
+                $context = (new ShillerAiContextFactory((string) $this->root))->configure(
+                    new AiContext(),
                     model: $this->model,
                     skillsDir: $this->skillsDir,
                 );

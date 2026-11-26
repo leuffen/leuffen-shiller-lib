@@ -42,6 +42,28 @@ automatisch als Projektkontext eingebunden.
 Webzugriff ist nur bei aktivierter Konfiguration und expliziter Nachfrage
 vorgesehen. Das ist eine AI-Anweisung, keine technische Web-Sperre je Prompt.
 
+## AI Harness eines Projekts konfigurieren
+
+Die projektweite AI-Konfiguration erfolgt auf einem vom Aufrufer
+bereitgestellten, noch nicht gestarteten Context. Der ShillerRepository
+verwendet dazu seine bereits geladene .shiller.yml.
+
+```php
+$site = new \Leuffen\Shiller\Access\ShillerRepository('/srv/site/docs', projectRoot: '/srv/site');
+$context = new \Phore\AiHarness\AiContext();
+$site->configureAiHarness($context);
+```
+
+Der Context enthaelt danach Projektkontext, User Rules, Skills, konfigurierte
+System-Anweisungen und Runtime-/Web-Einstellungen. Die Instanz bleibt
+unveraendert in ihrer Identitaet; es gibt keinen Clone. Die Methode
+registriert keine Dateisystem-Tools. Erst der jeweilige Aufrufer richtet
+Dateizugriff mit eigener Policy und die auftragsbezogenen Prompts ein.
+
+Standalone-CLI-Workflows nutzen denselben internen Konfigurator und
+ergaenzen ihre eigenen Quellen und Basis-Skills. Explizite Workflow-Overrides
+bleiben auf den jeweiligen Workflow begrenzt.
+
 ## Static Context und dauerhafte User Rules
 
 `.shiller.d/static-context.md` beschreibt die technische Funktionsweise und
@@ -71,7 +93,7 @@ Konfigurationsdatei. Beispiel für ihren Inhalt:
 - Britisches Englisch verwenden.
 ```
 
-Die gemeinsame AI Context Factory liest die Datei vor der Bearbeitung.
+Die gemeinsame Repository-Konfiguration liest die Datei vor der Bearbeitung.
 Globale Regeln gelten für alle Seiten, Page-Regeln nur für den exakten
 Document-Root-relativen Quellpfad und haben dort bei Stilpräferenzen Vorrang.
 Die AI soll beim ersten Zugriff und bei jeder Folgeanfrage die aktuelle

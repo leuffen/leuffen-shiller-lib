@@ -28,6 +28,8 @@ use Leuffen\Shiller\Access\Info\TranslationInfo;
 use Leuffen\Shiller\Access\Storage\SiteStorage;
 use Leuffen\Shiller\Access\Adapter\Adapter;
 use Leuffen\Shiller\Access\Storage\NativeSiteStorage;
+use Leuffen\Shiller\Ai\ShillerAiContextFactory;
+use Phore\AiHarness\AiContext;
 
 final class ShillerRepository
 {
@@ -112,6 +114,30 @@ final class ShillerRepository
     public function getProjectConfig(): array
     {
         return $this->projectConfig;
+    }
+
+    /**
+     * Konfiguriert den uebergebenen AI Harness mit den AI-Einstellungen aus .shiller.yml.
+     *
+     * Projektkontext (Brain), User Rules, Skills, SystemPrompt und konfigurierte
+     * Runtime-/Web-Einstellungen werden auf derselben Instanz vorbereitet.
+     * Der Aufruf startet keine Conversation und vergibt keinen Dateisystemzugriff.
+     * Der Aufrufer registriert danach ein AiFileSystem mit eigener Policy und
+     * ergaenzt bei Bedarf auftragsbezogene Prompts oder Tools.
+     *
+     * @param AiContext $context Frischer, vom Aufrufer bereitgestellter AI Harness.
+     * @return AiContext Dieselbe konfigurierte Instanz.
+     * @throws \LogicException Bei nicht lokalem Projekt oder gestartetem Context.
+     * @throws \RuntimeException Bei ungueltiger oder nicht lesbarer Konfiguration.
+     * @example $site->configureAiHarness($context);
+     * @see AiContext::configurePrepared()
+     */
+    public function configureAiHarness(AiContext $context): AiContext
+    {
+        return (new ShillerAiContextFactory($this->getProjectDirectory()))->configure(
+            $context,
+            projectConfig: $this->projectConfig,
+        );
     }
 
     public function storage(): SiteStorage

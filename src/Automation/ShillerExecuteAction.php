@@ -162,7 +162,8 @@ final class ShillerExecuteAction
                 $originalFiles[$name] ??= $body;
             }
             if ($context === null && $this->apply === null) {
-                $context = (new ShillerAiContextFactory((string) $this->root))->create(
+                $context = (new ShillerAiContextFactory((string) $this->root))->configure(
+                    new AiContext(),
                     model: $this->model,
                     skillsDir: $this->skillsDir,
                 );
