@@ -145,13 +145,6 @@ Die Basisfixture enthält keine französische Übersetzung und keine leistungen/
 | [18-editor-save.php](18-editor-save.php) | Wie überlebt der Dokumentstand getrennte HTTP-Anfragen? |
 | [19-save-language-group.php](19-save-language-group.php) | Wie ändere ich den Permalink einer Sprachgruppe gemeinsam? |
 | [20-editable-headers.php](20-editable-headers.php) | Wie lese ich editierbare Headerfelder aus der [YAML-Konfiguration](20-editable-headers.conf.yaml) für eine Polyglot-Seite? |
-| [21-ai-editor.php](21-ai-editor.php) | Wie erzeuge ich Inline Completion und Inline Edit mit gemeinsamem AI-Kontext? |
-
-Beispiel 21 ist ein eigenständig ausführbares Skript mit echtem AI-Request.
-Es benötigt den konfigurierten Harness-API-Key und verursacht API-Kosten.
-Die ursprüngliche Response-ID wird wiederverwendet; ein Cache-Hit ist nicht
-garantiert. `usage` enthält die tatsächlichen Tokens und geschätzte Kosten;
-`initializationUsage` weist den zusätzlichen ersten Request getrennt aus.
 
 Die [AI-Projektkonfiguration](../docs/ai-context.md) bindet Projektressourcen
 an einen vom Aufrufer bereitgestellten AI Context.
